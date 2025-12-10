@@ -44,3 +44,22 @@ script:
   # Instruction count threshold for timeout/memory checks (default: 10000)
   # Lower values = more frequent checks = more overhead but more accurate limits
   instructionThreshold: 10000
+
+# Logging Configuration
+logging:
+  # Log level: TRACE, DEBUG, INFO, WARN, ERROR (can be overridden with LOG_LEVEL)
+  level: ${LOG_LEVEL:INFO}
+  # Enable/disable file logging (can be overridden with LOG_FILE_ENABLED)
+  fileEnabled: ${LOG_FILE_ENABLED:true}
+  # Log file path (can be overridden with LOG_FILE_PATH)
+  filePath: ${LOG_FILE_PATH:logs/application.log}
+  # Maximum log file size before rolling (can be overridden with LOG_FILE_MAX_SIZE)
+  fileMaxSize: ${LOG_FILE_MAX_SIZE:10MB}
+  # Number of archived log files to keep (can be overridden with LOG_FILE_MAX_HISTORY)
+  fileMaxHistory: ${LOG_FILE_MAX_HISTORY:30}
+  # Total size cap for all log files (can be overridden with LOG_FILE_TOTAL_SIZE_CAP)
+  fileTotalSizeCap: ${LOG_FILE_TOTAL_SIZE_CAP:1GB}
+  # Log pattern for console output
+  consolePattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  # Log pattern for file output
+  filePattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

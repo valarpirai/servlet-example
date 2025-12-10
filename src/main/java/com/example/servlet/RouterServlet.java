@@ -13,6 +13,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -24,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RouterServlet extends HttpServlet {
 
+    private static final Logger logger = LoggerFactory.getLogger(RouterServlet.class);
     private AtomicLong requestCount;
     private long startTime;
     private static final DateTimeFormatter LOG_DATE_FORMAT =
@@ -78,7 +81,7 @@ public class RouterServlet extends HttpServlet {
             contentType
         );
 
-        System.out.println(logMessage);
+        logger.info(logMessage);
     }
 
     private void logError(HttpServletRequest request, Throwable exception, long responseTimeMs) {
@@ -92,25 +95,18 @@ public class RouterServlet extends HttpServlet {
             uri = uri + "?" + queryString;
         }
 
-        // Get stack trace as string
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        exception.printStackTrace(pw);
-        String stackTrace = sw.toString();
-
         String errorMessage = String.format(
-            "[ERROR] %s - [%s] \"%s %s\" - %s: %s - Response Time: %dms\n%s",
+            "%s - [%s] \"%s %s\" - %s: %s - Response Time: %dms",
             remoteAddr,
             timestamp,
             method,
             uri,
             exception.getClass().getName(),
             exception.getMessage(),
-            responseTimeMs,
-            stackTrace
+            responseTimeMs
         );
 
-        System.err.println(errorMessage);
+        logger.error(errorMessage, exception);
     }
 
     @Override

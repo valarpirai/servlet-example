@@ -1,5 +1,7 @@
 package com.example.servlet.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
@@ -7,6 +9,9 @@ import java.util.Map;
 
 public class PropertiesUtil {
 
+    // Note: Logger initialization is deferred to avoid circular dependency
+    // PropertiesUtil is used by LoggingConfig, so we can't use logger during static initialization
+    private static Logger logger;
     private static final String CONFIG_FILE = "application.yml";
     private static Map<String, Object> properties;
 
@@ -14,13 +19,22 @@ public class PropertiesUtil {
         loadProperties();
     }
 
+    private static Logger getLogger() {
+        if (logger == null) {
+            logger = LoggerFactory.getLogger(PropertiesUtil.class);
+        }
+        return logger;
+    }
+
     /**
      * Load properties from YAML file
+     * Note: Uses System.err during initialization as logging is not yet configured
      */
     private static void loadProperties() {
         try (InputStream inputStream = PropertiesUtil.class.getClassLoader()
                 .getResourceAsStream(CONFIG_FILE)) {
             if (inputStream == null) {
+                // Use System.err during static initialization (before logging is configured)
                 System.err.println("Warning: " + CONFIG_FILE + " not found. Using default values.");
                 properties = Map.of();
                 return;
@@ -33,6 +47,7 @@ public class PropertiesUtil {
                 properties = Map.of();
             }
         } catch (Exception e) {
+            // Use System.err during static initialization (before logging is configured)
             System.err.println("Error loading properties file: " + e.getMessage());
             properties = Map.of();
         }
@@ -68,7 +83,7 @@ public class PropertiesUtil {
             }
             return Integer.parseInt(String.valueOf(value));
         } catch (NumberFormatException e) {
-            System.err.println("Warning: Invalid integer value for key '" + key + "': " + value);
+            getLogger().warn("Invalid integer value for key '{}': {}", key, value);
             return defaultValue;
         }
     }
@@ -91,7 +106,7 @@ public class PropertiesUtil {
             }
             return Long.parseLong(String.valueOf(value));
         } catch (NumberFormatException e) {
-            System.err.println("Warning: Invalid long value for key '" + key + "': " + value);
+            getLogger().warn("Invalid long value for key '{}': {}", key, value);
             return defaultValue;
         }
     }
@@ -132,7 +147,7 @@ public class PropertiesUtil {
             }
             return Double.parseDouble(String.valueOf(value));
         } catch (NumberFormatException e) {
-            System.err.println("Warning: Invalid double value for key '" + key + "': " + value);
+            getLogger().warn("Invalid double value for key '{}': {}", key, value);
             return defaultValue;
         }
     }

@@ -346,12 +346,37 @@ curl -X POST http://localhost:8080/api/script \
 - `console.log()`: Captures output to response
 
 **Java Interop:**
-Scripts can create and use Java objects via Rhino:
+Scripts can create and use Java objects via Rhino with a secure whitelist/blacklist system:
+
+*Allowed Classes (Whitelist):*
+- Collections: `ArrayList`, `HashMap`, `HashSet`, `LinkedList`, `TreeMap`, `TreeSet`, etc.
+- Utilities: `Date`, `UUID`, `Optional`, `Arrays`, `Collections`
+- Primitives/Wrappers: `String`, `StringBuilder`, `Math`, `Integer`, `Long`, `Double`, etc.
+- Date/Time: `LocalDate`, `LocalDateTime`, `Instant`, `Duration`, `Period`, etc.
+- Math: `BigDecimal`, `BigInteger`
+
+*Blocked for Security (Blacklist):*
+- System access: `System`, `Runtime`, `ProcessBuilder`, `Thread`, `ClassLoader`
+- File I/O: `java.io.*`, `java.nio.file.*`
+- Network: `java.net.*`
+- Reflection: `java.lang.reflect.*`
+- Database: `java.sql.*`, `javax.sql.*`
+
 ```javascript
-var ArrayList = java.util.ArrayList;
-var list = new ArrayList();
-list.add("item");
-list.size(); // Returns 1
+// Allowed - Collection manipulation
+var list = new java.util.ArrayList();
+list.add("Hello");
+list.add(42);
+list.get(0); // Returns "Hello"
+
+var map = new java.util.HashMap();
+map.put("name", "Alice");
+map.get("name"); // Returns "Alice"
+
+// Blocked - System/File/Network access will fail
+java.lang.System.exit(0);           // ERROR: blocked
+new java.io.File("/etc/passwd");    // ERROR: blocked
+new java.net.Socket("host", 80);    // ERROR: blocked
 ```
 
 #### Interactive Script Editor

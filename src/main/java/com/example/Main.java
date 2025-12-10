@@ -1,20 +1,31 @@
 package com.example;
 
 import com.example.servlet.RouterServlet;
+import com.example.servlet.util.LoggingConfig;
 import com.example.servlet.util.PropertiesUtil;
 import jakarta.servlet.MultipartConfigElement;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.startup.Tomcat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.BindException;
 
 public class Main {
 
     private static final int PORT = PropertiesUtil.getInt("server.port", 8080);
+    private static final Logger logger;
 
-    public static void main(String[] args) throws LifecycleException {
+    // Static initializer to configure logging before logger creation
+    static {
+        LoggingConfig.initialize();
+        logger = LoggerFactory.getLogger(Main.class);
+    }
+
+    public static void main(String[] args) {
         Tomcat tomcat = new Tomcat();
         tomcat.setPort(PORT);
         tomcat.getConnector();
@@ -45,24 +56,47 @@ public class Main {
 
         context.addServletMappingDecoded(urlPattern, servletName);
 
-        tomcat.start();
+        try {
+            tomcat.start();
 
-        System.out.println("=========================================");
-        System.out.println("Tomcat server started successfully!");
-        System.out.println("Port: " + PORT);
-        System.out.println("\nGET Endpoints:");
-        System.out.println("  - http://localhost:" + PORT + "/");
-        System.out.println("  - http://localhost:" + PORT + "/health");
-        System.out.println("  - http://localhost:" + PORT + "/metrics");
-        System.out.println("  - http://localhost:" + PORT + "/script-editor (JavaScript Code Editor)");
-        System.out.println("\nPOST Endpoints:");
-        System.out.println("  - http://localhost:" + PORT + "/api/form   (Content-Type: application/x-www-form-urlencoded)");
-        System.out.println("  - http://localhost:" + PORT + "/api/json   (Content-Type: application/json)");
-        System.out.println("  - http://localhost:" + PORT + "/api/upload (Content-Type: multipart/form-data)");
-        System.out.println("  - http://localhost:" + PORT + "/api/script (Content-Type: application/javascript)");
-        System.out.println("  - http://localhost:" + PORT + "/api/render (Content-Type: text/html)");
-        System.out.println("=========================================");
+            logger.info("=========================================");
+            logger.info("Tomcat server started successfully!");
+            logger.info("Port: {}", PORT);
+            logger.info("GET Endpoints:");
+            logger.info("  - http://localhost:{}/", PORT);
+            logger.info("  - http://localhost:{}/health", PORT);
+            logger.info("  - http://localhost:{}/metrics", PORT);
+            logger.info("  - http://localhost:{}/script-editor (JavaScript Code Editor)", PORT);
+            logger.info("POST Endpoints:");
+            logger.info("  - http://localhost:{}/api/form   (Content-Type: application/x-www-form-urlencoded)", PORT);
+            logger.info("  - http://localhost:{}/api/json   (Content-Type: application/json)", PORT);
+            logger.info("  - http://localhost:{}/api/upload (Content-Type: multipart/form-data)", PORT);
+            logger.info("  - http://localhost:{}/api/script (Content-Type: application/javascript)", PORT);
+            logger.info("  - http://localhost:{}/api/render (Content-Type: text/html)", PORT);
+            logger.info("=========================================");
 
-        tomcat.getServer().await();
+            tomcat.getServer().await();
+        } catch (LifecycleException e) {
+            // Check if the cause is a BindException (Address already in use)
+            Throwable cause = e.getCause();
+            if (cause instanceof BindException ||
+                (cause != null && cause.getMessage() != null && cause.getMessage().contains("Address already in use"))) {
+                logger.error("=========================================");
+                logger.error("ERROR: Cannot start server");
+                logger.error("Port {} is already in use.", PORT);
+                logger.error("To fix this:");
+                logger.error("  1. Stop the process using port {}", PORT);
+                logger.error("  2. Or use a different port: SERVER_PORT=9090 mvn -PappRun");
+                logger.error("=========================================");
+                System.exit(1);
+            } else {
+                // For other LifecycleException errors, log the error and exit
+                logger.error("=========================================");
+                logger.error("ERROR: Failed to start server");
+                logger.error("Error: {}", e.getMessage());
+                logger.error("=========================================", e);
+                System.exit(1);
+            }
+        }
     }
 }

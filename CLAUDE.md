@@ -91,6 +91,47 @@ The `ScriptProcessor` provides server-side JavaScript execution using Mozilla Rh
   - Memory usage tracking in bytes (`memoryUsedBytes`)
   - Metrics included in every successful response
 
+#### Java Class Access Security
+
+The script sandbox uses a **hybrid whitelist/blacklist approach** (`ScriptProcessor.java:27-140`) to control Java class access:
+
+**Whitelist - Explicitly Allowed Classes:**
+- Collections: `ArrayList`, `HashMap`, `HashSet`, `LinkedList`, `TreeMap`, `TreeSet`, `LinkedHashMap`, `LinkedHashSet`, `Vector`, `Stack`
+- Utilities: `Date`, `UUID`, `Optional`, `Arrays`, `Collections`
+- Primitives/Wrappers: `String`, `StringBuilder`, `StringBuffer`, `Math`, `Integer`, `Long`, `Double`, `Float`, `Boolean`, `Character`, `Byte`, `Short`
+- Date/Time (Java 8+): `LocalDate`, `LocalDateTime`, `LocalTime`, `Instant`, `Duration`, `Period`, `ZonedDateTime`, `ZoneId`
+- Math: `BigDecimal`, `BigInteger`
+
+**Blacklist - Explicitly Blocked:**
+- Classes: `System`, `Runtime`, `ProcessBuilder`, `Process`, `ClassLoader`, `Thread`, `ThreadGroup`, `SecurityManager`
+- Package prefixes: `java.io.*` (file system), `java.nio.file.*` (file system), `java.net.*` (network), `java.lang.reflect.*` (reflection), `java.lang.invoke.*` (method handles), `javax.script.*` (script engines), `sun.*`, `com.sun.*`, `jdk.*` (internal classes), `java.security.*`, `javax.naming.*` (JNDI), `javax.management.*` (JMX), `java.sql.*`, `javax.sql.*` (database)
+
+**Default Policy:**
+- Allow other `java.util.*` and `java.lang.*` classes not explicitly blacklisted
+- Block everything else by default
+
+**Example Usage:**
+```javascript
+// Allowed - Collections
+var list = new java.util.ArrayList();
+list.add("Hello");
+list.add(42);
+var item = list.get(0);
+
+var map = new java.util.HashMap();
+map.put("key", "value");
+var val = map.get("key");
+
+// Blocked - System access
+java.lang.System.exit(0);  // ERROR: blocked
+
+// Blocked - File I/O
+new java.io.File("/etc/passwd");  // ERROR: blocked
+
+// Blocked - Network
+new java.net.Socket("evil.com", 1337);  // ERROR: blocked
+```
+
 JavaScript execution occurs in `ScriptProcessor.process()` which:
 1. Captures memory state and start time before execution
 2. Calls `executeScript()` which creates isolated Rhino context

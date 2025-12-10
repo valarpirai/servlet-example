@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Property definitions with defaults -->
+    <property name="LOG_LEVEL" value="${LOG_LEVEL:-INFO}" />
+    <property name="LOG_FILE_ENABLED" value="${LOG_FILE_ENABLED:-true}" />
+    <property name="LOG_FILE_PATH" value="${LOG_FILE_PATH:-logs/application.log}" />
+    <property name="LOG_FILE_MAX_SIZE" value="${LOG_FILE_MAX_SIZE:-10MB}" />
+    <property name="LOG_FILE_MAX_HISTORY" value="${LOG_FILE_MAX_HISTORY:-30}" />
+    <property name="LOG_FILE_TOTAL_SIZE_CAP" value="${LOG_FILE_TOTAL_SIZE_CAP:-1GB}" />
+    <property name="LOG_CONSOLE_PATTERN" value="${LOG_CONSOLE_PATTERN:-%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n}" />
+    <property name="LOG_FILE_PATTERN" value="${LOG_FILE_PATTERN:-%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n}" />
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender with Rolling Policy -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE_PATH}</file>
+        <encoder>
+            <pattern>${LOG_FILE_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- Daily rollover -->
+            <fileNamePattern>${LOG_FILE_PATH}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <!-- Each file should be at most maxFileSize -->
+            <maxFileSize>${LOG_FILE_MAX_SIZE}</maxFileSize>
+            <!-- Keep maxHistory days worth of history -->
+            <maxHistory>${LOG_FILE_MAX_HISTORY}</maxHistory>
+            <!-- Total size cap -->
+            <totalSizeCap>${LOG_FILE_TOTAL_SIZE_CAP}</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Conditional File Appender (only if file logging is enabled) -->
+    <if condition='property("LOG_FILE_ENABLED").equals("true")'>
+        <then>
+            <root level="${LOG_LEVEL}">
+                <appender-ref ref="CONSOLE" />
+                <appender-ref ref="FILE" />
+            </root>
+        </then>
+        <else>
+            <root level="${LOG_LEVEL}">
+                <appender-ref ref="CONSOLE" />
+            </root>
+        </else>
+    </if>
+
+    <!-- Reduce noise from third-party libraries -->
+    <logger name="org.apache.catalina" level="WARN" />
+    <logger name="org.apache.coyote" level="WARN" />
+    <logger name="org.apache.tomcat" level="WARN" />
+</configuration>
