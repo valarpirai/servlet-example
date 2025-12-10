@@ -99,11 +99,29 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.1</version>
-                <configuration>
-                    <mainClass>com.example.Main</mainClass>
-                    <cleanupDaemonThreads>false</cleanupDaemonThreads>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>appRun</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.example.Main</mainClass>
+                            <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Development mode profile - run with: mvn -PappRun -->
+        <profile>
+            <id>appRun</id>
+            <build>
+                <defaultGoal>compile exec:java@appRun</defaultGoal>
+            </build>
+        </profile>
+    </profiles>
 </project>
