@@ -63,13 +63,19 @@ public class ScriptProcessor implements RequestProcessor {
                 });
             }
 
+            // Create a list to capture console logs
+            java.util.List<String> consoleLogs = new java.util.ArrayList<>();
+
             // Execute the script
-            Object result = executeScript(script, params, request);
+            Object result = executeScript(script, params, request, consoleLogs);
 
             // Build response
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("result", result);
             responseData.put("executionTime", System.currentTimeMillis());
+            if (!consoleLogs.isEmpty()) {
+                responseData.put("console", consoleLogs);
+            }
 
             String responseBody = JsonUtil.successResponse(responseData);
 
@@ -105,7 +111,7 @@ public class ScriptProcessor implements RequestProcessor {
     /**
      * Execute JavaScript code using Mozilla Rhino
      */
-    private Object executeScript(String script, Map<String, Object> params, HttpServletRequest request) {
+    private Object executeScript(String script, Map<String, Object> params, HttpServletRequest request, java.util.List<String> consoleLogs) {
         Context context = Context.enter();
         try {
             // Set optimization level (-1 for interpreted mode, good for security)
@@ -115,7 +121,7 @@ public class ScriptProcessor implements RequestProcessor {
             Scriptable scope = context.initStandardObjects();
 
             // Add server-side context objects
-            addServerContext(scope, params, request);
+            addServerContext(scope, params, request, consoleLogs);
 
             // Execute the script with timeout protection
             Object result = context.evaluateString(scope, script, "userScript", 1, null);
@@ -131,7 +137,7 @@ public class ScriptProcessor implements RequestProcessor {
     /**
      * Add server context objects to the script scope
      */
-    private void addServerContext(Scriptable scope, Map<String, Object> params, HttpServletRequest request) {
+    private void addServerContext(Scriptable scope, Map<String, Object> params, HttpServletRequest request, java.util.List<String> consoleLogs) {
         // Add parameters
         if (params != null && !params.isEmpty()) {
             for (Map.Entry<String, Object> entry : params.entrySet()) {
@@ -158,13 +164,13 @@ public class ScriptProcessor implements RequestProcessor {
         ScriptableObject.putProperty(scope, "request", Context.javaToJS(serverContext, scope));
 
         // Add utility functions
-        addUtilityFunctions(scope);
+        addUtilityFunctions(scope, consoleLogs);
     }
 
     /**
      * Add utility functions to the script scope
      */
-    private void addUtilityFunctions(Scriptable scope) {
+    private void addUtilityFunctions(Scriptable scope, java.util.List<String> consoleLogs) {
         // Add JSON utilities
         String jsonUtils =
             "var JSON = {" +
@@ -175,12 +181,17 @@ public class ScriptProcessor implements RequestProcessor {
         Context context = Context.getCurrentContext();
         context.evaluateString(scope, jsonUtils, "jsonUtils", 1, null);
 
-        // Add console.log function
+        // Expose the console logs list to JavaScript
+        ScriptableObject.putProperty(scope, "__consoleLogs", Context.javaToJS(consoleLogs, scope));
+
+        // Add console.log function that captures output
         String consoleLog =
             "var console = {" +
             "  log: function() { " +
             "    var args = Array.prototype.slice.call(arguments);" +
-            "    return args.join(' ');" +
+            "    var message = args.join(' ');" +
+            "    __consoleLogs.add(message);" +
+            "    return message;" +
             "  }" +
             "};";
 

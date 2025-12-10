@@ -273,17 +273,21 @@ sum; // This will be returned</textarea>
 
         const examples = {
             sum: `// Calculate sum of numbers from 1 to 100
+console.log('Starting calculation...');
 var sum = 0;
 for (var i = 1; i <= 100; i++) {
     sum += i;
 }
+console.log('Sum calculated:', sum);
 sum;`,
-            fibonacci: `// Generate Fibonacci sequence
+            fibonacci: `// Generate Fibonacci sequence with console output
+console.log('Generating Fibonacci sequence...');
 function fibonacci(n) {
     var result = [0, 1];
     for (var i = 2; i < n; i++) {
         result.push(result[i-1] + result[i-2]);
     }
+    console.log('Generated', n, 'numbers');
     return result;
 }
 fibonacci(10);`,
@@ -356,7 +360,7 @@ info;`
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
-                    displayOutput('success', 'Execution Successful', JSON.stringify(data.data.result, null, 2));
+                    displayOutput('success', 'Execution Successful', JSON.stringify(data.data.result, null, 2), data.data.console);
                 } else {
                     displayOutput('error', data.error || 'Execution Failed', data.message || 'An error occurred');
                 }
@@ -368,14 +372,27 @@ info;`
             }
         }
 
-        function displayOutput(type, title, content) {
+        function displayOutput(type, title, content, consoleLogs) {
             const className = type === 'success' ? 'output-success' : 'output-error';
-            output.innerHTML = `
+            let html = `
                 <div class="${className}">
                     <div class="output-label">${title}</div>
                     <div class="output-result">${escapeHtml(content)}</div>
                 </div>
             `;
+
+            if (consoleLogs && consoleLogs.length > 0) {
+                html += `
+                    <div style="background: #f1f5f9; border: 1px solid #cbd5e0; border-radius: 6px; padding: 15px; margin-top: 10px;">
+                        <div class="output-label" style="color: #475569;">Console Output</div>
+                        <div style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #1e293b;">
+                            ${consoleLogs.map(log => escapeHtml(log)).join('<br>')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            output.innerHTML = html;
         }
 
         function escapeHtml(text) {
