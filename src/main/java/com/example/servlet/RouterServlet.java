@@ -4,6 +4,8 @@ import com.example.servlet.processor.FileUploadProcessor;
 import com.example.servlet.processor.FormDataProcessor;
 import com.example.servlet.processor.JsonDataProcessor;
 import com.example.servlet.processor.ProcessorRegistry;
+import com.example.servlet.processor.ScriptProcessor;
+import com.example.servlet.processor.TemplateProcessor;
 import com.example.servlet.processor.ProcessorResponse;
 import com.example.servlet.processor.RequestProcessor;
 import com.example.servlet.util.JsonUtil;
@@ -33,6 +35,8 @@ public class RouterServlet extends HttpServlet {
         registry.register(new FormDataProcessor());
         registry.register(new JsonDataProcessor());
         registry.register(new FileUploadProcessor());
+        registry.register(new ScriptProcessor());
+        registry.register(new TemplateProcessor());
     }
 
     @Override
@@ -46,6 +50,13 @@ public class RouterServlet extends HttpServlet {
             path = "/";
         }
 
+        // Handle static files first (they use OutputStream)
+        if ("/script-editor".equals(path)) {
+            serveStaticFile(request, response, "static/script-editor.html", "text/html");
+            return;
+        }
+
+        // For JSON responses, set content type and get writer
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -89,6 +100,8 @@ public class RouterServlet extends HttpServlet {
             case "/api/form":
             case "/api/json":
             case "/api/upload":
+            case "/api/script":
+            case "/api/render":
                 handleProcessorRequest(request, response);
                 break;
             default:
@@ -197,8 +210,8 @@ public class RouterServlet extends HttpServlet {
             "{\"message\":\"Welcome to Jakarta EE Servlet Application\"," +
                 "\"version\":\"1.0\"," +
                 "\"endpoints\":{" +
-                    "\"GET\":[\"/\",\"/health\",\"/metrics\"]," +
-                    "\"POST\":[\"/api/form\",\"/api/json\",\"/api/upload\"]" +
+                    "\"GET\":[\"/\",\"/health\",\"/metrics\",\"/script-editor\"]," +
+                    "\"POST\":[\"/api/form\",\"/api/json\",\"/api/upload\",\"/api/script\",\"/api/render\"]" +
                 "}," +
                 "\"timestamp\":%d}",
             System.currentTimeMillis()
@@ -216,5 +229,31 @@ public class RouterServlet extends HttpServlet {
         );
 
         out.print(errorMessage);
+    }
+
+    private void serveStaticFile(HttpServletRequest request, HttpServletResponse response,
+                                  String resourcePath, String contentType) throws IOException {
+        try (java.io.InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.setContentType("application/json");
+                PrintWriter out = response.getWriter();
+                out.print("{\"error\":\"File not found\",\"status\":404}");
+                return;
+            }
+
+            response.setContentType(contentType);
+            response.setCharacterEncoding("UTF-8");
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            java.io.OutputStream outputStream = response.getOutputStream();
+
+            while ((bytesRead = is.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            outputStream.flush();
+        }
     }
 }

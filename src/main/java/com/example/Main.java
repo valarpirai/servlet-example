@@ -54,10 +54,13 @@ public class Main {
         System.out.println("  - http://localhost:" + PORT + "/");
         System.out.println("  - http://localhost:" + PORT + "/health");
         System.out.println("  - http://localhost:" + PORT + "/metrics");
+        System.out.println("  - http://localhost:" + PORT + "/script-editor (JavaScript Code Editor)");
         System.out.println("\nPOST Endpoints:");
         System.out.println("  - http://localhost:" + PORT + "/api/form   (Content-Type: application/x-www-form-urlencoded)");
         System.out.println("  - http://localhost:" + PORT + "/api/json   (Content-Type: application/json)");
         System.out.println("  - http://localhost:" + PORT + "/api/upload (Content-Type: multipart/form-data)");
+        System.out.println("  - http://localhost:" + PORT + "/api/script (Content-Type: application/javascript)");
+        System.out.println("  - http://localhost:" + PORT + "/api/render (Content-Type: text/html)");
         System.out.println("=========================================");
 
         tomcat.getServer().await();

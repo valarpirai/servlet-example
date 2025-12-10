@@ -29,3 +29,10 @@ threadPool:
   acceptCount: 100
   # Connection timeout in milliseconds
   connectionTimeout: 20000
+
+# Script Execution Configuration
+script:
+  # Script execution timeout in milliseconds
+  timeout: 5000
+  # Rhino optimization level (-1 = interpreted, 0-9 = compiled)
+  optimizationLevel: -1

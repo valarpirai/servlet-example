@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Code Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2d3748;
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header .info {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .editor-panel {
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .panel-header {
+            background: #f7fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 15px 20px;
+            font-weight: 600;
+            color: #2d3748;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 500px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: none;
+            resize: none;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+
+        .code-editor:focus {
+            outline: none;
+        }
+
+        .output-panel {
+            background: #f7fafc;
+        }
+
+        .output-content {
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .output-success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .output-error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: #dc2626;
+        }
+
+        .output-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .output-result {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f7fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            margin-left: 10px;
+            color: #667eea;
+        }
+
+        .examples {
+            flex: 1;
+            text-align: right;
+        }
+
+        .examples select {
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading.active {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🚀 JavaScript Code Editor</h1>
+                <div class="info">Server-side JavaScript execution with Mozilla Rhino</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <span>📝 Code Editor</span>
+                    <span style="font-size: 12px; font-weight: normal; opacity: 0.7;">JavaScript (ES5)</span>
+                </div>
+                <textarea id="codeEditor" class="code-editor" placeholder="// Write your JavaScript code here...
+// Example:
+var result = 0;
+for (var i = 1; i <= 10; i++) {
+    result += i;
+}
+result; // Return value">// Write your JavaScript code here
+// Available context: request object with method, path, queryParams
+//
+// Example: Calculate sum
+var sum = 0;
+for (var i = 1; i <= 100; i++) {
+    sum += i;
+}
+sum; // This will be returned</textarea>
+            </div>
+
+            <div class="output-panel">
+                <div class="panel-header">
+                    <span>📊 Output</span>
+                    <button onclick="clearOutput()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Clear</button>
+                </div>
+                <div id="output" class="output-content">
+                    <div style="text-align: center; color: #94a3b8; padding: 50px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">⌨️</div>
+                        <div>Write some code and click "Run Code" to see the output</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="runBtn" onclick="runCode()" class="btn btn-primary">▶️ Run Code</button>
+            <button onclick="clearEditor()" class="btn btn-secondary">🗑️ Clear Editor</button>
+            <span id="loading" class="loading">⏳</span>
+
+            <div class="examples">
+                <select id="exampleSelect" onchange="loadExample()">
+                    <option value="">📚 Load Example...</option>
+                    <option value="sum">Sum of Numbers</option>
+                    <option value="fibonacci">Fibonacci Sequence</option>
+                    <option value="array">Array Operations</option>
+                    <option value="object">Object Manipulation</option>
+                    <option value="request">Access Request Context</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const codeEditor = document.getElementById('codeEditor');
+        const output = document.getElementById('output');
+        const loading = document.getElementById('loading');
+        const runBtn = document.getElementById('runBtn');
+
+        const examples = {
+            sum: `// Calculate sum of numbers from 1 to 100
+var sum = 0;
+for (var i = 1; i <= 100; i++) {
+    sum += i;
+}
+sum;`,
+            fibonacci: `// Generate Fibonacci sequence
+function fibonacci(n) {
+    var result = [0, 1];
+    for (var i = 2; i < n; i++) {
+        result.push(result[i-1] + result[i-2]);
+    }
+    return result;
+}
+fibonacci(10);`,
+            array: `// Array operations
+var numbers = [1, 2, 3, 4, 5];
+var doubled = [];
+for (var i = 0; i < numbers.length; i++) {
+    doubled.push(numbers[i] * 2);
+}
+doubled;`,
+            object: `// Object manipulation
+var person = {
+    name: "John Doe",
+    age: 30,
+    city: "New York"
+};
+person.country = "USA";
+person;`,
+            request: `// Access request context
+var info = {
+    method: request.method,
+    path: request.path,
+    remoteAddress: request.remoteAddr,
+    queryParams: request.queryParams
+};
+info;`
+        };
+
+        function loadExample() {
+            const select = document.getElementById('exampleSelect');
+            const exampleKey = select.value;
+            if (exampleKey && examples[exampleKey]) {
+                codeEditor.value = examples[exampleKey];
+            }
+            select.value = '';
+        }
+
+        function clearEditor() {
+            codeEditor.value = '';
+            codeEditor.focus();
+        }
+
+        function clearOutput() {
+            output.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 50px 20px;"><div style="font-size: 48px; margin-bottom: 10px;">✨</div><div>Output cleared</div></div>';
+        }
+
+        async function runCode() {
+            const code = codeEditor.value.trim();
+
+            if (!code) {
+                displayOutput('error', 'No code to execute', 'Please write some JavaScript code first.');
+                return;
+            }
+
+            loading.classList.add('active');
+            runBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/script', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/javascript'
+                    },
+                    body: JSON.stringify({
+                        script: code,
+                        params: {}
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    displayOutput('success', 'Execution Successful', JSON.stringify(data.data.result, null, 2));
+                } else {
+                    displayOutput('error', data.error || 'Execution Failed', data.message || 'An error occurred');
+                }
+            } catch (error) {
+                displayOutput('error', 'Network Error', error.message);
+            } finally {
+                loading.classList.remove('active');
+                runBtn.disabled = false;
+            }
+        }
+
+        function displayOutput(type, title, content) {
+            const className = type === 'success' ? 'output-success' : 'output-error';
+            output.innerHTML = `
+                <div class="${className}">
+                    <div class="output-label">${title}</div>
+                    <div class="output-result">${escapeHtml(content)}</div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow Ctrl+Enter to run code
+        codeEditor.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCode();
+            }
+        });
+    </script>
+</body>
+</html>
