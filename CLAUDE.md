@@ -82,16 +82,37 @@ The `ScriptProcessor` provides server-side JavaScript execution using Mozilla Rh
 - **Sandbox features**:
   - Optimization level -1 (interpreted mode for security)
   - Configurable timeout via `script.timeout` (default: 5000ms)
+  - Memory limit enforcement via `script.maxMemory` (default: 10MB)
   - Exposes server context as `request` object (method, path, remoteAddr, queryParams)
   - Provides `console.log()` that captures output to response
   - Automatic type conversion between JavaScript and Java objects
+- **Performance Monitoring**:
+  - Execution time tracking in milliseconds (`executionTimeMs`)
+  - Memory usage tracking in bytes (`memoryUsedBytes`)
+  - Metrics included in every successful response
 
-JavaScript execution occurs in `ScriptProcessor.executeScript()` which:
-1. Creates isolated Rhino context with standard objects
-2. Injects parameters and server context into scope
-3. Adds utility functions (JSON, console)
-4. Executes script string and captures console output
-5. Converts Rhino objects back to Java/JSON for response
+JavaScript execution occurs in `ScriptProcessor.process()` which:
+1. Captures memory state and start time before execution
+2. Calls `executeScript()` which creates isolated Rhino context
+3. Injects parameters and server context into scope
+4. Adds utility functions (JSON, console)
+5. Executes script with timeout and memory monitoring
+6. Calculates execution metrics (time and memory delta)
+7. Returns response with result, console logs, and performance metrics
+
+**Response format**:
+```json
+{
+  "status": "success",
+  "data": {
+    "result": <script_return_value>,
+    "console": ["log messages"],
+    "executionTimeMs": 3,
+    "memoryUsedBytes": 1024
+  },
+  "timestamp": 1234567890
+}
+```
 
 ### Template Engine
 
@@ -149,3 +170,16 @@ The application exposes these endpoints (see `Main.java:50-64` for complete list
 - `/api/render` - Template rendering (text/html)
 
 Use curl examples from README.md or the interactive script editor at `/script-editor`.
+
+### Interactive Script Editor
+
+The script editor (`/script-editor`) is a web-based JavaScript IDE that:
+- Displays performance metrics after each execution (execution time and memory usage)
+- Shows metrics in a dedicated "Performance Metrics" panel with formatted values
+- Formats execution time: displays in ms (< 1s) or seconds (≥ 1s)
+- Formats memory usage: displays in B, KB, or MB based on size
+- Includes pre-loaded examples demonstrating Java interoperability
+- Captures and displays console.log() output separately from results
+- Supports keyboard shortcut (Ctrl+Enter / Cmd+Enter) for quick execution
+
+The editor receives performance data from the ScriptProcessor response and renders it in the output panel alongside the script result and console logs.

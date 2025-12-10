@@ -260,6 +260,7 @@ sum; // This will be returned</textarea>
                     <option value="array">Array Operations</option>
                     <option value="object">Object Manipulation</option>
                     <option value="request">Access Request Context</option>
+                    <option value="java">Java Object Creation</option>
                 </select>
             </div>
         </div>
@@ -313,7 +314,41 @@ var info = {
     remoteAddress: request.remoteAddr,
     queryParams: request.queryParams
 };
-info;`
+info;`,
+            java: `// Create and use Java objects with Rhino
+console.log('Creating Java objects...');
+
+// Create a Java ArrayList
+var ArrayList = java.util.ArrayList;
+var list = new ArrayList();
+list.add("Apple");
+list.add("Banana");
+list.add("Cherry");
+
+// Create a Java HashMap
+var HashMap = java.util.HashMap;
+var map = new HashMap();
+map.put("name", "John");
+map.put("age", 30);
+map.put("city", "New York");
+
+// Create a Date object
+var Date = java.util.Date;
+var currentDate = new Date();
+
+// Build result object
+var result = {
+    listSize: list.size(),
+    listContents: list.toString(),
+    mapSize: map.size(),
+    mapContents: map.toString(),
+    currentTime: currentDate.toString()
+};
+
+console.log('ArrayList size:', result.listSize);
+console.log('HashMap size:', result.mapSize);
+
+result;`
         };
 
         function loadExample() {
@@ -360,7 +395,7 @@ info;`
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
-                    displayOutput('success', 'Execution Successful', JSON.stringify(data.data.result, null, 2), data.data.console);
+                    displayOutput('success', 'Execution Successful', JSON.stringify(data.data.result, null, 2), data.data.console, data.data.executionTimeMs, data.data.memoryUsedBytes);
                 } else {
                     displayOutput('error', data.error || 'Execution Failed', data.message || 'An error occurred');
                 }
@@ -372,7 +407,7 @@ info;`
             }
         }
 
-        function displayOutput(type, title, content, consoleLogs) {
+        function displayOutput(type, title, content, consoleLogs, executionTimeMs, memoryUsedBytes) {
             const className = type === 'success' ? 'output-success' : 'output-error';
             let html = `
                 <div class="${className}">
@@ -380,6 +415,20 @@ info;`
                     <div class="output-result">${escapeHtml(content)}</div>
                 </div>
             `;
+
+            if (type === 'success' && (executionTimeMs !== undefined || memoryUsedBytes !== undefined)) {
+                html += `
+                    <div style="background: #eff6ff; border: 1px solid #93c5fd; border-radius: 6px; padding: 15px; margin-top: 10px;">
+                        <div class="output-label" style="color: #1e40af;">Performance Metrics</div>
+                        <div style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #1e3a8a; display: grid; grid-template-columns: auto 1fr; gap: 8px;">
+                            <span style="font-weight: 600;">Execution Time:</span>
+                            <span>${formatExecutionTime(executionTimeMs)}</span>
+                            <span style="font-weight: 600;">Memory Usage:</span>
+                            <span>${formatMemoryUsage(memoryUsedBytes)}</span>
+                        </div>
+                    </div>
+                `;
+            }
 
             if (consoleLogs && consoleLogs.length > 0) {
                 html += `
@@ -393,6 +442,21 @@ info;`
             }
 
             output.innerHTML = html;
+        }
+
+        function formatExecutionTime(ms) {
+            if (ms === undefined || ms === null) return 'N/A';
+            if (ms < 1) return ms.toFixed(3) + ' ms';
+            if (ms < 1000) return ms.toFixed(2) + ' ms';
+            return (ms / 1000).toFixed(2) + ' s';
+        }
+
+        function formatMemoryUsage(bytes) {
+            if (bytes === undefined || bytes === null) return 'N/A';
+            if (bytes < 0) return '0 B (freed ' + Math.abs(bytes) + ' B)';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         }
 
         function escapeHtml(text) {

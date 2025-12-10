@@ -68,13 +68,25 @@ public class ScriptProcessor implements RequestProcessor {
             // Create a list to capture console logs
             java.util.List<String> consoleLogs = new java.util.ArrayList<>();
 
+            // Track execution metrics
+            Runtime runtime = Runtime.getRuntime();
+            long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
+            long startTime = System.currentTimeMillis();
+
             // Execute the script
             Object result = executeScript(script, params, request, consoleLogs);
+
+            // Calculate execution metrics
+            long endTime = System.currentTimeMillis();
+            long executionTimeMs = endTime - startTime;
+            long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
+            long memoryUsedBytes = memoryAfter - memoryBefore;
 
             // Build response
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("result", result);
-            responseData.put("executionTime", System.currentTimeMillis());
+            responseData.put("executionTimeMs", executionTimeMs);
+            responseData.put("memoryUsedBytes", memoryUsedBytes);
             if (!consoleLogs.isEmpty()) {
                 responseData.put("console", consoleLogs);
             }
