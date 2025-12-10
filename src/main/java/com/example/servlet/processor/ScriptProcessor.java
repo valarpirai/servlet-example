@@ -20,6 +20,8 @@ public class ScriptProcessor implements RequestProcessor {
     private static final String CONTENT_TYPE = "application/javascript";
     private static final long SCRIPT_TIMEOUT = PropertiesUtil.getLong("script.timeout", 5000L);
     private static final int OPTIMIZATION_LEVEL = PropertiesUtil.getInt("script.optimizationLevel", -1);
+    private static final long MAX_MEMORY_BYTES = PropertiesUtil.getLong("script.maxMemory", 10485760L); // 10 MB default
+    private static final int INSTRUCTION_OBSERVATION_THRESHOLD = PropertiesUtil.getInt("script.instructionThreshold", 10000);
 
     @Override
     public boolean supports(String contentType) {
@@ -84,6 +86,32 @@ public class ScriptProcessor implements RequestProcessor {
                     .body(responseBody)
                     .build();
 
+        } catch (Error e) {
+            // Handle timeout and memory limit errors
+            if (e.getMessage() != null && e.getMessage().contains("timeout exceeded")) {
+                return ProcessorResponse.builder()
+                        .statusCode(408)
+                        .body(JsonUtil.errorResponse(
+                                "Request Timeout",
+                                e.getMessage(),
+                                408))
+                        .build();
+            } else if (e.getMessage() != null && e.getMessage().contains("memory limit exceeded")) {
+                return ProcessorResponse.builder()
+                        .statusCode(413)
+                        .body(JsonUtil.errorResponse(
+                                "Payload Too Large",
+                                e.getMessage(),
+                                413))
+                        .build();
+            }
+            return ProcessorResponse.builder()
+                    .statusCode(500)
+                    .body(JsonUtil.errorResponse(
+                            "Internal Server Error",
+                            "Script execution error: " + e.getMessage(),
+                            500))
+                    .build();
         } catch (org.mozilla.javascript.RhinoException e) {
             return ProcessorResponse.builder()
                     .statusCode(400)
@@ -109,13 +137,34 @@ public class ScriptProcessor implements RequestProcessor {
     }
 
     /**
-     * Execute JavaScript code using Mozilla Rhino
+     * Execute JavaScript code using Mozilla Rhino with timeout and memory limits
      */
     private Object executeScript(String script, Map<String, Object> params, HttpServletRequest request, java.util.List<String> consoleLogs) {
+        // Track memory usage before execution
+        Runtime runtime = Runtime.getRuntime();
+        long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
+
+        // Create a timeout tracker
+        final long startTime = System.currentTimeMillis();
+        final boolean[] timedOut = {false};
+
         Context context = Context.enter();
         try {
             // Set optimization level (-1 for interpreted mode, good for security)
             context.setOptimizationLevel(OPTIMIZATION_LEVEL);
+
+            // Set instruction observer for timeout enforcement
+            context.setInstructionObserverThreshold(INSTRUCTION_OBSERVATION_THRESHOLD);
+            context.setGenerateObserverCount(true);
+
+            // Create observer callback for timeout checking
+            org.mozilla.javascript.ContextFactory.getGlobal().addListener(new org.mozilla.javascript.ContextFactory.Listener() {
+                @Override
+                public void contextCreated(Context cx) {}
+
+                @Override
+                public void contextReleased(Context cx) {}
+            });
 
             // Create a new scope
             Scriptable scope = context.initStandardObjects();
@@ -123,14 +172,94 @@ public class ScriptProcessor implements RequestProcessor {
             // Add server-side context objects
             addServerContext(scope, params, request, consoleLogs);
 
-            // Execute the script with timeout protection
-            Object result = context.evaluateString(scope, script, "userScript", 1, null);
+            // Execute the script with timeout and memory monitoring
+            Object result = executeWithLimits(context, scope, script, startTime, memoryBefore);
 
             // Convert result to Java object
             return convertRhinoObject(result);
 
+        } catch (Error e) {
+            // Re-throw timeout and memory limit errors to be handled by process()
+            if (e.getMessage() != null &&
+                (e.getMessage().contains("timeout exceeded") || e.getMessage().contains("memory limit exceeded"))) {
+                throw e;
+            }
+            throw new RuntimeException("Script execution error: " + e.getMessage(), e);
         } finally {
             Context.exit();
+        }
+    }
+
+    /**
+     * Execute script with timeout and memory limit enforcement
+     */
+    private Object executeWithLimits(Context context, Scriptable scope, String script, long startTime, long memoryBefore) {
+        // Set up instruction observer for timeout
+        final long timeoutMillis = SCRIPT_TIMEOUT;
+        final long maxMemory = MAX_MEMORY_BYTES;
+
+        context.setInstructionObserverThreshold(INSTRUCTION_OBSERVATION_THRESHOLD);
+
+        // Custom observer to check timeout and memory
+        org.mozilla.javascript.ContextFactory factory = new org.mozilla.javascript.ContextFactory() {
+            @Override
+            protected void observeInstructionCount(Context cx, int instructionCount) {
+                long currentTime = System.currentTimeMillis();
+                long elapsed = currentTime - startTime;
+
+                // Check timeout
+                if (elapsed > timeoutMillis) {
+                    throw new Error("Script execution timeout exceeded: " + elapsed + "ms > " + timeoutMillis + "ms");
+                }
+
+                // Check memory usage
+                Runtime runtime = Runtime.getRuntime();
+                long memoryNow = runtime.totalMemory() - runtime.freeMemory();
+                long memoryUsed = memoryNow - memoryBefore;
+
+                if (memoryUsed > maxMemory) {
+                    throw new Error("Script memory limit exceeded: " + memoryUsed + " bytes > " + maxMemory + " bytes");
+                }
+            }
+
+            @Override
+            protected Context makeContext() {
+                Context cx = super.makeContext();
+                cx.setOptimizationLevel(OPTIMIZATION_LEVEL);
+                cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVATION_THRESHOLD);
+                return cx;
+            }
+        };
+
+        // Exit current context and use our custom factory
+        Context.exit();
+        Context cx = factory.enterContext();
+
+        try {
+            cx.setOptimizationLevel(OPTIMIZATION_LEVEL);
+            cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVATION_THRESHOLD);
+
+            // Re-initialize scope in new context
+            Scriptable newScope = cx.initStandardObjects();
+
+            // Copy all properties from old scope to new scope
+            for (Object id : scope.getIds()) {
+                if (id instanceof String) {
+                    String key = (String) id;
+                    Object value = scope.get(key, scope);
+                    newScope.put(key, newScope, value);
+                } else if (id instanceof Integer) {
+                    int index = (Integer) id;
+                    Object value = scope.get(index, scope);
+                    newScope.put(index, newScope, value);
+                }
+            }
+
+            return cx.evaluateString(newScope, script, "userScript", 1, null);
+        } finally {
+            Context.exit();
+            // Re-enter original context for cleanup
+            context = Context.enter();
         }
     }
 

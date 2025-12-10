@@ -32,7 +32,15 @@ threadPool:
 
 # Script Execution Configuration
 script:
-  # Script execution timeout in milliseconds
+  # Script execution timeout in milliseconds (default: 5000ms = 5 seconds)
   timeout: 5000
+  # Maximum memory usage per script in bytes (default: 52428800 bytes = 50 MB)
+  # Note: This tracks JVM heap growth during script execution, including Rhino overhead
+  # Set higher than expected usage as it includes Rhino's internal structures
+  maxMemory: 52428800
   # Rhino optimization level (-1 = interpreted, 0-9 = compiled)
+  # Use -1 for interpreted mode (safer for untrusted code)
   optimizationLevel: -1
+  # Instruction count threshold for timeout/memory checks (default: 10000)
+  # Lower values = more frequent checks = more overhead but more accurate limits
+  instructionThreshold: 10000
