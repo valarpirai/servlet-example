@@ -16,6 +16,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -23,6 +26,8 @@ public class RouterServlet extends HttpServlet {
 
     private AtomicLong requestCount;
     private long startTime;
+    private static final DateTimeFormatter LOG_DATE_FORMAT =
+        DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
     @Override
     public void init() throws ServletException {
@@ -39,76 +44,167 @@ public class RouterServlet extends HttpServlet {
         registry.register(new TemplateProcessor());
     }
 
+    private void logRequest(HttpServletRequest request, int statusCode, long responseTimeMs, long responseSize) {
+        // Apache/Nginx style access log format
+        // IP - - [timestamp] "METHOD PATH PROTOCOL" STATUS SIZE "REFERER" "USER-AGENT" response_time_ms
+        String remoteAddr = request.getRemoteAddr();
+        String timestamp = ZonedDateTime.now().format(LOG_DATE_FORMAT);
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString();
+        if (queryString != null && !queryString.isEmpty()) {
+            uri = uri + "?" + queryString;
+        }
+        String protocol = request.getProtocol();
+        String referer = request.getHeader("Referer");
+        if (referer == null) referer = "-";
+        String userAgent = request.getHeader("User-Agent");
+        if (userAgent == null) userAgent = "-";
+        String contentType = request.getContentType();
+        if (contentType == null) contentType = "-";
+
+        String logMessage = String.format(
+            "%s - - [%s] \"%s %s %s\" %d %d \"%s\" \"%s\" %dms [%s]",
+            remoteAddr,
+            timestamp,
+            method,
+            uri,
+            protocol,
+            statusCode,
+            responseSize,
+            referer,
+            userAgent,
+            responseTimeMs,
+            contentType
+        );
+
+        System.out.println(logMessage);
+    }
+
+    private void logError(HttpServletRequest request, Throwable exception, long responseTimeMs) {
+        // Log unhandled exceptions with full stack trace
+        String remoteAddr = request.getRemoteAddr();
+        String timestamp = ZonedDateTime.now().format(LOG_DATE_FORMAT);
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString();
+        if (queryString != null && !queryString.isEmpty()) {
+            uri = uri + "?" + queryString;
+        }
+
+        // Get stack trace as string
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        exception.printStackTrace(pw);
+        String stackTrace = sw.toString();
+
+        String errorMessage = String.format(
+            "[ERROR] %s - [%s] \"%s %s\" - %s: %s - Response Time: %dms\n%s",
+            remoteAddr,
+            timestamp,
+            method,
+            uri,
+            exception.getClass().getName(),
+            exception.getMessage(),
+            responseTimeMs,
+            stackTrace
+        );
+
+        System.err.println(errorMessage);
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        long startTime = System.currentTimeMillis();
         requestCount.incrementAndGet();
 
-        String path = request.getPathInfo();
-        if (path == null) {
-            path = "/";
+        try {
+            String path = request.getPathInfo();
+            if (path == null) {
+                path = "/";
+            }
+
+            // Handle static files first (they use OutputStream)
+            if ("/script-editor".equals(path)) {
+                serveStaticFile(request, response, "static/script-editor.html", "text/html");
+                long responseTime = System.currentTimeMillis() - startTime;
+                logRequest(request, response.getStatus(), responseTime, 0); // Size unknown for static files
+                return;
+            }
+
+            // For JSON responses, set content type and get writer
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            PrintWriter out = response.getWriter();
+
+            switch (path) {
+                case "/health":
+                    handleHealth(out);
+                    break;
+                case "/metrics":
+                    handleMetrics(out);
+                    break;
+                case "/":
+                    handleRoot(response, out);
+                    break;
+                default:
+                    handleNotFound(response, out, path);
+                    break;
+            }
+
+            out.flush();
+
+            long responseTime = System.currentTimeMillis() - startTime;
+            logRequest(request, response.getStatus(), responseTime, 0); // Size in bytes (approximate)
+        } catch (Exception e) {
+            long responseTime = System.currentTimeMillis() - startTime;
+            logError(request, e, responseTime);
+            throw e;
         }
-
-        // Handle static files first (they use OutputStream)
-        if ("/script-editor".equals(path)) {
-            serveStaticFile(request, response, "static/script-editor.html", "text/html");
-            return;
-        }
-
-        // For JSON responses, set content type and get writer
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        PrintWriter out = response.getWriter();
-
-        switch (path) {
-            case "/health":
-                handleHealth(out);
-                break;
-            case "/metrics":
-                handleMetrics(out);
-                break;
-            case "/":
-                handleRoot(response, out);
-                break;
-            default:
-                handleNotFound(response, out, path);
-                break;
-        }
-
-        out.flush();
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        long startTime = System.currentTimeMillis();
         requestCount.incrementAndGet();
 
-        String path = request.getPathInfo();
-        if (path == null) {
-            path = "/";
-        }
+        try {
+            String path = request.getPathInfo();
+            if (path == null) {
+                path = "/";
+            }
 
-        // Set default response content type
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
+            // Set default response content type
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
-        // Route based on path for POST requests
-        switch (path) {
-            case "/api/form":
-            case "/api/json":
-            case "/api/upload":
-            case "/api/script":
-            case "/api/render":
-                handleProcessorRequest(request, response);
-                break;
-            default:
-                PrintWriter out = response.getWriter();
-                handleNotFound(response, out, path);
-                out.flush();
-                break;
+            // Route based on path for POST requests
+            switch (path) {
+                case "/api/form":
+                case "/api/json":
+                case "/api/upload":
+                case "/api/script":
+                case "/api/render":
+                    handleProcessorRequest(request, response);
+                    break;
+                default:
+                    PrintWriter out = response.getWriter();
+                    handleNotFound(response, out, path);
+                    out.flush();
+                    break;
+            }
+
+            long responseTime = System.currentTimeMillis() - startTime;
+            logRequest(request, response.getStatus(), responseTime, 0);
+        } catch (Exception e) {
+            long responseTime = System.currentTimeMillis() - startTime;
+            logError(request, e, responseTime);
+            throw e;
         }
     }
 
