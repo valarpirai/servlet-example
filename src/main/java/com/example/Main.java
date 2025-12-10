@@ -1,15 +1,18 @@
 package com.example;
 
 import com.example.servlet.RouterServlet;
+import com.example.servlet.util.PropertiesUtil;
+import jakarta.servlet.MultipartConfigElement;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.Wrapper;
 import org.apache.catalina.startup.Tomcat;
 
 import java.io.File;
 
 public class Main {
 
-    private static final int PORT = 8080;
+    private static final int PORT = PropertiesUtil.getInt("server.port", 8080);
 
     public static void main(String[] args) throws LifecycleException {
         Tomcat tomcat = new Tomcat();
@@ -24,7 +27,22 @@ public class Main {
         String servletName = "RouterServlet";
         String urlPattern = "/*";
 
-        tomcat.addServlet(contextPath, servletName, new RouterServlet());
+        Wrapper servletWrapper = tomcat.addServlet(contextPath, servletName, new RouterServlet());
+
+        // Configure multipart for file uploads from properties
+        String location = PropertiesUtil.getString("upload.tempDirectory", System.getProperty("java.io.tmpdir"));
+        long maxFileSize = PropertiesUtil.getLong("upload.maxFileSize", 10485760L);
+        long maxRequestSize = PropertiesUtil.getLong("upload.maxRequestSize", 52428800L);
+        int fileSizeThreshold = PropertiesUtil.getInt("upload.fileSizeThreshold", 1048576);
+
+        MultipartConfigElement multipartConfig = new MultipartConfigElement(
+                location,
+                maxFileSize,
+                maxRequestSize,
+                fileSizeThreshold
+        );
+        servletWrapper.setMultipartConfigElement(multipartConfig);
+
         context.addServletMappingDecoded(urlPattern, servletName);
 
         tomcat.start();
@@ -32,10 +50,14 @@ public class Main {
         System.out.println("=========================================");
         System.out.println("Tomcat server started successfully!");
         System.out.println("Port: " + PORT);
-        System.out.println("Endpoints:");
+        System.out.println("\nGET Endpoints:");
         System.out.println("  - http://localhost:" + PORT + "/");
         System.out.println("  - http://localhost:" + PORT + "/health");
         System.out.println("  - http://localhost:" + PORT + "/metrics");
+        System.out.println("\nPOST Endpoints:");
+        System.out.println("  - http://localhost:" + PORT + "/api/form   (Content-Type: application/x-www-form-urlencoded)");
+        System.out.println("  - http://localhost:" + PORT + "/api/json   (Content-Type: application/json)");
+        System.out.println("  - http://localhost:" + PORT + "/api/upload (Content-Type: multipart/form-data)");
         System.out.println("=========================================");
 
         tomcat.getServer().await();

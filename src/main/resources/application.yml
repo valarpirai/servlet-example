@@ -1,0 +1,31 @@
+# Server Configuration
+server:
+  # Port can be overridden with SERVER_PORT environment variable
+  port: ${SERVER_PORT:8080}
+
+# Application Configuration
+application:
+  name: "Jakarta EE Servlet Application"
+  version: "1.0"
+
+# File Upload Configuration
+upload:
+  # Maximum file size in bytes (10 MB)
+  maxFileSize: 10485760
+  # Maximum request size in bytes (50 MB)
+  maxRequestSize: 52428800
+  # File size threshold for writing to disk (1 MB)
+  fileSizeThreshold: 1048576
+  # Temporary directory for file uploads
+  tempDirectory: ${java.io.tmpdir}
+
+# Thread Pool Configuration
+threadPool:
+  # Maximum number of threads
+  maxThreads: 200
+  # Minimum spare threads
+  minSpareThreads: 10
+  # Accept count (queue size)
+  acceptCount: 100
+  # Connection timeout in milliseconds
+  connectionTimeout: 20000
