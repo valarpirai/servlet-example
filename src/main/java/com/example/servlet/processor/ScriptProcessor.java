@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.mozilla.javascript.Context;
+import org.mozilla.javascript.ClassShutter;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 
@@ -22,6 +23,23 @@ public class ScriptProcessor implements RequestProcessor {
     private static final int OPTIMIZATION_LEVEL = PropertiesUtil.getInt("script.optimizationLevel", -1);
     private static final long MAX_MEMORY_BYTES = PropertiesUtil.getLong("script.maxMemory", 10485760L); // 10 MB default
     private static final int INSTRUCTION_OBSERVATION_THRESHOLD = PropertiesUtil.getInt("script.instructionThreshold", 10000);
+
+    /**
+     * ClassShutter implementation to prevent access to dangerous Java classes
+     * This blocks all Java class access by default for security
+     */
+    private static class SandboxClassShutter implements ClassShutter {
+        @Override
+        public boolean visibleToScripts(String className) {
+            // Block all Java classes by default to prevent:
+            // - System.exit()
+            // - File system access
+            // - Network access
+            // - Reflection
+            // - ClassLoader manipulation
+            return false;
+        }
+    }
 
     @Override
     public boolean supports(String contentType) {
@@ -239,6 +257,8 @@ public class ScriptProcessor implements RequestProcessor {
                 Context cx = super.makeContext();
                 cx.setOptimizationLevel(OPTIMIZATION_LEVEL);
                 cx.setInstructionObserverThreshold(INSTRUCTION_OBSERVATION_THRESHOLD);
+                // Apply ClassShutter to block Java class access for security
+                cx.setClassShutter(new SandboxClassShutter());
                 return cx;
             }
         };
