@@ -29,7 +29,10 @@
     .optional-label::after { content: ' (optional)'; color: #585b70; }
 
     button { cursor: pointer; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; padding: 6px 12px; }
-    #connect-btn { width: 100%; margin-top: 10px; background: #cba6f7; color: #1e1e2e; }
+    #download-btn { width: 100%; margin-top: 10px; background: #f9e2af; color: #1e1e2e; }
+    #download-btn:hover { background: #fdeabd; }
+    #download-btn:disabled { background: #45475a; color: #6c7086; cursor: not-allowed; }
+    #connect-btn { width: 100%; margin-top: 6px; background: #cba6f7; color: #1e1e2e; }
     #connect-btn:hover { background: #d0bcff; }
     #connect-btn:disabled { background: #45475a; color: #6c7086; cursor: not-allowed; }
 
@@ -105,7 +108,8 @@
 
       <div id="dynamic-fields"></div>
 
-      <button id="connect-btn" onclick="connect()">Connect</button>
+      <button id="download-btn" onclick="downloadDriver()" style="display:none">↓ Download Driver</button>
+      <button id="connect-btn" onclick="connect()" style="display:none">Connect</button>
       <div id="driver-status" class="driver-status"></div>
     </div>
   </aside>
@@ -206,6 +210,49 @@ function onDbTypeChange(restoreValues) {
       }
     });
   }
+
+  checkDriverStatus();
+}
+
+async function checkDriverStatus() {
+  const type = document.getElementById('db-type').value;
+  const downloadBtn = document.getElementById('download-btn');
+  const connectBtn = document.getElementById('connect-btn');
+  setDriverStatus('Checking…', 'downloading');
+  downloadBtn.style.display = 'none';
+  connectBtn.style.display = 'none';
+  try {
+    const res = await api('/api/data-browser/driver-status', { dbType: type });
+    if (res.data.downloaded) {
+      setDriverStatus('✓ Driver ready', 'ok');
+      connectBtn.style.display = 'block';
+    } else {
+      setDriverStatus('Driver not downloaded', '');
+      downloadBtn.style.display = 'block';
+    }
+  } catch (err) {
+    setDriverStatus('Could not check driver status', 'error');
+  }
+}
+
+// Download driver
+async function downloadDriver() {
+  const type = document.getElementById('db-type').value;
+  const btn = document.getElementById('download-btn');
+  btn.disabled = true;
+  btn.textContent = 'Downloading\u2026';
+  setDriverStatus('Downloading driver\u2026', 'downloading');
+  try {
+    await api('/api/data-browser/download', { dbType: type });
+    setDriverStatus('\u2713 Driver ready', 'ok');
+    btn.style.display = 'none';
+    const connectBtn = document.getElementById('connect-btn');
+    connectBtn.style.display = 'block';
+  } catch (err) {
+    setDriverStatus('\u2717 Download failed: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '\u2193 Download Driver';
+  }
 }
 
 // Connect
@@ -226,10 +273,6 @@ async function connect() {
   });
 
   try {
-    setDriverStatus('Checking driver\u2026', 'downloading');
-    await api('/api/data-browser/download', { dbType: type });
-    setDriverStatus('\u2713 Driver ready', 'ok');
-
     const body = { dbType: type };
     DB_FIELDS[type].forEach(f => {
       const el = document.getElementById('field-' + f.id);

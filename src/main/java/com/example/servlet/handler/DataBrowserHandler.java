@@ -41,6 +41,28 @@ public class DataBrowserHandler {
     res.getWriter().flush();
   }
 
+  /** POST /api/data-browser/driver-status { "dbType": "postgresql" } */
+  public void handleDriverStatus(HttpServletRequest req, HttpServletResponse res)
+      throws IOException {
+    try {
+      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      String dbType = body.get("dbType").getAsString();
+
+      if (!ExtLibManager.getInstance().isSupported(dbType)) {
+        writeJson(
+            res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType: " + dbType, 400));
+        return;
+      }
+
+      boolean downloaded = ExtLibManager.getInstance().isDownloaded(dbType);
+      writeJson(
+          res, 200, JsonUtil.successResponse(Map.of("dbType", dbType, "downloaded", downloaded)));
+
+    } catch (Exception e) {
+      writeJson(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
+    }
+  }
+
   /** POST /api/data-browser/download { "dbType": "postgresql" } */
   public void handleDownload(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {

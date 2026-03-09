@@ -195,6 +195,9 @@ public class RouterServlet extends HttpServlet {
         case "/api/render":
           handleProcessorRequest(request, response);
           break;
+        case "/api/data-browser/driver-status":
+          DataBrowserHandler.getInstance().handleDriverStatus(request, response);
+          break;
         case "/api/data-browser/download":
           DataBrowserHandler.getInstance().handleDownload(request, response);
           break;
