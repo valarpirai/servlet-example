@@ -102,6 +102,25 @@ curl -X POST http://localhost:8080/api/data-browser/query \
   -d '{"sessionId":"<uuid>","sql":"SELECT * FROM users","page":1}'
 ```
 
+## Testing
+
+Unit tests cover the datasource strategy layer and core utilities (51 tests, JUnit 5 + Mockito):
+
+| Test Class | Coverage |
+|---|---|
+| `DataSourceRegistryTest` | Singleton lookup, case-insensitive get, unknown types |
+| `PostgreSqlStrategyTest` | URL pass-through, validation, system schemas |
+| `MySqlStrategyTest` | URL pass-through, validation, system schemas |
+| `SnowflakeStrategyTest` | URL assembly, optional fields, blank-field skipping |
+| `TemplateEngineTest` | Variable substitution, XSS escaping, for loops, dot notation |
+| `JsonUtilTest` | Response shapes, JSON roundtrip, `isValidJson` |
+
+Run tests:
+
+```bash
+mvn test
+```
+
 ## Sessions
 
 - Sessions live server-side, keyed by UUID `sessionId`
