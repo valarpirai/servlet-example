@@ -18,8 +18,9 @@ public class ExtLibManager {
   private static final String EXTLIB_DIR = "extlib";
   private static final String MAVEN_BASE = "https://repo1.maven.org/maven2/";
 
-  // Tracks which driver classes have already been registered with DriverManager
-  private final Set<String> loadedDrivers = ConcurrentHashMap.newKeySet();
+  // Maps driver class name → its URLClassLoader, kept open for the driver's lifetime.
+  // Stored so loaders can be closed at JVM shutdown via shutdown().
+  private final Map<String, URLClassLoader> loadedDrivers = new ConcurrentHashMap<>();
 
   private ExtLibManager() {
     new File(EXTLIB_DIR).mkdirs();
@@ -60,7 +61,7 @@ public class ExtLibManager {
 
     // Both the contains-check and loadDriver call execute under this synchronized block,
     // keeping the check-then-act atomic. Do not move either outside the lock.
-    if (!loadedDrivers.contains(strategy.getDriverClass())) {
+    if (!loadedDrivers.containsKey(strategy.getDriverClass())) {
       loadDriver(jar, strategy.getDriverClass());
     }
   }
@@ -70,6 +71,7 @@ public class ExtLibManager {
       String dbType, String url, String user, String password, Map<String, String> extraProps)
       throws Exception {
     downloadAndLoad(dbType);
+    // Strategy is guaranteed non-null here — downloadAndLoad throws if unknown
     DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(dbType);
     Properties props = strategy.buildConnectionProperties(user, password, extraProps);
     return DriverManager.getConnection(url, props);
@@ -105,7 +107,20 @@ public class ExtLibManager {
     Driver driver =
         (Driver) Class.forName(driverClass, true, loader).getDeclaredConstructor().newInstance();
     DriverManager.registerDriver(new DriverShim(driver));
-    loadedDrivers.add(driverClass);
+    loadedDrivers.put(driverClass, loader);
     logger.info("Registered JDBC driver: {}", driverClass);
+  }
+
+  /** Closes all URLClassLoaders. Call during application shutdown. */
+  public void shutdown() {
+    loadedDrivers.forEach(
+        (driverClass, loader) -> {
+          try {
+            loader.close();
+          } catch (IOException e) {
+            logger.warn("Failed to close URLClassLoader for {}", driverClass, e);
+          }
+        });
+    loadedDrivers.clear();
   }
 }
