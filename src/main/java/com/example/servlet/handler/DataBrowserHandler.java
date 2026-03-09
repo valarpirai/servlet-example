@@ -147,18 +147,39 @@ public class DataBrowserHandler {
       }
 
       DatabaseMetaData meta = conn.getMetaData();
+      // Scope to the currently-connected database only
+      String catalog = conn.getCatalog();
       Map<String, List<String>> schemaMap = new LinkedHashMap<>();
 
-      try (ResultSet schemas = meta.getSchemas()) {
+      // System schemas to exclude across PostgreSQL, MySQL, Snowflake
+      Set<String> systemSchemas =
+          Set.of(
+              "information_schema",
+              "performance_schema",
+              "sys",
+              "mysql",
+              "pg_catalog",
+              "pg_toast",
+              "pg_temp_1",
+              "pg_toast_temp_1");
+
+      // getSchemas(catalog, schemaPattern) scopes to the current catalog,
+      // preventing MySQL from listing all databases as schemas
+      try (ResultSet schemas = meta.getSchemas(catalog, null)) {
         while (schemas.next()) {
-          schemaMap.put(schemas.getString("TABLE_SCHEM"), new ArrayList<>());
+          String name = schemas.getString("TABLE_SCHEM");
+          if (!systemSchemas.contains(name.toLowerCase())) {
+            schemaMap.put(name, new ArrayList<>());
+          }
         }
       }
 
       if (schemaMap.isEmpty()) schemaMap.put("default", new ArrayList<>());
 
       for (String schema : schemaMap.keySet()) {
-        try (ResultSet tables = meta.getTables(null, schema, "%", new String[] {"TABLE", "VIEW"})) {
+        String schemaArg = "default".equals(schema) ? null : schema;
+        try (ResultSet tables =
+            meta.getTables(catalog, schemaArg, "%", new String[] {"TABLE", "VIEW"})) {
           while (tables.next()) {
             schemaMap.get(schema).add(tables.getString("TABLE_NAME"));
           }
