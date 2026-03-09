@@ -23,7 +23,11 @@ public class MySqlStrategy implements DataSourceStrategy {
 
   @Override
   public String buildUrl(Map<String, String> props) {
-    return props.get("url");
+    String url = props.get("url");
+    if (url == null || url.isBlank()) {
+      throw new IllegalArgumentException("MySQL 'url' property is required");
+    }
+    return url;
   }
 
   @Override

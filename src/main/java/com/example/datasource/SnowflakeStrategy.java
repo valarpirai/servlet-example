@@ -24,7 +24,11 @@ public class SnowflakeStrategy implements DataSourceStrategy {
   /** Assembles the Snowflake JDBC URL from the {@code account} property. */
   @Override
   public String buildUrl(Map<String, String> props) {
-    return "jdbc:snowflake://" + props.get("account") + ".snowflakecomputing.com/";
+    String account = props.get("account");
+    if (account == null || account.isBlank()) {
+      throw new IllegalArgumentException("Snowflake 'account' property is required");
+    }
+    return "jdbc:snowflake://" + account + ".snowflakecomputing.com/";
   }
 
   /** Adds optional Snowflake-specific connection properties: warehouse, db, schema, role. */

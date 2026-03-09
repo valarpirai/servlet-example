@@ -23,7 +23,11 @@ public class PostgreSqlStrategy implements DataSourceStrategy {
 
   @Override
   public String buildUrl(Map<String, String> props) {
-    return props.get("url");
+    String url = props.get("url");
+    if (url == null || url.isBlank()) {
+      throw new IllegalArgumentException("PostgreSQL 'url' property is required");
+    }
+    return url;
   }
 
   @Override
