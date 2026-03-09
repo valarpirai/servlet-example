@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Browser</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; background: #1e1e2e; color: #cdd6f4; height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    header { background: #181825; border-bottom: 1px solid #313244; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    header h1 { font-size: 15px; font-weight: 600; color: #cba6f7; }
+    #status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #313244; color: #a6adc8; }
+    #status-badge.connected { background: #a6e3a1; color: #1e1e2e; }
+    #status-badge.error { background: #f38ba8; color: #1e1e2e; }
+
+    /* Layout */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* Sidebar */
+    aside { width: 260px; min-width: 260px; background: #181825; border-right: 1px solid #313244; display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-section { padding: 12px; border-bottom: 1px solid #313244; }
+    .sidebar-section label { display: block; font-size: 11px; color: #a6adc8; margin-bottom: 3px; margin-top: 8px; }
+    .sidebar-section label:first-child { margin-top: 0; }
+    .sidebar-section input, .sidebar-section select { width: 100%; padding: 5px 8px; background: #313244; border: 1px solid #45475a; border-radius: 4px; color: #cdd6f4; font-size: 12px; outline: none; }
+    .sidebar-section input:focus, .sidebar-section select:focus { border-color: #cba6f7; }
+    .sidebar-section input[type=password] { font-family: monospace; letter-spacing: 2px; }
+    .optional-label::after { content: ' (optional)'; color: #585b70; }
+
+    button { cursor: pointer; border: none; border-radius: 4px; font-size: 12px; font-weight: 500; padding: 6px 12px; }
+    #connect-btn { width: 100%; margin-top: 10px; background: #cba6f7; color: #1e1e2e; }
+    #connect-btn:hover { background: #d0bcff; }
+    #connect-btn:disabled { background: #45475a; color: #6c7086; cursor: not-allowed; }
+
+    .driver-status { margin-top: 8px; font-size: 11px; color: #a6adc8; min-height: 16px; }
+    .driver-status.ok { color: #a6e3a1; }
+    .driver-status.downloading { color: #f9e2af; }
+    .driver-status.error { color: #f38ba8; }
+
+    /* Main area */
+    main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Tabs */
+    .tab-bar { display: flex; background: #181825; border-bottom: 1px solid #313244; flex-shrink: 0; }
+    .tab { padding: 8px 16px; font-size: 12px; cursor: pointer; color: #a6adc8; border-bottom: 2px solid transparent; }
+    .tab.active { color: #cba6f7; border-bottom-color: #cba6f7; }
+    .tab-panel { display: none; flex: 1; overflow: hidden; }
+    .tab-panel.active { display: flex; }
+
+    /* Table browser */
+    #table-browser-panel { display: flex; }
+    .schema-tree { width: 200px; min-width: 200px; background: #181825; border-right: 1px solid #313244; overflow-y: auto; padding: 8px 0; }
+    .schema-item { padding: 4px 12px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .schema-item:hover { background: #313244; }
+    .schema-name { font-weight: 600; color: #89b4fa; padding: 6px 12px 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-name { padding: 3px 12px 3px 24px; font-size: 12px; color: #cdd6f4; cursor: pointer; }
+    .table-name:hover { background: #313244; color: #cba6f7; }
+    .table-name.active { background: #45475a; color: #cba6f7; }
+
+    /* Results area */
+    .results-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* SQL editor */
+    #sql-editor-panel { flex-direction: column; }
+    #sql-input { flex: 0 0 160px; width: 100%; padding: 10px; background: #181825; border: none; border-bottom: 1px solid #313244; color: #cdd6f4; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; resize: none; outline: none; }
+    .sql-toolbar { padding: 6px 12px; background: #1e1e2e; border-bottom: 1px solid #313244; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    #run-btn { background: #a6e3a1; color: #1e1e2e; padding: 4px 12px; }
+    #run-btn:hover { background: #b5ef9f; }
+    .shortcut-hint { font-size: 11px; color: #585b70; }
+
+    /* Grid */
+    .grid-container { flex: 1; overflow: auto; }
+    .grid-container table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    .grid-container th { position: sticky; top: 0; background: #181825; border-bottom: 2px solid #313244; padding: 6px 10px; text-align: left; color: #89b4fa; font-weight: 600; white-space: nowrap; z-index: 1; }
+    .grid-container td { border-bottom: 1px solid #313244; padding: 5px 10px; color: #cdd6f4; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .grid-container tr:hover td { background: #313244; }
+    .null-cell { color: #585b70; font-style: italic; }
+
+    .pagination { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #181825; border-top: 1px solid #313244; flex-shrink: 0; }
+    .pagination button { background: #313244; color: #cdd6f4; padding: 3px 10px; }
+    .pagination button:hover { background: #45475a; }
+    .pagination button:disabled { background: #1e1e2e; color: #585b70; }
+    #page-info { font-size: 11px; color: #a6adc8; }
+
+    .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #585b70; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Data Browser</h1>
+  <span id="status-badge">disconnected</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-section">
+      <label>Database Type</label>
+      <select id="db-type" onchange="onDbTypeChange()">
+        <option value="postgresql">PostgreSQL</option>
+        <option value="mysql">MySQL</option>
+        <option value="snowflake">Snowflake</option>
+      </select>
+
+      <div id="dynamic-fields"></div>
+
+      <button id="connect-btn" onclick="connect()">Connect</button>
+      <div id="driver-status" class="driver-status"></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('table-browser')">Table Browser</div>
+      <div class="tab" onclick="switchTab('sql-editor')">SQL Editor</div>
+    </div>
+
+    <div id="table-browser-panel" class="tab-panel active">
+      <div class="schema-tree" id="schema-tree"><div class="empty-state" style="padding:20px;font-size:11px;">Connect to see tables</div></div>
+      <div class="results-area">
+        <div id="table-grid-container" class="grid-container"><div class="empty-state">Select a table</div></div>
+        <div class="pagination" id="table-pagination" style="display:none">
+          <button id="table-prev-btn" onclick="tablePage(-1)">&#8592; Prev</button>
+          <span id="table-page-info" class="page-info"></span>
+          <button id="table-next-btn" onclick="tablePage(1)">Next &#8594;</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sql-editor-panel" class="tab-panel">
+      <textarea id="sql-input" placeholder="SELECT * FROM your_table LIMIT 100"></textarea>
+      <div class="sql-toolbar">
+        <button id="run-btn" onclick="runQuery()">&#9654; Run</button>
+        <span class="shortcut-hint">Cmd+Enter / Ctrl+Enter</span>
+      </div>
+      <div class="results-area">
+        <div id="sql-grid-container" class="grid-container"><div class="empty-state">Run a query to see results</div></div>
+        <div class="pagination" id="sql-pagination" style="display:none">
+          <button id="sql-prev-btn" onclick="sqlPage(-1)">&#8592; Prev</button>
+          <span id="sql-page-info" class="page-info"></span>
+          <button id="sql-next-btn" onclick="sqlPage(1)">Next &#8594;</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// State
+let sessionId = null;
+let currentTableSql = null;
+let currentTablePage = 1;
+let currentTableHasMore = false;
+let currentSqlPage = 1;
+let currentSqlHasMore = false;
+let lastSql = null;
+
+// DB field definitions
+const DB_FIELDS = {
+  postgresql: [
+    { id: 'url',      label: 'JDBC URL',  placeholder: 'jdbc:postgresql://host:5432/dbname', required: true },
+    { id: 'user',     label: 'Username',  placeholder: '', required: true },
+    { id: 'password', label: 'Password',  placeholder: '', type: 'password', required: true }
+  ],
+  mysql: [
+    { id: 'url',      label: 'JDBC URL',  placeholder: 'jdbc:mysql://host:3306/dbname', required: true },
+    { id: 'user',     label: 'Username',  placeholder: '', required: true },
+    { id: 'password', label: 'Password',  placeholder: '', type: 'password', required: true }
+  ],
+  snowflake: [
+    { id: 'account',   label: 'Account',   placeholder: 'myorg-myaccount', required: true },
+    { id: 'user',      label: 'Username',  placeholder: '', required: true },
+    { id: 'password',  label: 'Password',  placeholder: '', type: 'password', required: true },
+    { id: 'warehouse', label: 'Warehouse', placeholder: '', required: false },
+    { id: 'database',  label: 'Database',  placeholder: '', required: false },
+    { id: 'schema',    label: 'Schema',    placeholder: '', required: false },
+    { id: 'role',      label: 'Role',      placeholder: '', required: false }
+  ]
+};
+
+// Init
+function init() {
+  const savedType = localStorage.getItem('db_type');
+  if (savedType) document.getElementById('db-type').value = savedType;
+  onDbTypeChange(true);
+}
+
+function onDbTypeChange(restoreValues) {
+  const type = document.getElementById('db-type').value;
+  const fields = DB_FIELDS[type] || [];
+  const container = document.getElementById('dynamic-fields');
+  container.innerHTML = fields.map(f => {
+    const labelClass = f.required ? '' : 'optional-label';
+    return '<label class="' + labelClass + '">' + f.label + '</label>' +
+      '<input id="field-' + f.id + '" type="' + (f.type || 'text') + '" placeholder="' + (f.placeholder || '') + '" autocomplete="off" />';
+  }).join('');
+
+  if (restoreValues) {
+    fields.forEach(f => {
+      const key = f.id === 'url' ? 'db_url' : f.id === 'user' ? 'db_user' : 'db_' + f.id;
+      const val = localStorage.getItem(key);
+      if (val) {
+        const el = document.getElementById('field-' + f.id);
+        if (el) el.value = val;
+      }
+    });
+  }
+}
+
+// Connect
+async function connect() {
+  const type = document.getElementById('db-type').value;
+  const btn = document.getElementById('connect-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting\u2026';
+  setStatus('connecting\u2026', '');
+
+  localStorage.setItem('db_type', type);
+  DB_FIELDS[type].forEach(f => {
+    const el = document.getElementById('field-' + f.id);
+    if (el && f.id !== 'password') {
+      const key = f.id === 'url' ? 'db_url' : f.id === 'user' ? 'db_user' : 'db_' + f.id;
+      localStorage.setItem(key, el.value);
+    }
+  });
+
+  try {
+    setDriverStatus('Checking driver\u2026', 'downloading');
+    await api('/api/data-browser/download', { dbType: type });
+    setDriverStatus('\u2713 Driver ready', 'ok');
+
+    const body = { dbType: type };
+    DB_FIELDS[type].forEach(f => {
+      const el = document.getElementById('field-' + f.id);
+      if (el && el.value) body[f.id] = el.value;
+    });
+
+    const connRes = await api('/api/data-browser/connect', body);
+    sessionId = connRes.data.sessionId;
+    setStatus('connected', 'connected');
+    await loadTables();
+  } catch (err) {
+    setStatus('error', 'error');
+    setDriverStatus('\u2717 ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Connect';
+  }
+}
+
+// Tables
+async function loadTables() {
+  const tree = document.getElementById('schema-tree');
+  tree.innerHTML = '<div style="padding:12px;color:#a6adc8">Loading\u2026</div>';
+  try {
+    const res = await api('/api/data-browser/tables', { sessionId });
+    const schemas = res.data.schemas;
+    if (!schemas || schemas.length === 0) {
+      tree.innerHTML = '<div style="padding:12px;color:#585b70">No tables found</div>';
+      return;
+    }
+    tree.innerHTML = schemas.map(s =>
+      '<div class="schema-name">' + escHtml(s.schema) + '</div>' +
+      s.tables.map(t =>
+        '<div class="table-name" onclick="queryTable(\'' + escHtml(s.schema) + '\',\'' + escHtml(t) + '\')">' + escHtml(t) + '</div>'
+      ).join('')
+    ).join('');
+  } catch (err) {
+    tree.innerHTML = '<div style="padding:12px;color:#f38ba8">' + escHtml(err.message) + '</div>';
+  }
+}
+
+async function queryTable(schema, table) {
+  document.querySelectorAll('.table-name').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+  const sql = schema === 'default'
+    ? 'SELECT * FROM ' + table
+    : 'SELECT * FROM ' + schema + '.' + table;
+  currentTableSql = sql;
+  currentTablePage = 1;
+  await fetchTableData();
+}
+
+async function fetchTableData() {
+  renderGridLoading('table-grid-container');
+  try {
+    const res = await api('/api/data-browser/query', { sessionId, sql: currentTableSql, page: currentTablePage });
+    renderGrid('table-grid-container', res.data);
+    currentTableHasMore = res.data.hasMore;
+    updatePagination('table', currentTablePage, currentTableHasMore);
+  } catch (err) {
+    document.getElementById('table-grid-container').innerHTML = '<div class="empty-state" style="color:#f38ba8">' + escHtml(err.message) + '</div>';
+  }
+}
+
+function tablePage(delta) {
+  currentTablePage = Math.max(1, currentTablePage + delta);
+  fetchTableData();
+}
+
+// SQL Editor
+async function runQuery() {
+  const sql = document.getElementById('sql-input').value.trim();
+  if (!sql) return;
+  if (!sessionId) { alert('Not connected'); return; }
+  lastSql = sql;
+  currentSqlPage = 1;
+  await fetchSqlData();
+}
+
+async function fetchSqlData() {
+  renderGridLoading('sql-grid-container');
+  try {
+    const res = await api('/api/data-browser/query', { sessionId, sql: lastSql, page: currentSqlPage });
+    renderGrid('sql-grid-container', res.data);
+    currentSqlHasMore = res.data.hasMore;
+    updatePagination('sql', currentSqlPage, currentSqlHasMore);
+  } catch (err) {
+    document.getElementById('sql-grid-container').innerHTML = '<div class="empty-state" style="color:#f38ba8">' + escHtml(err.message) + '</div>';
+  }
+}
+
+function sqlPage(delta) {
+  currentSqlPage = Math.max(1, currentSqlPage + delta);
+  fetchSqlData();
+}
+
+// Grid rendering
+function renderGrid(containerId, data) {
+  const container = document.getElementById(containerId);
+  if (!data.columns || data.columns.length === 0) {
+    container.innerHTML = '<div class="empty-state">No results</div>';
+    return;
+  }
+  const headers = data.columns.map(c => '<th>' + escHtml(c) + '</th>').join('');
+  const bodyRows = data.rows.map(row =>
+    '<tr>' + row.map(cell =>
+      cell === null
+        ? '<td class="null-cell">NULL</td>'
+        : '<td title="' + escHtml(String(cell)) + '">' + escHtml(String(cell)) + '</td>'
+    ).join('') + '</tr>'
+  ).join('');
+  container.innerHTML = '<table><thead><tr>' + headers + '</tr></thead><tbody>' + bodyRows + '</tbody></table>';
+}
+
+function renderGridLoading(containerId) {
+  document.getElementById(containerId).innerHTML = '<div class="empty-state">Loading\u2026</div>';
+}
+
+function updatePagination(prefix, page, hasMore) {
+  const pag = document.getElementById(prefix + '-pagination');
+  pag.style.display = 'flex';
+  document.getElementById(prefix + '-page-info').textContent = 'Page ' + page;
+  document.getElementById(prefix + '-prev-btn').disabled = page <= 1;
+  document.getElementById(prefix + '-next-btn').disabled = !hasMore;
+}
+
+// Tabs
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const panels = ['table-browser', 'sql-editor'];
+    t.classList.toggle('active', panels[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(name + '-panel').classList.add('active');
+}
+
+// Helpers
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const json = await res.json();
+  if (json.status !== 'success') throw new Error(json.error?.message || json.error || 'Unknown error');
+  return json;
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('status-badge');
+  el.textContent = text;
+  if (cls === 'connected') el.className = 'connected';
+  else if (cls === 'error') el.className = 'error';
+  else el.className = '';
+}
+
+function setDriverStatus(msg, cls) {
+  const el = document.getElementById('driver-status');
+  el.textContent = msg;
+  el.className = 'driver-status ' + (cls || '');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    const activePanel = document.querySelector('.tab-panel.active');
+    if (activePanel && activePanel.id === 'sql-editor-panel') runQuery();
+  }
+});
+
+init();
+</script>
+</body>
+</html>
