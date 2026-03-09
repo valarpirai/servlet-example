@@ -233,7 +233,7 @@ async function connect() {
     const body = { dbType: type };
     DB_FIELDS[type].forEach(f => {
       const el = document.getElementById('field-' + f.id);
-      if (el && el.value) body[f.id] = el.value;
+      if (el) body[f.id] = el.value;
     });
 
     const connRes = await api('/api/data-browser/connect', body);

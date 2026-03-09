@@ -70,6 +70,14 @@ public class DataBrowserHandler {
   public void handleConnect(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
       JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      if (!body.has("dbType") || !body.has("user") || !body.has("password")) {
+        writeJson(
+            res,
+            400,
+            JsonUtil.errorResponse(
+                "Bad Request", "Missing required fields: dbType, user, password", 400));
+        return;
+      }
       String dbType = body.get("dbType").getAsString().toLowerCase();
       String user = body.get("user").getAsString();
       String password = body.get("password").getAsString();
