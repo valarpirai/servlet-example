@@ -25,4 +25,5 @@ replay_pid*
 target/
 .idea/
 tomcat*/
+extlib/*.jar
 
