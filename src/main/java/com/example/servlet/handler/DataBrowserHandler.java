@@ -118,7 +118,8 @@ public class DataBrowserHandler {
               e -> {
                 if (!e.getKey().equals("dbType")
                     && !e.getKey().equals("user")
-                    && !e.getKey().equals("password")) {
+                    && !e.getKey().equals("password")
+                    && e.getValue().isJsonPrimitive()) {
                   props.put(e.getKey(), e.getValue().getAsString());
                 }
               });
@@ -143,6 +144,10 @@ public class DataBrowserHandler {
       String sessionId = body.get("sessionId").getAsString();
       String dbType = body.has("dbType") ? body.get("dbType").getAsString() : "";
       DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(dbType);
+      if (strategy == null) {
+        logger.warn(
+            "No strategy found for dbType='{}', using default system schema filter", dbType);
+      }
       Set<String> systemSchemas =
           strategy != null ? strategy.getSystemSchemas() : Set.of("information_schema");
 

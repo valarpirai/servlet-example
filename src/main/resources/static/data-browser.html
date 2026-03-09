@@ -264,7 +264,7 @@ async function connect() {
   setStatus('connecting\u2026', '');
 
   localStorage.setItem('db_type', type);
-  DB_FIELDS[type].forEach(f => {
+  (DB_FIELDS[type] || []).forEach(f => {
     const el = document.getElementById('field-' + f.id);
     if (el && f.id !== 'password') {
       const key = f.id === 'url' ? 'db_url' : f.id === 'user' ? 'db_user' : 'db_' + f.id;
@@ -274,7 +274,7 @@ async function connect() {
 
   try {
     const body = { dbType: type };
-    DB_FIELDS[type].forEach(f => {
+    (DB_FIELDS[type] || []).forEach(f => {
       const el = document.getElementById('field-' + f.id);
       if (el) body[f.id] = el.value;
     });
