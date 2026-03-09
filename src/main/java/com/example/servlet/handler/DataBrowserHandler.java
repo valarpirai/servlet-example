@@ -1,5 +1,7 @@
 package com.example.servlet.handler;
 
+import com.example.datasource.DataSourceRegistry;
+import com.example.datasource.DataSourceStrategy;
 import com.example.extlib.ExtLibManager;
 import com.example.extlib.SessionManager;
 import com.example.servlet.util.JsonUtil;
@@ -85,10 +87,7 @@ public class DataBrowserHandler {
     }
   }
 
-  /**
-   * POST /api/data-browser/connect { dbType, url?, account?, user, password, warehouse?, database?,
-   * schema?, role? }
-   */
+  /** POST /api/data-browser/connect { dbType, url?, account?, user, password, ... } */
   public void handleConnect(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
       JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
@@ -100,26 +99,32 @@ public class DataBrowserHandler {
                 "Bad Request", "Missing required fields: dbType, user, password", 400));
         return;
       }
+
       String dbType = body.get("dbType").getAsString().toLowerCase();
       String user = body.get("user").getAsString();
       String password = body.get("password").getAsString();
 
-      String url;
-      Map<String, String> extraProps = new HashMap<>();
-
-      if ("snowflake".equals(dbType)) {
-        String account = body.get("account").getAsString();
-        url = "jdbc:snowflake://" + account + ".snowflakecomputing.com/";
-        if (body.has("warehouse")) extraProps.put("warehouse", body.get("warehouse").getAsString());
-        if (body.has("database")) extraProps.put("db", body.get("database").getAsString());
-        if (body.has("schema")) extraProps.put("schema", body.get("schema").getAsString());
-        if (body.has("role")) extraProps.put("role", body.get("role").getAsString());
-      } else {
-        url = body.get("url").getAsString();
+      DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(dbType);
+      if (strategy == null) {
+        writeJson(
+            res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType: " + dbType, 400));
+        return;
       }
 
-      Connection conn =
-          ExtLibManager.getInstance().connect(dbType, url, user, password, extraProps);
+      // Collect all extra fields (everything except dbType/user/password) into a flat map
+      Map<String, String> props = new HashMap<>();
+      body.entrySet()
+          .forEach(
+              e -> {
+                if (!e.getKey().equals("dbType")
+                    && !e.getKey().equals("user")
+                    && !e.getKey().equals("password")) {
+                  props.put(e.getKey(), e.getValue().getAsString());
+                }
+              });
+
+      String url = strategy.buildUrl(props);
+      Connection conn = ExtLibManager.getInstance().connect(dbType, url, user, password, props);
       String sessionId = SessionManager.getInstance().createSession(conn);
 
       Map<String, Object> data = Map.of("sessionId", sessionId, "status", "connected");
@@ -136,6 +141,10 @@ public class DataBrowserHandler {
     try {
       JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
       String sessionId = body.get("sessionId").getAsString();
+      String dbType = body.has("dbType") ? body.get("dbType").getAsString() : "";
+      DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(dbType);
+      Set<String> systemSchemas =
+          strategy != null ? strategy.getSystemSchemas() : Set.of("information_schema");
 
       Connection conn = SessionManager.getInstance().getConnection(sessionId);
       if (conn == null) {
@@ -150,18 +159,6 @@ public class DataBrowserHandler {
       // Scope to the currently-connected database only
       String catalog = conn.getCatalog();
       Map<String, List<String>> schemaMap = new LinkedHashMap<>();
-
-      // System schemas to exclude across PostgreSQL, MySQL, Snowflake
-      Set<String> systemSchemas =
-          Set.of(
-              "information_schema",
-              "performance_schema",
-              "sys",
-              "mysql",
-              "pg_catalog",
-              "pg_toast",
-              "pg_temp_1",
-              "pg_toast_temp_1");
 
       // getSchemas(catalog, schemaPattern) scopes to the current catalog,
       // preventing MySQL from listing all databases as schemas

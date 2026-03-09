@@ -297,7 +297,7 @@ async function loadTables() {
   const tree = document.getElementById('schema-tree');
   tree.innerHTML = '<div style="padding:12px;color:#a6adc8">Loading\u2026</div>';
   try {
-    const res = await api('/api/data-browser/tables', { sessionId });
+    const res = await api('/api/data-browser/tables', { sessionId, dbType: document.getElementById('db-type').value });
     const schemas = res.data.schemas;
     if (!schemas || schemas.length === 0) {
       tree.innerHTML = '<div style="padding:12px;color:#585b70">No tables found</div>';
