@@ -29,7 +29,7 @@ class MySqlStrategyTest {
 
   @Test
   void buildUrl_blankUrl_throwsIllegalArgument() {
-    assertThrows(IllegalArgumentException.class, () -> strategy.buildUrl(Map.of("url", "")));
+    assertThrows(IllegalArgumentException.class, () -> strategy.buildUrl(Map.of("url", "  ")));
   }
 
   @Test
@@ -47,10 +47,8 @@ class MySqlStrategyTest {
 
   @Test
   void getSystemSchemas_containsExpectedSchemas() {
-    Set<String> schemas = strategy.getSystemSchemas();
-    assertTrue(schemas.contains("information_schema"));
-    assertTrue(schemas.contains("performance_schema"));
-    assertTrue(schemas.contains("sys"));
-    assertTrue(schemas.contains("mysql"));
+    assertEquals(
+        Set.of("information_schema", "performance_schema", "sys", "mysql"),
+        strategy.getSystemSchemas());
   }
 }
