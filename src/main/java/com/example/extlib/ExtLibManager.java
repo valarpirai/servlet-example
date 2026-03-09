@@ -1,6 +1,7 @@
 package com.example.extlib;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.*;
@@ -75,18 +76,27 @@ public class ExtLibManager {
       logger.info("JAR already present: {}", jarFile.getAbsolutePath());
     }
 
+    // Both the contains-check and loadDriver call execute under this synchronized block,
+    // keeping the check-then-act atomic. Do not move either outside the lock.
     if (!loadedDrivers.contains(info.driverClass())) {
       loadDriver(jarFile, info.driverClass());
     }
   }
 
   private void downloadFile(String urlStr, File dest) throws IOException {
-    URL url = new URL(urlStr);
-    try (InputStream in = url.openStream();
-        OutputStream out = new FileOutputStream(dest)) {
+    File tmp = new File(dest.getParent(), dest.getName() + ".tmp");
+    try (InputStream in = URI.create(urlStr).toURL().openStream();
+        OutputStream out = new FileOutputStream(tmp)) {
       byte[] buf = new byte[8192];
       int n;
       while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+    } catch (IOException e) {
+      tmp.delete();
+      throw e;
+    }
+    if (!tmp.renameTo(dest)) {
+      tmp.delete();
+      throw new IOException("Could not rename " + tmp + " to " + dest);
     }
   }
 
