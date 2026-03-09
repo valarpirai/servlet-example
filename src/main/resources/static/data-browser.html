@@ -263,7 +263,7 @@ async function loadTables() {
     tree.innerHTML = schemas.map(s =>
       '<div class="schema-name">' + escHtml(s.schema) + '</div>' +
       s.tables.map(t =>
-        '<div class="table-name" onclick="queryTable(\'' + escHtml(s.schema) + '\',\'' + escHtml(t) + '\')">' + escHtml(t) + '</div>'
+        '<div class="table-name" data-schema="' + escHtml(s.schema) + '" data-table="' + escHtml(t) + '" onclick="queryTable(event)">' + escHtml(t) + '</div>'
       ).join('')
     ).join('');
   } catch (err) {
@@ -271,12 +271,22 @@ async function loadTables() {
   }
 }
 
-async function queryTable(schema, table) {
+function buildTableSql(schema, table) {
+  const type = document.getElementById('db-type').value;
+  const q = type === 'mysql' ? '`' : '"';
+  const quotedTable = q + table.replace(new RegExp(q, 'g'), q + q) + q;
+  if (schema === 'default') return `SELECT * FROM ${quotedTable}`;
+  const quotedSchema = q + schema.replace(new RegExp(q, 'g'), q + q) + q;
+  return `SELECT * FROM ${quotedSchema}.${quotedTable}`;
+}
+
+async function queryTable(event) {
+  const el = event.currentTarget;
+  const schema = el.dataset.schema;
+  const table = el.dataset.table;
   document.querySelectorAll('.table-name').forEach(el => el.classList.remove('active'));
-  event.target.classList.add('active');
-  const sql = schema === 'default'
-    ? 'SELECT * FROM ' + table
-    : 'SELECT * FROM ' + schema + '.' + table;
+  el.classList.add('active');
+  const sql = buildTableSql(schema, table);
   currentTableSql = sql;
   currentTablePage = 1;
   await fetchTableData();
