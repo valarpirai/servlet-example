@@ -77,7 +77,7 @@ class TemplateEngineTest {
 
   @Test
   void render_forLoop_overArray_expandsItems() {
-    Map<String, Object> data = Map.of("items", new Object[]{"x", "y"});
+    Map<String, Object> data = Map.of("items", new Object[] {"x", "y"});
     String result = TemplateEngine.render("{{#for item in items}}[{{item}}]{{/for}}", data);
     assertEquals("[x][y]", result);
   }
