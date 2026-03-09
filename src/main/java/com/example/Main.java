@@ -63,6 +63,7 @@ public class Main {
       logger.info("  - http://localhost:{}/health", PORT);
       logger.info("  - http://localhost:{}/metrics", PORT);
       logger.info("  - http://localhost:{}/script-editor (JavaScript Code Editor)", PORT);
+      logger.info("  - http://localhost:{}/data-browser (Database Browser)", PORT);
       logger.info("POST Endpoints:");
       logger.info(
           "  - http://localhost:{}/api/form   (Content-Type: application/x-www-form-urlencoded)",

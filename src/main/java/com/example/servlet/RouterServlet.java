@@ -1,5 +1,6 @@
 package com.example.servlet;
 
+import com.example.servlet.handler.DataBrowserHandler;
 import com.example.servlet.processor.FileUploadProcessor;
 import com.example.servlet.processor.FormDataProcessor;
 import com.example.servlet.processor.JsonDataProcessor;
@@ -129,6 +130,13 @@ public class RouterServlet extends HttpServlet {
         return;
       }
 
+      if ("/data-browser".equals(path)) {
+        serveStaticFile(request, response, "static/data-browser.html", "text/html");
+        long responseTime = System.currentTimeMillis() - startTime;
+        logRequest(request, response.getStatus(), responseTime, 0);
+        return;
+      }
+
       // For JSON responses, set content type and get writer
       response.setContentType("application/json");
       response.setCharacterEncoding("UTF-8");
@@ -186,6 +194,21 @@ public class RouterServlet extends HttpServlet {
         case "/api/script":
         case "/api/render":
           handleProcessorRequest(request, response);
+          break;
+        case "/api/data-browser/download":
+          DataBrowserHandler.getInstance().handleDownload(request, response);
+          break;
+        case "/api/data-browser/connect":
+          DataBrowserHandler.getInstance().handleConnect(request, response);
+          break;
+        case "/api/data-browser/tables":
+          DataBrowserHandler.getInstance().handleTables(request, response);
+          break;
+        case "/api/data-browser/query":
+          DataBrowserHandler.getInstance().handleQuery(request, response);
+          break;
+        case "/api/data-browser/disconnect":
+          DataBrowserHandler.getInstance().handleDisconnect(request, response);
           break;
         default:
           PrintWriter out = response.getWriter();
