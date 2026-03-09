@@ -55,7 +55,7 @@ class JsonUtilTest {
     Map<String, String> original = Map.of("hello", "world");
     String json = JsonUtil.toJson(original);
     assertTrue(JsonUtil.isValidJson(json));
-    assertTrue(json.contains("hello"));
-    assertTrue(json.contains("world"));
+    JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+    assertEquals("world", obj.get("hello").getAsString());
   }
 }
