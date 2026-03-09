@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,7 @@ public class SessionManager {
   private static final SessionManager INSTANCE = new SessionManager();
   private static final long TTL_MS = 30 * 60 * 1000L; // 30 minutes
 
-  private record Session(Connection connection, long[] lastAccessed) {}
+  private record Session(Connection connection, AtomicLong lastAccessed) {}
 
   private final Map<String, Session> sessions = new ConcurrentHashMap<>();
   private final ScheduledExecutorService cleaner =
@@ -35,7 +36,7 @@ public class SessionManager {
 
   public String createSession(Connection connection) {
     String id = UUID.randomUUID().toString();
-    sessions.put(id, new Session(connection, new long[] {System.currentTimeMillis()}));
+    sessions.put(id, new Session(connection, new AtomicLong(System.currentTimeMillis())));
     logger.info("Session created: {}", id);
     return id;
   }
@@ -44,7 +45,7 @@ public class SessionManager {
   public Connection getConnection(String sessionId) {
     Session session = sessions.get(sessionId);
     if (session == null) return null;
-    session.lastAccessed()[0] = System.currentTimeMillis();
+    session.lastAccessed().set(System.currentTimeMillis());
     return session.connection();
   }
 
@@ -53,7 +54,8 @@ public class SessionManager {
     if (session != null) {
       try {
         session.connection().close();
-      } catch (SQLException ignored) {
+      } catch (SQLException e) {
+        logger.warn("Failed to close connection for session: {}", sessionId, e);
       }
       logger.info("Session removed: {}", sessionId);
     }
@@ -65,11 +67,12 @@ public class SessionManager {
         .entrySet()
         .removeIf(
             entry -> {
-              boolean expired = (now - entry.getValue().lastAccessed()[0]) > TTL_MS;
+              boolean expired = (now - entry.getValue().lastAccessed().get()) > TTL_MS;
               if (expired) {
                 try {
                   entry.getValue().connection().close();
-                } catch (SQLException ignored) {
+                } catch (SQLException e) {
+                  logger.warn("Failed to close connection for session: {}", entry.getKey(), e);
                 }
                 logger.info("Session evicted (TTL): {}", entry.getKey());
               }
