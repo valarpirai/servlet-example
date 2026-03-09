@@ -48,6 +48,12 @@ class TemplateEngineTest {
   }
 
   @Test
+  void render_doubleQuoteEscaped() {
+    String result = TemplateEngine.render("{{v}}", Map.of("v", "say \"hello\""));
+    assertEquals("say &quot;hello&quot;", result);
+  }
+
+  @Test
   void render_dotNotation_resolvesNestedValue() {
     Map<String, Object> data = Map.of("user", Map.of("name", "Alice"));
     String result = TemplateEngine.render("{{user.name}}", data);
