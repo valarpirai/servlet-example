@@ -28,7 +28,7 @@ public class DataBrowserHandler {
     StringBuilder sb = new StringBuilder();
     try (BufferedReader r = req.getReader()) {
       String line;
-      while ((line = r.readLine()) != null) sb.append(line);
+      while ((line = r.readLine()) != null) sb.append(line).append('\n');
     }
     return sb.toString();
   }
@@ -158,6 +158,7 @@ public class DataBrowserHandler {
       String sessionId = body.get("sessionId").getAsString();
       String sql = body.get("sql").getAsString();
       int page = body.has("page") ? body.get("page").getAsInt() : 1;
+      if (page < 1) page = 1;
       int pageSize = 100;
       int offset = (page - 1) * pageSize;
 
@@ -170,6 +171,8 @@ public class DataBrowserHandler {
         return;
       }
 
+      sql = sql.strip();
+      if (sql.endsWith(";")) sql = sql.substring(0, sql.length() - 1).stripTrailing();
       String pagedSql = "SELECT * FROM (" + sql + ") __q LIMIT " + pageSize + " OFFSET " + offset;
 
       List<String> columns = new ArrayList<>();
@@ -184,7 +187,7 @@ public class DataBrowserHandler {
 
         while (rs.next()) {
           List<Object> row = new ArrayList<>();
-          for (int i = 1; i <= colCount; i++) row.add(rs.getObject(i));
+          for (int i = 1; i <= colCount; i++) row.add(toSafeValue(rs.getObject(i)));
           rows.add(row);
         }
       }
@@ -209,10 +212,26 @@ public class DataBrowserHandler {
     try {
       JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
       String sessionId = body.get("sessionId").getAsString();
+      Connection conn = SessionManager.getInstance().getConnection(sessionId);
+      if (conn == null) {
+        writeJson(
+            res,
+            401,
+            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
+        return;
+      }
       SessionManager.getInstance().removeSession(sessionId);
       writeJson(res, 200, JsonUtil.successResponse(Map.of("status", "disconnected")));
     } catch (Exception e) {
       writeJson(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
     }
+  }
+
+  private Object toSafeValue(Object value) {
+    if (value == null) return null;
+    if (value instanceof Number || value instanceof Boolean) return value;
+    if (value instanceof byte[])
+      return java.util.Base64.getEncoder().encodeToString((byte[]) value);
+    return value.toString();
   }
 }
