@@ -193,6 +193,10 @@ File upload limits are enforced at Tomcat level via multipart config (maxFileSiz
   - `JsonUtil` - Gson wrapper for JSON serialization
   - `TemplateEngine` - HTML template rendering with variable substitution and loops
 
+## Feature Documentation
+
+- **Data Browser** (`docs/data-browser.md`) — Web-based database browser at `/data-browser`. Supports PostgreSQL, MySQL, and Snowflake with on-demand JDBC driver downloads, session management, table browsing, and SQL query execution.
+
 ## Testing Endpoints
 
 The application exposes these endpoints (see `Main.java:50-64` for complete list):
