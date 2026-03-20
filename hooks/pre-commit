@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit hook to run Spotless formatting
+
+echo "Running Spotless check..."
+
+# Run Spotless check
+mvn spotless:check -q
+
+# If spotless check fails, apply formatting and re-stage files
+if [ $? -ne 0 ]; then
+    echo "Code formatting issues detected. Running spotless:apply..."
+    mvn spotless:apply -q
+
+    # Re-add formatted files to staging
+    git add -u
+
+    echo "✅ Code formatted. Files re-staged. Please review changes and commit again."
+    exit 1
+fi
+
+echo "✅ Code formatting OK"
+exit 0
