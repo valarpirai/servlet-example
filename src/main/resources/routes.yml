@@ -1,0 +1,166 @@
+# Route Configuration for RouterServlet
+# Routes are matched in order - more specific routes should come first
+
+routes:
+  # Static Files (use OutputStream)
+  - path: /script-editor
+    method: GET
+    type: static
+    resource: static/script-editor.html
+    contentType: text/html
+    description: Interactive JavaScript code editor
+
+  - path: /data-browser
+    method: GET
+    type: static
+    resource: static/data-browser.html
+    contentType: text/html
+    description: Database browser UI
+
+  # Attachment API (use OutputStream for downloads)
+  - path: /api/attachments
+    method: GET
+    type: handler
+    handler: AttachmentHandler
+    handlerMethod: handleList
+    contentType: application/json
+    description: List all attachments
+
+  - path: /api/attachment/{id}/download
+    method: GET
+    type: handler
+    handler: AttachmentHandler
+    handlerMethod: handleDownload
+    pathParams:
+      - id
+    description: Download attachment by ID (streaming)
+
+  - path: /api/attachment/{id}
+    method: GET
+    type: handler
+    handler: AttachmentHandler
+    handlerMethod: handleMetadata
+    pathParams:
+      - id
+    contentType: application/json
+    description: Get attachment metadata
+
+  - path: /api/attachment/{id}
+    method: DELETE
+    type: handler
+    handler: AttachmentHandler
+    handlerMethod: handleDelete
+    pathParams:
+      - id
+    contentType: application/json
+    description: Delete attachment
+
+  # Module API
+  - path: /api/modules/**
+    method: [GET, POST, PUT, DELETE]
+    type: processor
+    processor: ModuleProcessor
+    contentType: application/json
+    description: Module management endpoints
+
+  # Content-Type Based Processing
+  - path: /api/upload
+    method: POST
+    type: processor
+    contentType: application/json
+    description: File upload (multipart/form-data)
+
+  - path: /api/form
+    method: POST
+    type: processor
+    contentType: application/json
+    description: Form data processing
+
+  - path: /api/json
+    method: POST
+    type: processor
+    contentType: application/json
+    description: JSON data processing
+
+  - path: /api/script
+    method: POST
+    type: processor
+    contentType: application/json
+    description: JavaScript execution
+
+  - path: /api/render
+    method: POST
+    type: processor
+    contentType: application/json
+    description: Template rendering
+
+  # Built-in Endpoints (use Writer)
+  - path: /health
+    method: GET
+    type: builtin
+    handler: handleHealth
+    contentType: application/json
+    description: Health check endpoint
+
+  - path: /metrics
+    method: GET
+    type: builtin
+    handler: handleMetrics
+    contentType: application/json
+    description: System metrics endpoint
+
+  - path: /
+    method: GET
+    type: builtin
+    handler: handleRoot
+    contentType: application/json
+    description: Welcome endpoint with API documentation
+
+  # Data Browser API
+  - path: /api/data-browser/driver-status
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleDriverStatus
+    contentType: application/json
+    description: Check JDBC driver availability
+
+  - path: /api/data-browser/download
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleDownload
+    contentType: application/json
+    description: Download JDBC driver
+
+  - path: /api/data-browser/connect
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleConnect
+    contentType: application/json
+    description: Connect to database
+
+  - path: /api/data-browser/tables
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleTables
+    contentType: application/json
+    description: List database tables
+
+  - path: /api/data-browser/query
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleQuery
+    contentType: application/json
+    description: Execute SQL query
+
+  - path: /api/data-browser/disconnect
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleDisconnect
+    contentType: application/json
+    description: Disconnect from database

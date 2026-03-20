@@ -322,6 +322,61 @@ upload:
 
 See `docs/MEMORY-GUARANTEE.md` for detailed memory analysis.
 
+### Route Registry System (Optional)
+
+**NEW**: External route configuration system that moves routing logic from Java code to YAML.
+
+**Location**: `src/main/resources/routes.yml`
+
+**Key Components**:
+- `RouteRegistry` - Loads routes.yml, performs pattern matching
+- `Route` - Represents a route with path patterns, methods, handlers
+- `RouteDispatcher` - Dispatches requests to handlers via reflection
+
+**Benefits**:
+- ✅ Add/modify routes without Java code changes
+- ✅ All routes visible in one YAML file
+- ✅ Automatic path parameter extraction (`{id}` → captured value)
+- ✅ Wildcard support (`/api/modules/**`)
+- ✅ Cleaner servlet code (no if-else chains)
+
+**Route Types**:
+1. `static` - Serve static files from classpath
+2. `handler` - Invoke singleton handler methods (AttachmentHandler, DataBrowserHandler)
+3. `processor` - Content-type based processors (ModuleProcessor)
+4. `builtin` - Built-in RouterServlet methods (handleHealth, handleMetrics)
+
+**Example Route**:
+```yaml
+- path: /api/attachment/{id}/download
+  method: GET
+  type: handler
+  handler: AttachmentHandler
+  handlerMethod: handleDownload
+  pathParams:
+    - id
+  description: Download attachment by ID
+```
+
+**Usage in RouterServlet** (optional integration):
+```java
+RouteRegistry registry = RouteRegistry.getInstance();
+RouteRegistry.RouteMatch match = registry.findRoute("GET", request.getPathInfo());
+
+if (match != null) {
+    RouteDispatcher dispatcher = new RouteDispatcher();
+    dispatcher.dispatch(match, request, response);
+} else {
+    handleNotFound(response, out, path);
+}
+```
+
+**Status**: Currently implemented but **not integrated** into RouterServlet. The existing if-else routing logic is still active. Integration can be done gradually (hybrid approach) or completely replace existing routing.
+
+**Testing**: `RouteRegistryTest.java` - 10 tests covering all route types, parameter extraction, wildcard matching
+
+See `docs/ROUTE-REGISTRY.md` for detailed documentation and integration guide.
+
 ### Embedded Tomcat Setup
 
 `Main.java` bootstraps embedded Tomcat:
@@ -335,6 +390,11 @@ File upload limits are enforced at Tomcat level via multipart config (maxFileSiz
 
 - **Main.java**: Embedded Tomcat bootstrap and server configuration
 - **RouterServlet.java**: Central servlet handling all HTTP routing
+- **route/** *(NEW)*: External route configuration system
+  - `RouteRegistry` - Loads routes.yml, performs route matching
+  - `Route` - Route definition with pattern matching and parameter extraction
+  - `RouteDispatcher` - Dispatches requests to handlers via reflection
+  - `routes.yml` - YAML configuration file defining all application routes
 - **processor/**: Strategy pattern implementations for different content types
   - `RequestProcessor` - Interface defining processor contract
   - `ProcessorRegistry` - Singleton registry for processor lookup
