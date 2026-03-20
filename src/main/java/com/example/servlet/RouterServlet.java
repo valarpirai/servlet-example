@@ -1,5 +1,6 @@
 package com.example.servlet;
 
+import com.example.servlet.handler.AttachmentHandler;
 import com.example.servlet.handler.DataBrowserHandler;
 import com.example.servlet.processor.FileUploadProcessor;
 import com.example.servlet.processor.FormDataProcessor;
@@ -148,6 +149,25 @@ public class RouterServlet extends HttpServlet {
         return;
       }
 
+      // Handle attachment download requests
+      if (path != null && path.startsWith("/api/attachment/")) {
+        String[] parts = path.split("/");
+        if (parts.length >= 4) {
+          String attachmentId = parts[3];
+          String action = parts.length > 4 ? parts[4] : "metadata";
+
+          if ("download".equals(action)) {
+            AttachmentHandler.getInstance().handleDownload(request, response, attachmentId);
+          } else {
+            AttachmentHandler.getInstance().handleMetadata(response, attachmentId);
+          }
+
+          long responseTime = System.currentTimeMillis() - startTime;
+          logRequest(request, response.getStatus(), responseTime, 0);
+          return;
+        }
+      }
+
       // For JSON responses, set content type and get writer
       response.setContentType("application/json");
       response.setCharacterEncoding("UTF-8");
@@ -285,6 +305,19 @@ public class RouterServlet extends HttpServlet {
 
     try {
       String path = request.getPathInfo();
+
+      // Handle attachment deletion
+      if (path != null && path.startsWith("/api/attachment/")) {
+        String[] parts = path.split("/");
+        if (parts.length >= 4) {
+          String attachmentId = parts[3];
+          AttachmentHandler.getInstance().handleDelete(response, attachmentId);
+          long responseTime = System.currentTimeMillis() - startTime;
+          logRequest(request, response.getStatus(), responseTime, 0);
+          return;
+        }
+      }
+
       if (path != null && path.startsWith("/api/modules")) {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");

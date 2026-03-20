@@ -28,3 +28,4 @@ tomcat*/
 extlib/*.jar
 .playwright-cli/
 *.log
+attachments/

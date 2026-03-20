@@ -52,6 +52,23 @@ modules:
   # Maximum module file size in bytes (1 MB)
   maxFileSize: 1048576
 
+# Attachment Storage Configuration
+storage:
+  # Storage type: filesystem (default), s3, database
+  type: ${STORAGE_TYPE:filesystem}
+  # Chunk size for streaming (1MB default) - prevents memory issues
+  chunkSize: ${STORAGE_CHUNK_SIZE:1048576}
+  # Filesystem storage configuration
+  filesystem:
+    path: ${STORAGE_PATH:attachments}
+  # S3 storage configuration (future)
+  s3:
+    bucket: ${S3_BUCKET:}
+    region: ${S3_REGION:us-east-1}
+  # Database storage configuration (future)
+  database:
+    table: sys_attachment_doc
+
 # Logging Configuration
 logging:
   # Log level: TRACE, DEBUG, INFO, WARN, ERROR (can be overridden with LOG_LEVEL)
