@@ -1,6 +1,7 @@
 package com.example.servlet.processor;
 
 import com.example.servlet.model.Module;
+import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.module.ModuleManager;
 import com.example.servlet.util.JsonUtil;
 import com.google.gson.JsonObject;

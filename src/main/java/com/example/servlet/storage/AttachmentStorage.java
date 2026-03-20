@@ -1,5 +1,6 @@
 package com.example.servlet.storage;
 
+import com.example.servlet.model.Attachment;
 import java.io.IOException;
 import java.io.InputStream;
 

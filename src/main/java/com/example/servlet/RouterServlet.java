@@ -2,12 +2,12 @@ package com.example.servlet;
 
 import com.example.servlet.handler.AttachmentHandler;
 import com.example.servlet.handler.DataBrowserHandler;
+import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.processor.FileUploadProcessor;
 import com.example.servlet.processor.FormDataProcessor;
 import com.example.servlet.processor.JsonDataProcessor;
 import com.example.servlet.processor.ModuleProcessor;
 import com.example.servlet.processor.ProcessorRegistry;
-import com.example.servlet.processor.ProcessorResponse;
 import com.example.servlet.processor.RequestProcessor;
 import com.example.servlet.processor.ScriptProcessor;
 import com.example.servlet.processor.TemplateProcessor;

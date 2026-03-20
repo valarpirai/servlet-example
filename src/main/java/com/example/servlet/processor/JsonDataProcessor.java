@@ -1,5 +1,6 @@
 package com.example.servlet.processor;
 
+import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.util.JsonUtil;
 import com.google.gson.JsonSyntaxException;
 import jakarta.servlet.ServletException;

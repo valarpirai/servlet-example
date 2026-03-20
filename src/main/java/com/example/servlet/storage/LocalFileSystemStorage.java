@@ -1,5 +1,6 @@
 package com.example.servlet.storage;
 
+import com.example.servlet.model.Attachment;
 import com.example.servlet.util.JsonUtil;
 import com.example.servlet.util.PropertiesUtil;
 import java.io.File;
