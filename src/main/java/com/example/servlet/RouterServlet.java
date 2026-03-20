@@ -4,6 +4,7 @@ import com.example.servlet.handler.DataBrowserHandler;
 import com.example.servlet.processor.FileUploadProcessor;
 import com.example.servlet.processor.FormDataProcessor;
 import com.example.servlet.processor.JsonDataProcessor;
+import com.example.servlet.processor.ModuleProcessor;
 import com.example.servlet.processor.ProcessorRegistry;
 import com.example.servlet.processor.ProcessorResponse;
 import com.example.servlet.processor.RequestProcessor;
@@ -137,6 +138,16 @@ public class RouterServlet extends HttpServlet {
         return;
       }
 
+      // Handle module API requests
+      if (path != null && path.startsWith("/api/modules")) {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        handleModulesRequest(request, response);
+        long responseTime = System.currentTimeMillis() - startTime;
+        logRequest(request, response.getStatus(), responseTime, 0);
+        return;
+      }
+
       // For JSON responses, set content type and get writer
       response.setContentType("application/json");
       response.setCharacterEncoding("UTF-8");
@@ -195,6 +206,12 @@ public class RouterServlet extends HttpServlet {
         case "/api/render":
           handleProcessorRequest(request, response);
           break;
+        default:
+          if (path != null && path.startsWith("/api/modules")) {
+            handleModulesRequest(request, response);
+            break;
+          }
+          switch (path) {
         case "/api/data-browser/driver-status":
           DataBrowserHandler.getInstance().handleDriverStatus(request, response);
           break;
@@ -218,6 +235,8 @@ public class RouterServlet extends HttpServlet {
           handleNotFound(response, out, path);
           out.flush();
           break;
+          }
+          break;
       }
 
       long responseTime = System.currentTimeMillis() - startTime;
@@ -227,6 +246,81 @@ public class RouterServlet extends HttpServlet {
       logError(request, e, responseTime);
       throw e;
     }
+  }
+
+  @Override
+  protected void doPut(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+    long startTime = System.currentTimeMillis();
+    requestCount.incrementAndGet();
+
+    try {
+      String path = request.getPathInfo();
+      if (path != null && path.startsWith("/api/modules")) {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        handleModulesRequest(request, response);
+      } else {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
+        handleNotFound(response, out, path);
+        out.flush();
+      }
+
+      long responseTime = System.currentTimeMillis() - startTime;
+      logRequest(request, response.getStatus(), responseTime, 0);
+    } catch (Exception e) {
+      long responseTime = System.currentTimeMillis() - startTime;
+      logError(request, e, responseTime);
+      throw e;
+    }
+  }
+
+  @Override
+  protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+    long startTime = System.currentTimeMillis();
+    requestCount.incrementAndGet();
+
+    try {
+      String path = request.getPathInfo();
+      if (path != null && path.startsWith("/api/modules")) {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        handleModulesRequest(request, response);
+      } else {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
+        handleNotFound(response, out, path);
+        out.flush();
+      }
+
+      long responseTime = System.currentTimeMillis() - startTime;
+      logRequest(request, response.getStatus(), responseTime, 0);
+    } catch (Exception e) {
+      long responseTime = System.currentTimeMillis() - startTime;
+      logError(request, e, responseTime);
+      throw e;
+    }
+  }
+
+  private void handleModulesRequest(HttpServletRequest request, HttpServletResponse response)
+      throws IOException, ServletException {
+    ModuleProcessor processor = new ModuleProcessor();
+    ProcessorResponse processorResponse = processor.process(request);
+
+    response.setStatus(processorResponse.getStatusCode());
+    response.setContentType(processorResponse.getContentType());
+
+    for (Map.Entry<String, String> header : processorResponse.getHeaders().entrySet()) {
+      response.setHeader(header.getKey(), header.getValue());
+    }
+
+    PrintWriter out = response.getWriter();
+    out.print(processorResponse.getBody());
+    out.flush();
   }
 
   private void handleProcessorRequest(HttpServletRequest request, HttpServletResponse response)

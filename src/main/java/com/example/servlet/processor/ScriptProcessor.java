@@ -1,5 +1,8 @@
 package com.example.servlet.processor;
 
+import com.example.servlet.module.Module;
+import com.example.servlet.module.ModuleDependencyResolver;
+import com.example.servlet.module.ModuleManager;
 import com.example.servlet.util.JsonUtil;
 import com.example.servlet.util.PropertiesUtil;
 import com.google.gson.JsonObject;
@@ -9,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.mozilla.javascript.ClassShutter;
 import org.mozilla.javascript.Context;
@@ -257,6 +261,59 @@ public class ScriptProcessor implements RequestProcessor {
     return CONTENT_TYPE;
   }
 
+  /** Transform ES6 imports to require() calls and load modules */
+  private String prepareScriptWithModules(String script, Scriptable scope) throws IOException {
+    // Resolve module dependencies
+    ModuleManager moduleManager = ModuleManager.getInstance();
+    ModuleDependencyResolver resolver = new ModuleDependencyResolver(moduleManager);
+
+    List<String> moduleOrder = resolver.resolveImports(script);
+
+    // Build module loading code
+    StringBuilder moduleCode = new StringBuilder();
+
+    // Create module cache
+    moduleCode.append("var __moduleCache = {};\n");
+
+    // Load modules in dependency order
+    for (String modulePath : moduleOrder) {
+      Module module = moduleManager.getModule(modulePath);
+      if (module == null) {
+        throw new IOException("Module not found: " + modulePath);
+      }
+
+      // Wrap module in CommonJS pattern
+      moduleCode.append("(function() {\n");
+      moduleCode.append("  var module = { exports: {} };\n");
+      moduleCode.append("  var exports = module.exports;\n");
+      moduleCode.append("  var require = function(path) {\n");
+      moduleCode.append("    if (__moduleCache[path]) return __moduleCache[path];\n");
+      moduleCode.append("    throw new Error('Module not found: ' + path);\n");
+      moduleCode.append("  };\n");
+      moduleCode.append("  \n");
+      moduleCode.append(module.getContent());
+      moduleCode.append("  \n");
+      moduleCode.append("  __moduleCache['").append(modulePath).append("'] = module.exports;\n");
+      moduleCode.append("})();\n\n");
+    }
+
+    // Create global require function
+    moduleCode.append("function require(modulePath) {\n");
+    moduleCode.append("  if (__moduleCache[modulePath]) {\n");
+    moduleCode.append("    return __moduleCache[modulePath];\n");
+    moduleCode.append("  }\n");
+    moduleCode.append("  throw new Error('Module not found: ' + modulePath);\n");
+    moduleCode.append("}\n\n");
+
+    // Transform ES6 imports to require() calls
+    String transformedScript =
+        script.replaceAll(
+            "import\\s+([\\w{},\\s*]+)\\s+from\\s+['\"]([^'\"]+)['\"]",
+            "var $1 = require('$2')");
+
+    return moduleCode.toString() + transformedScript;
+  }
+
   /** Execute JavaScript code using Mozilla Rhino with timeout and memory limits */
   private Object executeScript(
       String script,
@@ -297,8 +354,16 @@ public class ScriptProcessor implements RequestProcessor {
       // Add server-side context objects
       addServerContext(scope, params, request, consoleLogs);
 
+      // Prepare script with module loading
+      String preparedScript;
+      try {
+        preparedScript = prepareScriptWithModules(script, scope);
+      } catch (IOException e) {
+        throw new RuntimeException("Module loading failed: " + e.getMessage(), e);
+      }
+
       // Execute the script with timeout and memory monitoring
-      Object result = executeWithLimits(context, scope, script, startTime, memoryBefore);
+      Object result = executeWithLimits(context, scope, preparedScript, startTime, memoryBefore);
 
       // Convert result to Java object
       return convertRhinoObject(result);

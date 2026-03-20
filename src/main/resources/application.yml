@@ -45,6 +45,13 @@ script:
   # Lower values = more frequent checks = more overhead but more accurate limits
   instructionThreshold: 10000
 
+# Module System Configuration
+modules:
+  # Directory for storing JavaScript modules
+  directory: ${MODULES_DIR:modules}
+  # Maximum module file size in bytes (1 MB)
+  maxFileSize: 1048576
+
 # Logging Configuration
 logging:
   # Log level: TRACE, DEBUG, INFO, WARN, ERROR (can be overridden with LOG_LEVEL)

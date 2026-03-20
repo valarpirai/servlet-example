@@ -10,6 +10,11 @@ A simple web application using Jakarta EE Servlets with content-type based reque
   - JSON Data Processor (application/json)
   - JavaScript Execution Engine (application/javascript) - Server-side JS with Rhino
   - Template Rendering Engine (text/html) - Custom template engine with variable substitution
+- **JavaScript Module System**: Organize and reuse JavaScript code
+  - ES6-style import syntax with CommonJS exports
+  - Module dependency resolution with circular dependency detection
+  - File-based module storage with namespaced paths
+  - Integrated module manager UI
 - **Interactive Script Editor**: Web-based JavaScript code editor with real-time execution
 - **Performance Monitoring**: Execution time and memory usage tracking for scripts
 - **YAML Configuration**: Externalized configuration with environment variable support
@@ -28,6 +33,7 @@ A simple web application using Jakarta EE Servlets with content-type based reque
 ```
 servlet-example/
 ├── pom.xml
+├── modules/                 (JavaScript modules storage)
 ├── src/
 │   └── main/
 │       ├── java/
@@ -36,6 +42,10 @@ servlet-example/
 │       │           ├── Main.java
 │       │           └── servlet/
 │       │               ├── RouterServlet.java
+│       │               ├── module/
+│       │               │   ├── Module.java
+│       │               │   ├── ModuleManager.java
+│       │               │   └── ModuleDependencyResolver.java
 │       │               ├── processor/
 │       │               │   ├── RequestProcessor.java (interface)
 │       │               │   ├── ProcessorRegistry.java
@@ -43,6 +53,7 @@ servlet-example/
 │       │               │   ├── FileUploadProcessor.java
 │       │               │   ├── FormDataProcessor.java
 │       │               │   ├── JsonDataProcessor.java
+│       │               │   ├── ModuleProcessor.java
 │       │               │   ├── ScriptProcessor.java
 │       │               │   └── TemplateProcessor.java
 │       │               └── util/
@@ -77,6 +88,11 @@ threadPool:
   minSpareThreads: 10
   acceptCount: 100
   connectionTimeout: 20000
+
+# Module System Configuration
+modules:
+  directory: modules       # Module storage directory
+  maxFileSize: 1048576    # Max module file size (1 MB)
 ```
 
 ### Environment Variables
@@ -87,8 +103,11 @@ Override configuration using environment variables:
 # Change server port
 SERVER_PORT=9090 java -jar target/servlet-example.jar
 
-# Or for development
-SERVER_PORT=9090 mvn -PappRun
+# Change modules directory
+MODULES_DIR=/custom/modules/path java -jar target/servlet-example.jar
+
+# Multiple overrides
+SERVER_PORT=9090 MODULES_DIR=./my-modules mvn -PappRun
 ```
 
 ## Building and Running
@@ -127,7 +146,9 @@ GET Endpoints:
   - http://localhost:8080/
   - http://localhost:8080/health
   - http://localhost:8080/metrics
-  - http://localhost:8080/script-editor (Interactive JavaScript Code Editor)
+  - http://localhost:8080/script-editor (Interactive JavaScript Code Editor with Module Manager)
+  - http://localhost:8080/api/modules/list (List all modules)
+  - http://localhost:8080/api/modules/{path} (Get specific module)
 
 POST Endpoints:
   - http://localhost:8080/api/form   (Content-Type: application/x-www-form-urlencoded)
@@ -135,6 +156,13 @@ POST Endpoints:
   - http://localhost:8080/api/upload (Content-Type: multipart/form-data)
   - http://localhost:8080/api/script (Content-Type: application/javascript)
   - http://localhost:8080/api/render (Content-Type: text/html)
+  - http://localhost:8080/api/modules/create (Create new module)
+
+PUT Endpoints:
+  - http://localhost:8080/api/modules/{path} (Update module)
+
+DELETE Endpoints:
+  - http://localhost:8080/api/modules/{path} (Delete module)
 =========================================
 ```
 
@@ -379,17 +407,159 @@ new java.io.File("/etc/passwd");    // ERROR: blocked
 new java.net.Socket("host", 80);    // ERROR: blocked
 ```
 
+### JavaScript Module System
+
+The application includes a module system that allows you to organize and reuse JavaScript code across scripts.
+
+#### Module Management
+
+Modules are managed through the REST API or the integrated Module Manager UI in the script editor.
+
+**List Modules:**
+```bash
+curl http://localhost:8080/api/modules/list
+```
+
+**Get Module:**
+```bash
+curl http://localhost:8080/api/modules/utils/string
+```
+
+**Create Module:**
+```bash
+curl -X POST http://localhost:8080/api/modules/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "utils/math",
+    "content": "function add(a, b) { return a + b; }\nfunction multiply(a, b) { return a * b; }\nmodule.exports = { add: add, multiply: multiply };"
+  }'
+```
+
+**Update Module:**
+```bash
+curl -X PUT http://localhost:8080/api/modules/utils/math \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "function add(a, b) { return a + b; }\nfunction subtract(a, b) { return a - b; }\nmodule.exports = { add: add, subtract: subtract };"
+  }'
+```
+
+**Delete Module:**
+```bash
+curl -X DELETE http://localhost:8080/api/modules/utils/math
+```
+
+#### Using Modules in Scripts
+
+**Module Structure:**
+
+Modules use CommonJS exports:
+
+```javascript
+// File: modules/utils/math.js
+function add(a, b) {
+    return a + b;
+}
+
+function multiply(a, b) {
+    return a * b;
+}
+
+module.exports = {
+    add: add,
+    multiply: multiply
+};
+```
+
+**Importing Modules:**
+
+Scripts use ES6 import syntax (transformed to `require()` internally):
+
+```javascript
+// Import the math module
+import math from 'utils/math';
+
+// Use module functions
+var result = math.add(10, 20);
+console.log('Sum:', result);
+
+var product = math.multiply(5, 6);
+console.log('Product:', product);
+
+result; // Returns 30
+```
+
+**Module Dependencies:**
+
+Modules can import other modules:
+
+```javascript
+// File: modules/utils/string.js
+module.exports = {
+    capitalize: function(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+};
+
+// File: modules/utils/format.js
+import string from 'utils/string';
+
+module.exports = {
+    formatName: function(name) {
+        return string.capitalize(name.toLowerCase());
+    }
+};
+
+// In your script:
+import format from 'utils/format';
+var name = format.formatName('JOHN DOE');
+console.log(name); // "John doe"
+```
+
+**Key Features:**
+
+- **Namespaced Paths**: Organize modules in directories (e.g., `utils/math`, `helpers/string`)
+- **Automatic Dependency Resolution**: Modules are loaded in the correct order
+- **Circular Dependency Detection**: Prevents infinite loops with clear error messages
+- **ES6 Import Syntax**: Familiar syntax for modern JavaScript developers
+- **CommonJS Exports**: Compatible with Node.js module patterns
+- **File-based Storage**: Modules stored as `.js` files in the filesystem
+
+**Configuration:**
+
+Module system settings in `application.yml`:
+
+```yaml
+modules:
+  directory: modules        # Module storage directory
+  maxFileSize: 1048576     # Max file size (1 MB)
+```
+
+Environment variable override:
+```bash
+MODULES_DIR=/custom/path java -jar target/servlet-example.jar
+```
+
 #### Interactive Script Editor
 - **URL**: `http://localhost:8080/script-editor`
 - **Method**: GET
-- **Description**: Web-based JavaScript code editor with syntax highlighting and real-time execution
+- **Description**: Web-based JavaScript code editor with module management and real-time execution
 
-Features:
+**Code Editor Tab Features:**
 - Live code execution with Ctrl+Enter
 - Performance metrics display (execution time and memory usage)
 - Console output capture
 - Pre-loaded examples (Fibonacci, arrays, Java interop, etc.)
 - Dark theme code editor
+- ES6 module imports support
+
+**Module Manager Tab Features:**
+- Create, edit, and delete JavaScript modules
+- Browse available modules in sidebar
+- Namespaced module paths (e.g., `utils/string`, `helpers/math`)
+- Module information display (size, created/updated timestamps)
+- Real-time module list refresh
+- CommonJS export syntax support
 
 #### Template Rendering
 - **URL**: `http://localhost:8080/api/render`
@@ -460,11 +630,14 @@ HTTP Request → RouterServlet → Content-Type Check → ProcessorRegistry
 1. **RouterServlet**: Central servlet handling all HTTP requests
 2. **ProcessorRegistry**: Manages and routes to appropriate processors
 3. **RequestProcessor**: Interface for content-type specific processing
-4. **ScriptProcessor**: JavaScript execution engine with performance monitoring
-5. **TemplateProcessor**: HTML template rendering with variable substitution
-6. **TemplateEngine**: Custom template parser and renderer
-7. **PropertiesUtil**: YAML configuration loader with environment variable support
-8. **JsonUtil**: JSON serialization/deserialization wrapper
+4. **ScriptProcessor**: JavaScript execution engine with performance monitoring and module support
+5. **ModuleProcessor**: Handles module CRUD operations via REST API
+6. **ModuleManager**: Manages filesystem storage and retrieval of JavaScript modules
+7. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
+8. **TemplateProcessor**: HTML template rendering with variable substitution
+9. **TemplateEngine**: Custom template parser and renderer
+10. **PropertiesUtil**: YAML configuration loader with environment variable support
+11. **JsonUtil**: JSON serialization/deserialization wrapper
 
 ## Thread Pool Configuration
 
