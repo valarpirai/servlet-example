@@ -70,8 +70,7 @@ public class ModuleDependencyResolver {
   }
 
   private void buildDependencyGraph(
-      Set<String> imports, Map<String, Set<String>> graph, Set<String> visited)
-      throws IOException {
+      Set<String> imports, Map<String, Set<String>> graph, Set<String> visited) throws IOException {
 
     for (String modulePath : imports) {
       if (visited.contains(modulePath)) {

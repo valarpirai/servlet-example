@@ -5,11 +5,11 @@ import java.io.OutputStream;
 import java.util.function.Consumer;
 
 /**
- * Output stream that writes data in fixed-size chunks.
- * Based on Glide's AttachmentChunkOutputStream.
+ * Output stream that writes data in fixed-size chunks. Based on Glide's
+ * AttachmentChunkOutputStream.
  *
- * Memory-efficient: Only holds one chunk (1MB) in memory at a time.
- * For a 500MB file, max heap usage = 1MB, not 500MB.
+ * <p>Memory-efficient: Only holds one chunk (1MB) in memory at a time. For a 500MB file, max heap
+ * usage = 1MB, not 500MB.
  */
 public class ChunkedOutputStream extends OutputStream {
 

@@ -15,8 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Dispatches HTTP requests to appropriate handlers based on route configuration.
- * Acts as a bridge between RouteRegistry and actual handler implementations.
+ * Dispatches HTTP requests to appropriate handlers based on route configuration. Acts as a bridge
+ * between RouteRegistry and actual handler implementations.
  */
 public class RouteDispatcher {
 
@@ -64,16 +64,13 @@ public class RouteDispatcher {
     }
   }
 
-  /**
-   * Handle static file serving.
-   */
-  private boolean handleStatic(Route route, HttpServletRequest request, HttpServletResponse response)
-      throws IOException {
+  /** Handle static file serving. */
+  private boolean handleStatic(
+      Route route, HttpServletRequest request, HttpServletResponse response) throws IOException {
     String resource = route.getResource();
     String contentType = route.getContentType();
 
-    try (InputStream is =
-        getClass().getClassLoader().getResourceAsStream(resource)) {
+    try (InputStream is = getClass().getClassLoader().getResourceAsStream(resource)) {
       if (is == null) {
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         response.setContentType("application/json");
@@ -98,9 +95,7 @@ public class RouteDispatcher {
     }
   }
 
-  /**
-   * Handle custom handler invocation via reflection.
-   */
+  /** Handle custom handler invocation via reflection. */
   private boolean handleHandler(
       Route route,
       Map<String, String> pathParams,
@@ -186,11 +181,9 @@ public class RouteDispatcher {
     }
   }
 
-  /**
-   * Handle processor invocation (ModuleProcessor, etc.).
-   */
-  private boolean handleProcessor(Route route, HttpServletRequest request, HttpServletResponse response)
-      throws IOException {
+  /** Handle processor invocation (ModuleProcessor, etc.). */
+  private boolean handleProcessor(
+      Route route, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
     String processorName = route.getProcessor();
 
@@ -227,9 +220,7 @@ public class RouteDispatcher {
     }
   }
 
-  /**
-   * Get handler instance by name (singleton pattern).
-   */
+  /** Get handler instance by name (singleton pattern). */
   private Object getHandlerInstance(String handlerName) {
     switch (handlerName) {
       case "AttachmentHandler":
@@ -241,9 +232,7 @@ public class RouteDispatcher {
     }
   }
 
-  /**
-   * Get processor instance by name (creates new instance).
-   */
+  /** Get processor instance by name (creates new instance). */
   private Object getProcessorInstance(String processorName) {
     switch (processorName) {
       case "ModuleProcessor":
@@ -253,9 +242,7 @@ public class RouteDispatcher {
     }
   }
 
-  /**
-   * Find method by name and parameter types.
-   */
+  /** Find method by name and parameter types. */
   private Method findMethod(Class<?> clazz, String methodName, Class<?>... parameterTypes) {
     try {
       return clazz.getMethod(methodName, parameterTypes);

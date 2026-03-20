@@ -11,10 +11,7 @@ import java.io.OutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Handler for attachment download operations.
- * Streams files in chunks to avoid memory issues.
- */
+/** Handler for attachment download operations. Streams files in chunks to avoid memory issues. */
 public class AttachmentHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(AttachmentHandler.class);
@@ -32,10 +29,7 @@ public class AttachmentHandler {
     return instance;
   }
 
-  /**
-   * Handle attachment download.
-   * Streams file in chunks - never loads entire file into memory.
-   */
+  /** Handle attachment download. Streams file in chunks - never loads entire file into memory. */
   public void handleDownload(
       HttpServletRequest request, HttpServletResponse response, String attachmentId)
       throws IOException {
@@ -43,9 +37,7 @@ public class AttachmentHandler {
     if (!attachmentManager.exists(attachmentId)) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
       response.setContentType("application/json");
-      response
-          .getWriter()
-          .print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
+      response.getWriter().print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
       return;
     }
 
@@ -91,20 +83,15 @@ public class AttachmentHandler {
     }
   }
 
-  /**
-   * Handle attachment metadata retrieval.
-   */
-  public void handleMetadata(HttpServletResponse response, String attachmentId)
-      throws IOException {
+  /** Handle attachment metadata retrieval. */
+  public void handleMetadata(HttpServletResponse response, String attachmentId) throws IOException {
 
     Attachment attachment = attachmentManager.getMetadata(attachmentId);
 
     if (attachment == null) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
       response.setContentType("application/json");
-      response
-          .getWriter()
-          .print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
+      response.getWriter().print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
       return;
     }
 
@@ -113,9 +100,7 @@ public class AttachmentHandler {
     response.getWriter().print(JsonUtil.successResponse(attachment));
   }
 
-  /**
-   * Handle list all attachments.
-   */
+  /** Handle list all attachments. */
   public void handleList(HttpServletResponse response) throws IOException {
     java.util.List<Attachment> attachments = attachmentManager.listAll();
 
@@ -128,17 +113,13 @@ public class AttachmentHandler {
     response.getWriter().print(JsonUtil.successResponse(data));
   }
 
-  /**
-   * Handle attachment deletion.
-   */
+  /** Handle attachment deletion. */
   public void handleDelete(HttpServletResponse response, String attachmentId) throws IOException {
 
     if (!attachmentManager.exists(attachmentId)) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
       response.setContentType("application/json");
-      response
-          .getWriter()
-          .print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
+      response.getWriter().print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
       return;
     }
 

@@ -2,17 +2,15 @@ package com.example.servlet.storage;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
- * Strategy interface for attachment storage.
- * Implementations: LocalFileSystemStorage, S3Storage, DatabaseStorage
+ * Strategy interface for attachment storage. Implementations: LocalFileSystemStorage, S3Storage,
+ * DatabaseStorage
  */
 public interface AttachmentStorage {
 
   /**
-   * Store attachment using chunked streaming.
-   * Never loads entire file into memory.
+   * Store attachment using chunked streaming. Never loads entire file into memory.
    *
    * @param attachment Metadata for the attachment
    * @param inputStream Source data stream
@@ -22,8 +20,7 @@ public interface AttachmentStorage {
   Attachment store(Attachment attachment, InputStream inputStream) throws IOException;
 
   /**
-   * Retrieve attachment as stream.
-   * Returns chunks one at a time to avoid memory issues.
+   * Retrieve attachment as stream. Returns chunks one at a time to avoid memory issues.
    *
    * @param attachmentId Attachment identifier
    * @return InputStream that streams chunks

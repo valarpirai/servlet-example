@@ -21,16 +21,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Local filesystem storage implementation.
- * Stores files in chunks to avoid memory issues with large files.
+ * Local filesystem storage implementation. Stores files in chunks to avoid memory issues with large
+ * files.
  *
- * Directory structure:
- * attachments/
- *   {attachmentId}/
- *     metadata.json
- *     chunk_0
- *     chunk_1
- *     ...
+ * <p>Directory structure: attachments/ {attachmentId}/ metadata.json chunk_0 chunk_1 ...
  */
 public class LocalFileSystemStorage implements AttachmentStorage {
 

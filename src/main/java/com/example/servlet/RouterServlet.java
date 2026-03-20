@@ -242,29 +242,29 @@ public class RouterServlet extends HttpServlet {
             break;
           }
           switch (path) {
-        case "/api/data-browser/driver-status":
-          DataBrowserHandler.getInstance().handleDriverStatus(request, response);
-          break;
-        case "/api/data-browser/download":
-          DataBrowserHandler.getInstance().handleDownload(request, response);
-          break;
-        case "/api/data-browser/connect":
-          DataBrowserHandler.getInstance().handleConnect(request, response);
-          break;
-        case "/api/data-browser/tables":
-          DataBrowserHandler.getInstance().handleTables(request, response);
-          break;
-        case "/api/data-browser/query":
-          DataBrowserHandler.getInstance().handleQuery(request, response);
-          break;
-        case "/api/data-browser/disconnect":
-          DataBrowserHandler.getInstance().handleDisconnect(request, response);
-          break;
-        default:
-          PrintWriter out = response.getWriter();
-          handleNotFound(response, out, path);
-          out.flush();
-          break;
+            case "/api/data-browser/driver-status":
+              DataBrowserHandler.getInstance().handleDriverStatus(request, response);
+              break;
+            case "/api/data-browser/download":
+              DataBrowserHandler.getInstance().handleDownload(request, response);
+              break;
+            case "/api/data-browser/connect":
+              DataBrowserHandler.getInstance().handleConnect(request, response);
+              break;
+            case "/api/data-browser/tables":
+              DataBrowserHandler.getInstance().handleTables(request, response);
+              break;
+            case "/api/data-browser/query":
+              DataBrowserHandler.getInstance().handleQuery(request, response);
+              break;
+            case "/api/data-browser/disconnect":
+              DataBrowserHandler.getInstance().handleDisconnect(request, response);
+              break;
+            default:
+              PrintWriter out = response.getWriter();
+              handleNotFound(response, out, path);
+              out.flush();
+              break;
           }
           break;
       }

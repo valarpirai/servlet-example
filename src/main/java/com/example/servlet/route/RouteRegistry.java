@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Registry for loading and matching routes from routes.yml configuration.
- * Singleton pattern for global access.
+ * Registry for loading and matching routes from routes.yml configuration. Singleton pattern for
+ * global access.
  */
 public class RouteRegistry {
 
@@ -30,13 +30,10 @@ public class RouteRegistry {
     return instance;
   }
 
-  /**
-   * Load routes from routes.yml in classpath.
-   */
+  /** Load routes from routes.yml in classpath. */
   @SuppressWarnings("unchecked")
   private void loadRoutes() {
-    try (InputStream input =
-        getClass().getClassLoader().getResourceAsStream("routes.yml")) {
+    try (InputStream input = getClass().getClassLoader().getResourceAsStream("routes.yml")) {
 
       if (input == null) {
         logger.error("routes.yml not found in classpath");
@@ -45,8 +42,7 @@ public class RouteRegistry {
 
       Yaml yaml = new Yaml();
       Map<String, Object> config = yaml.load(input);
-      List<Map<String, Object>> routeConfigs =
-          (List<Map<String, Object>>) config.get("routes");
+      List<Map<String, Object>> routeConfigs = (List<Map<String, Object>>) config.get("routes");
 
       if (routeConfigs == null) {
         logger.warn("No routes defined in routes.yml");
@@ -66,9 +62,7 @@ public class RouteRegistry {
     }
   }
 
-  /**
-   * Parse a single route configuration map into a Route object.
-   */
+  /** Parse a single route configuration map into a Route object. */
   @SuppressWarnings("unchecked")
   private Route parseRoute(Map<String, Object> config) {
     Route route = new Route();
@@ -116,16 +110,12 @@ public class RouteRegistry {
     return null;
   }
 
-  /**
-   * Get all loaded routes (for debugging/introspection).
-   */
+  /** Get all loaded routes (for debugging/introspection). */
   public List<Route> getAllRoutes() {
     return new ArrayList<>(routes);
   }
 
-  /**
-   * Result of route matching, containing the route and extracted path parameters.
-   */
+  /** Result of route matching, containing the route and extracted path parameters. */
   public static class RouteMatch {
     private final Route route;
     private final Map<String, String> pathParams;

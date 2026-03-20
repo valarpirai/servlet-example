@@ -3,10 +3,12 @@ package com.example.servlet.route;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import lombok.Getter;
+import lombok.Setter;
 
-/**
- * Represents a single route configuration.
- */
+/** Represents a single route configuration. */
+@Getter
+@Setter
 public class Route {
 
   private String path;
@@ -19,101 +21,28 @@ public class Route {
   private String contentType;
   private String description;
   private List<String> pathParams;
+
+  @Getter(lombok.AccessLevel.NONE)
+  @Setter(lombok.AccessLevel.NONE)
   private Pattern pathPattern;
 
-  // Getters and setters
-  public String getPath() {
-    return path;
-  }
-
+  /** Custom setter for path that also compiles the pattern. */
   public void setPath(String path) {
     this.path = path;
     this.pathPattern = compilePathPattern(path);
   }
 
-  public List<String> getMethods() {
-    return methods;
-  }
-
-  public void setMethods(List<String> methods) {
-    this.methods = methods;
-  }
-
-  public void setMethod(String method) {
-    this.methods = List.of(method);
-  }
-
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public String getHandler() {
-    return handler;
-  }
-
-  public void setHandler(String handler) {
-    this.handler = handler;
-  }
-
-  public String getHandlerMethod() {
-    return handlerMethod;
-  }
-
-  public void setHandlerMethod(String handlerMethod) {
-    this.handlerMethod = handlerMethod;
-  }
-
-  public String getProcessor() {
-    return processor;
-  }
-
-  public void setProcessor(String processor) {
-    this.processor = processor;
-  }
-
-  public String getResource() {
-    return resource;
-  }
-
-  public void setResource(String resource) {
-    this.resource = resource;
-  }
-
-  public String getContentType() {
-    return contentType;
-  }
-
-  public void setContentType(String contentType) {
-    this.contentType = contentType;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public List<String> getPathParams() {
-    return pathParams;
-  }
-
-  public void setPathParams(List<String> pathParams) {
-    this.pathParams = pathParams;
-  }
-
+  /** Get the compiled path pattern. */
   public Pattern getPathPattern() {
     return pathPattern;
   }
 
-  /**
-   * Check if this route matches the given method and path.
-   */
+  /** Convenience setter for single method. */
+  public void setMethod(String method) {
+    this.methods = List.of(method);
+  }
+
+  /** Check if this route matches the given method and path. */
   public boolean matches(String method, String requestPath) {
     if (!methods.contains(method)) {
       return false;
@@ -121,9 +50,7 @@ public class Route {
     return pathPattern.matcher(requestPath).matches();
   }
 
-  /**
-   * Extract path parameters from the request path.
-   */
+  /** Extract path parameters from the request path. */
   public Map<String, String> extractPathParams(String requestPath) {
     if (pathParams == null || pathParams.isEmpty()) {
       return Map.of();
@@ -142,18 +69,18 @@ public class Route {
   }
 
   /**
-   * Compile path pattern with parameter placeholders into regex.
-   * /api/attachment/{id} → /api/attachment/([^/]+)
-   * /api/modules/** → /api/modules/.*
+   * Compile path pattern with parameter placeholders into regex. /api/attachment/{id} →
+   * /api/attachment/([^/]+) /api/modules/** → /api/modules/.*
    */
   private Pattern compilePathPattern(String path) {
-    String regex = path
-        // Escape special regex characters except {, }, *
-        .replaceAll("([.+?^$|()\\[\\]\\\\])", "\\\\$1")
-        // Replace {param} with capture group
-        .replaceAll("\\{([^}]+)\\}", "([^/]+)")
-        // Replace /** with wildcard
-        .replaceAll("/\\*\\*", "/.*");
+    String regex =
+        path
+            // Escape special regex characters except {, }, *
+            .replaceAll("([.+?^$|()\\[\\]\\\\])", "\\\\$1")
+            // Replace {param} with capture group
+            .replaceAll("\\{([^}]+)\\}", "([^/]+)")
+            // Replace /** with wildcard
+            .replaceAll("/\\*\\*", "/.*");
 
     return Pattern.compile("^" + regex + "$");
   }

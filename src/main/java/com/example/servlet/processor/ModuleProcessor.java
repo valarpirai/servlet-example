@@ -44,10 +44,11 @@ public class ModuleProcessor implements RequestProcessor {
       case "POST" -> handlePost(operation, request);
       case "PUT" -> handlePut(operation, request);
       case "DELETE" -> handleDelete(operation, request);
-      default -> ProcessorResponse.builder()
-          .statusCode(405)
-          .body(JsonUtil.errorResponse("Method Not Allowed", "Method not supported", 405))
-          .build();
+      default ->
+          ProcessorResponse.builder()
+              .statusCode(405)
+              .body(JsonUtil.errorResponse("Method Not Allowed", "Method not supported", 405))
+              .build();
     };
   }
 

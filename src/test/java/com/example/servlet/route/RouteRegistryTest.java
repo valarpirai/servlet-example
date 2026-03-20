@@ -1,11 +1,10 @@
 package com.example.servlet.route;
 
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Test RouteRegistry to verify route matching and path parameter extraction.
- */
+import org.junit.jupiter.api.Test;
+
+/** Test RouteRegistry to verify route matching and path parameter extraction. */
 public class RouteRegistryTest {
 
   @Test
@@ -55,8 +54,7 @@ public class RouteRegistryTest {
     RouteRegistry registry = RouteRegistry.getInstance();
 
     // Test: /api/attachment/{id}/download
-    RouteRegistry.RouteMatch match =
-        registry.findRoute("GET", "/api/attachment/xyz-789/download");
+    RouteRegistry.RouteMatch match = registry.findRoute("GET", "/api/attachment/xyz-789/download");
     assertNotNull(match, "/api/attachment/{id}/download should match");
     assertEquals("handler", match.getRoute().getType());
     assertEquals("AttachmentHandler", match.getRoute().getHandler());
@@ -130,8 +128,7 @@ public class RouteRegistryTest {
 
     // Test all attachment routes
     assertNotNull(registry.findRoute("GET", "/api/attachments"), "List attachments");
-    assertNotNull(
-        registry.findRoute("GET", "/api/attachment/id-123"), "Get attachment metadata");
+    assertNotNull(registry.findRoute("GET", "/api/attachment/id-123"), "Get attachment metadata");
     assertNotNull(
         registry.findRoute("GET", "/api/attachment/id-123/download"), "Download attachment");
     assertNotNull(registry.findRoute("DELETE", "/api/attachment/id-123"), "Delete attachment");

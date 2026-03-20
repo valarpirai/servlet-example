@@ -308,8 +308,7 @@ public class ScriptProcessor implements RequestProcessor {
     // Transform ES6 imports to require() calls
     String transformedScript =
         script.replaceAll(
-            "import\\s+([\\w{},\\s*]+)\\s+from\\s+['\"]([^'\"]+)['\"]",
-            "var $1 = require('$2')");
+            "import\\s+([\\w{},\\s*]+)\\s+from\\s+['\"]([^'\"]+)['\"]", "var $1 = require('$2')");
 
     return moduleCode.toString() + transformedScript;
   }

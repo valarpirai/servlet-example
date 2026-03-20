@@ -9,8 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Central manager for attachment storage.
- * Delegates to configured storage strategy (filesystem, s3, database).
+ * Central manager for attachment storage. Delegates to configured storage strategy (filesystem, s3,
+ * database).
  */
 public class AttachmentManager {
 
@@ -51,8 +51,7 @@ public class AttachmentManager {
   }
 
   /**
-   * Store attachment using chunked streaming.
-   * Memory-efficient: processes file in 1MB chunks.
+   * Store attachment using chunked streaming. Memory-efficient: processes file in 1MB chunks.
    *
    * @param attachment Metadata
    * @param inputStream File data
@@ -73,8 +72,7 @@ public class AttachmentManager {
   }
 
   /**
-   * Retrieve attachment as stream.
-   * Memory-efficient: streams chunks, never loads full file.
+   * Retrieve attachment as stream. Memory-efficient: streams chunks, never loads full file.
    *
    * @param attachmentId Attachment ID
    * @return InputStream that streams data
