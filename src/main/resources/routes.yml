@@ -67,30 +67,35 @@ routes:
   - path: /api/upload
     method: POST
     type: processor
+    processor: FileUploadProcessor
     contentType: application/json
     description: File upload (multipart/form-data)
 
   - path: /api/form
     method: POST
     type: processor
+    processor: FormDataProcessor
     contentType: application/json
     description: Form data processing
 
   - path: /api/json
     method: POST
     type: processor
+    processor: JsonDataProcessor
     contentType: application/json
     description: JSON data processing
 
   - path: /api/script
     method: POST
     type: processor
+    processor: ScriptProcessor
     contentType: application/json
     description: JavaScript execution
 
   - path: /api/render
     method: POST
     type: processor
+    processor: TemplateProcessor
     contentType: application/json
     description: Template rendering
 
@@ -111,10 +116,10 @@ routes:
 
   - path: /
     method: GET
-    type: builtin
-    handler: handleRoot
-    contentType: application/json
-    description: Welcome endpoint with API documentation
+    type: static
+    resource: static/index.html
+    contentType: text/html
+    description: Beautiful home page with links to all endpoints
 
   # Data Browser API
   - path: /api/data-browser/driver-status

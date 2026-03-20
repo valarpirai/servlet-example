@@ -4,7 +4,12 @@ import com.example.servlet.handler.AttachmentHandler;
 import com.example.servlet.handler.DataBrowserHandler;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.model.Route;
+import com.example.servlet.processor.FileUploadProcessor;
+import com.example.servlet.processor.FormDataProcessor;
+import com.example.servlet.processor.JsonDataProcessor;
 import com.example.servlet.processor.ModuleProcessor;
+import com.example.servlet.processor.ScriptProcessor;
+import com.example.servlet.processor.TemplateProcessor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -188,6 +193,11 @@ public class RouteDispatcher {
 
     String processorName = route.getProcessor();
 
+    // If no processor specified, return false to allow fallback
+    if (processorName == null || processorName.isEmpty()) {
+      return false;
+    }
+
     try {
       Object processor = getProcessorInstance(processorName);
       if (processor == null) {
@@ -238,6 +248,16 @@ public class RouteDispatcher {
     switch (processorName) {
       case "ModuleProcessor":
         return new ModuleProcessor();
+      case "FileUploadProcessor":
+        return new FileUploadProcessor();
+      case "FormDataProcessor":
+        return new FormDataProcessor();
+      case "JsonDataProcessor":
+        return new JsonDataProcessor();
+      case "ScriptProcessor":
+        return new ScriptProcessor();
+      case "TemplateProcessor":
+        return new TemplateProcessor();
       default:
         return null;
     }
