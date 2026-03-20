@@ -343,6 +343,7 @@ sum; // This will be returned</textarea>
                     <option value="object">Object Manipulation</option>
                     <option value="request">Access Request Context</option>
                     <option value="java">Java Object Creation</option>
+                    <option value="modules">Using Modules (ES6 Import)</option>
                 </select>
             </div>
         </div>
@@ -498,6 +499,27 @@ var result = {
 
 console.log('ArrayList size:', result.listSize);
 console.log('HashMap size:', result.mapSize);
+
+result;`,
+            modules: `// Using JavaScript Modules (ES6 Import)
+// First, create modules in the Module Manager tab
+// This example uses the 'helpers/format' module
+
+import format from 'helpers/format';
+
+console.log('Using module: helpers/format');
+
+// Use capitalize function
+var text1 = format.capitalize('hello world');
+console.log('Capitalized:', text1);
+
+// Use uppercase function
+var text2 = format.uppercase('test string');
+console.log('Uppercase:', text2);
+
+// Combine results
+var result = text1 + ' | ' + text2;
+console.log('Result:', result);
 
 result;`
         };
