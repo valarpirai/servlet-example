@@ -20,6 +20,10 @@ public class ModuleDependencyResolver {
   private static final Pattern IMPORT_PATTERN =
       Pattern.compile("import\\s+.*?\\s+from\\s+['\"]([^'\"]+)['\"]");
 
+  // Pattern to match CommonJS require calls
+  private static final Pattern REQUIRE_PATTERN =
+      Pattern.compile("require\\s*\\(\\s*['\"]([^'\"]+)['\"]\\s*\\)");
+
   private final ModuleManager moduleManager;
 
   public ModuleDependencyResolver(ModuleManager moduleManager) {
@@ -45,12 +49,21 @@ public class ModuleDependencyResolver {
 
   private Set<String> extractImports(String code) {
     Set<String> imports = new HashSet<>();
-    Matcher matcher = IMPORT_PATTERN.matcher(code);
 
-    while (matcher.find()) {
-      String modulePath = matcher.group(1);
+    // Extract ES6 imports
+    Matcher importMatcher = IMPORT_PATTERN.matcher(code);
+    while (importMatcher.find()) {
+      String modulePath = importMatcher.group(1);
       imports.add(modulePath);
-      logger.debug("Found import: {}", modulePath);
+      logger.debug("Found ES6 import: {}", modulePath);
+    }
+
+    // Extract CommonJS require calls
+    Matcher requireMatcher = REQUIRE_PATTERN.matcher(code);
+    while (requireMatcher.find()) {
+      String modulePath = requireMatcher.group(1);
+      imports.add(modulePath);
+      logger.debug("Found require: {}", modulePath);
     }
 
     return imports;

@@ -3,11 +3,39 @@ package com.example.servlet.util;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 
 public class JsonUtil {
 
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+  private static final Gson GSON =
+      new GsonBuilder()
+          .setPrettyPrinting()
+          .serializeNulls()
+          .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+          .create();
+
+  /** Custom TypeAdapter for java.time.Instant to handle serialization */
+  private static class InstantTypeAdapter extends TypeAdapter<Instant> {
+    @Override
+    public void write(JsonWriter out, Instant value) throws IOException {
+      if (value == null) {
+        out.nullValue();
+      } else {
+        out.value(value.toString());
+      }
+    }
+
+    @Override
+    public Instant read(JsonReader in) throws IOException {
+      String value = in.nextString();
+      return value != null ? Instant.parse(value) : null;
+    }
+  }
 
   /**
    * Convert an object to JSON string
