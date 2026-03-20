@@ -34,6 +34,9 @@ Configuration is managed through `src/main/resources/application.yml` with envir
 
 Environment variables always take precedence over YAML defaults. Common overrides:
 - `SERVER_PORT` - HTTP server port (default: 8080)
+- `STORAGE_TYPE` - Storage type for attachments (default: filesystem)
+- `STORAGE_CHUNK_SIZE` - Chunk size for file streaming (default: 1MB)
+- `STORAGE_PATH` - Attachment storage directory (default: attachments)
 
 ## Core Architecture
 
@@ -170,6 +173,97 @@ Templates are processed in two passes:
 
 The `TemplateProcessor` handles HTTP requests with `Content-Type: text/html`, expecting JSON body with `{"template": "...", "data": {...}}`.
 
+### Chunked File Storage (Memory-Efficient)
+
+The application uses **chunked storage** inspired by ServiceNow Glide to handle large files without memory issues.
+
+**Problem**: Traditional file upload loads entire file into memory (500MB file = 500MB heap usage = OutOfMemoryError)
+
+**Solution**: Files are split into 1MB chunks and processed incrementally.
+
+#### Storage Architecture
+
+**Strategy Pattern** (`AttachmentStorage` interface):
+- `LocalFileSystemStorage` - Default, stores chunks as separate files
+- `DatabaseStorage` - Future: stores chunks in `attachment` and `attachment_data` tables
+- `S3Storage` - Future: stores in AWS S3 with deduplication
+
+#### How It Works
+
+**Upload Flow** (`FileUploadProcessor.java`):
+```
+Client uploads 500MB file
+    ↓
+InputStream from HTTP request (no buffering)
+    ↓
+ChunkedOutputStream (1MB buffer)
+    ├─ write chunk 0 → disk (1MB)
+    ├─ reuse buffer
+    ├─ write chunk 1 → disk (1MB)
+    └─ repeat 500 times
+
+Max heap: 1MB (not 500MB!)
+Chunks created: 500
+```
+
+**Download Flow** (`AttachmentHandler.java`):
+```
+Client requests GET /api/attachment/{id}/download
+    ↓
+ChunkedInputStream
+    ├─ read chunk 0 from disk (1MB)
+    ├─ stream to HTTP response
+    ├─ release chunk 0
+    ├─ read chunk 1 from disk (1MB)
+    └─ repeat
+
+Max heap: 1MB (one chunk at a time)
+```
+
+#### Memory Guarantees
+
+**With 1GB heap limit**:
+- Upload 500MB file: 1MB heap usage ✅
+- Download 500MB file: 1MB heap usage ✅
+- 100 concurrent uploads: 100MB heap ✅
+- 1000 concurrent uploads: 1GB heap ✅ (at limit)
+
+**Key**: Memory scales with concurrent requests, NOT file sizes!
+
+#### Directory Structure
+
+```
+attachments/
+  {uuid}/
+    chunk_0  (1MB)
+    chunk_1  (1MB)
+    chunk_2  (1MB)
+    ...
+```
+
+#### Configuration
+
+```yaml
+storage:
+  type: filesystem              # or s3, database
+  chunkSize: 1048576           # 1MB chunks
+  filesystem:
+    path: attachments
+
+upload:
+  maxFileSize: 524288000       # 500MB
+  maxRequestSize: 1073741824   # 1GB
+```
+
+#### API Endpoints
+
+- `POST /api/upload` - Upload file with chunking
+- `GET /api/attachment/{id}/download` - Stream download
+- `GET /api/attachment/{id}` - Get attachment metadata
+- `DELETE /api/attachment/{id}` - Delete attachment and chunks
+
+See `docs/MEMORY-GUARANTEE.md` for detailed memory analysis.
+
 ### Embedded Tomcat Setup
 
 `Main.java` bootstraps embedded Tomcat:
@@ -187,10 +281,24 @@ File upload limits are enforced at Tomcat level via multipart config (maxFileSiz
   - `RequestProcessor` - Interface defining processor contract
   - `ProcessorRegistry` - Singleton registry for processor lookup
   - `ProcessorResponse` - Builder pattern for processor responses
-  - Individual processors: Form, JSON, FileUpload, Script, Template
+  - Individual processors: Form, JSON, FileUpload, Script, Template, Module
+- **storage/**: Chunked file storage with strategy pattern
+  - `AttachmentStorage` - Interface for storage strategies
+  - `Attachment` - File metadata model
+  - `AttachmentManager` - Singleton storage manager
+  - `LocalFileSystemStorage` - Filesystem storage with chunking
+  - `ChunkedOutputStream` - Memory-efficient write stream (1MB buffer)
+  - `ChunkedInputStream` - Memory-efficient read stream (1MB chunks)
+- **handler/**: HTTP request handlers
+  - `AttachmentHandler` - File download/delete operations with streaming
+  - `DataBrowserHandler` - Database browser operations
+- **module/**: JavaScript module system
+  - `Module` - Module metadata model
+  - `ModuleManager` - Module CRUD and filesystem storage
+  - `ModuleDependencyResolver` - Dependency resolution with cycle detection
 - **util/**: Shared utilities
   - `PropertiesUtil` - YAML config loader with environment variable interpolation
-  - `JsonUtil` - Gson wrapper for JSON serialization
+  - `JsonUtil` - Gson wrapper with Instant TypeAdapter for proper JSON serialization
   - `TemplateEngine` - HTML template rendering with variable substitution and loops
 
 ## Feature Documentation
