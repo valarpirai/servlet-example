@@ -2,6 +2,7 @@ package com.example.servlet.route;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.servlet.model.Route;
 import org.junit.jupiter.api.Test;
 
 /** Test RouteRegistry to verify route matching and path parameter extraction. */

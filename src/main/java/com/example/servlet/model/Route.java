@@ -1,4 +1,4 @@
-package com.example.servlet.route;
+package com.example.servlet.model;
 
 import java.util.List;
 import java.util.Map;

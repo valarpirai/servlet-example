@@ -1,6 +1,6 @@
 package com.example.servlet.processor;
 
-import com.example.servlet.storage.Attachment;
+import com.example.servlet.model.Attachment;
 import com.example.servlet.storage.AttachmentManager;
 import com.example.servlet.util.JsonUtil;
 import com.example.servlet.util.PropertiesUtil;
