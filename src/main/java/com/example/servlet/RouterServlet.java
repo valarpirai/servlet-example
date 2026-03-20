@@ -2,14 +2,16 @@ package com.example.servlet;
 
 import com.example.servlet.route.RouteDispatcher;
 import com.example.servlet.route.RouteRegistry;
+import com.example.servlet.util.StructuredLogger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory;
 public class RouterServlet extends HttpServlet {
 
   private static final Logger logger = LoggerFactory.getLogger(RouterServlet.class);
+  private static final StructuredLogger structuredLogger = StructuredLogger.create(logger);
   private AtomicLong requestCount;
   private long startTime;
   private RouteDispatcher routeDispatcher;
@@ -111,56 +114,28 @@ public class RouterServlet extends HttpServlet {
 
   private void logRequest(
       HttpServletRequest request, int statusCode, long responseTimeMs, long responseSize) {
-    // Apache/Nginx style access log format
-    String remoteAddr = request.getRemoteAddr();
-    String timestamp = ZonedDateTime.now().format(LOG_DATE_FORMAT);
-    String method = request.getMethod();
-    String uri = buildFullUri(request);
-    String protocol = request.getProtocol();
-    String referer = request.getHeader("Referer");
-    if (referer == null) referer = "-";
-    String userAgent = request.getHeader("User-Agent");
-    if (userAgent == null) userAgent = "-";
-    String contentType = request.getContentType();
-    if (contentType == null) contentType = "-";
+    // Structured logging with all request details
+    Map<String, Object> fields = new HashMap<>();
+    fields.put("statusCode", statusCode);
+    fields.put("responseTimeMs", responseTimeMs);
+    fields.put("responseSize", responseSize);
+    fields.put("protocol", request.getProtocol());
+    fields.put("referer", request.getHeader("Referer"));
+    fields.put("userAgent", request.getHeader("User-Agent"));
+    fields.put("contentType", request.getContentType());
+    fields.put("requestCount", requestCount.get());
 
-    String logMessage =
-        String.format(
-            "%s - - [%s] \"%s %s %s\" %d %d \"%s\" \"%s\" %dms [%s]",
-            remoteAddr,
-            timestamp,
-            method,
-            uri,
-            protocol,
-            statusCode,
-            responseSize,
-            referer,
-            userAgent,
-            responseTimeMs,
-            contentType);
-
-    logger.info(logMessage);
+    structuredLogger.info("Request completed", fields);
   }
 
   private void logError(HttpServletRequest request, Throwable exception, long responseTimeMs) {
-    // Log unhandled exceptions with full stack trace
-    String remoteAddr = request.getRemoteAddr();
-    String timestamp = ZonedDateTime.now().format(LOG_DATE_FORMAT);
-    String method = request.getMethod();
-    String uri = buildFullUri(request);
+    // Structured error logging with exception details
+    Map<String, Object> fields = new HashMap<>();
+    fields.put("responseTimeMs", responseTimeMs);
+    fields.put("exceptionType", exception.getClass().getName());
+    fields.put("uri", buildFullUri(request));
 
-    String errorMessage =
-        String.format(
-            "%s - [%s] \"%s %s\" - %s: %s - Response Time: %dms",
-            remoteAddr,
-            timestamp,
-            method,
-            uri,
-            exception.getClass().getName(),
-            exception.getMessage(),
-            responseTimeMs);
-
-    logger.error(errorMessage, exception);
+    structuredLogger.error("Request failed with exception", exception, fields);
   }
 
   @Override

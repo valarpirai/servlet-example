@@ -1,6 +1,7 @@
 package com.example;
 
 import com.example.servlet.RouterServlet;
+import com.example.servlet.util.CorrelationIdFilter;
 import com.example.servlet.util.LoggingConfig;
 import com.example.servlet.util.PropertiesUtil;
 import jakarta.servlet.MultipartConfigElement;
@@ -10,6 +11,8 @@ import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.tomcat.util.descriptor.web.FilterDef;
+import org.apache.tomcat.util.descriptor.web.FilterMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +54,18 @@ public class Main {
     servletWrapper.setMultipartConfigElement(multipartConfig);
 
     context.addServletMappingDecoded(urlPattern, servletName);
+
+    // Add CorrelationIdFilter for structured logging
+    String filterName = "CorrelationIdFilter";
+    FilterDef filterDef = new FilterDef();
+    filterDef.setFilterName(filterName);
+    filterDef.setFilter(new CorrelationIdFilter());
+    context.addFilterDef(filterDef);
+
+    FilterMap filterMap = new FilterMap();
+    filterMap.setFilterName(filterName);
+    filterMap.addURLPattern("/*");
+    context.addFilterMap(filterMap);
 
     try {
       tomcat.start();

@@ -14,6 +14,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 - **Form & JSON Processing**: Handle URL-encoded forms and JSON payloads
 - **Interactive Web UIs**: Built-in script editor, database browser, and module manager
 - **RESTful API**: JSON responses for all endpoints with consistent error handling
+- **Structured Logging**: Correlation IDs for distributed tracing and request tracking
 - **Health Monitoring**: `/health` and `/metrics` endpoints for application monitoring
 - **YAML Configuration**: Easy configuration via `application.yml` with environment variable overrides
 - **Production Ready**: Packaged as executable JAR with embedded Tomcat server (236-line servlet)
@@ -607,8 +608,10 @@ HTTP Request → RouterServlet → RouteRegistry (routes.yml) → RouteDispatche
 9. **TemplateProcessor**: HTML template rendering with variable substitution
 10. **TemplateEngine**: Custom template parser and renderer
 11. **AttachmentManager**: Manages chunked file storage (memory-efficient)
-12. **PropertiesUtil**: YAML configuration loader with environment variable support
-13. **JsonUtil**: JSON serialization/deserialization wrapper
+12. **CorrelationIdFilter**: Adds correlation IDs to all requests for distributed tracing
+13. **StructuredLogger**: Structured logging with automatic MDC context
+14. **PropertiesUtil**: YAML configuration loader with environment variable support
+15. **JsonUtil**: JSON serialization/deserialization wrapper
 
 ## Thread Pool Configuration
 
