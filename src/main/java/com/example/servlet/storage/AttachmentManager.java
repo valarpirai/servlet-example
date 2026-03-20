@@ -25,7 +25,22 @@ public class AttachmentManager {
     this.storage = createStorage(storageType);
     this.metadataCache = new ConcurrentHashMap<>();
 
+    // Load all metadata on startup
+    loadAllMetadata();
+
     logger.info("AttachmentManager initialized with storage: {}", storageType);
+  }
+
+  private void loadAllMetadata() {
+    try {
+      java.util.List<Attachment> attachments = storage.listAll();
+      for (Attachment attachment : attachments) {
+        metadataCache.put(attachment.getId(), attachment);
+      }
+      logger.info("Loaded {} attachment metadata entries", attachments.size());
+    } catch (IOException e) {
+      logger.error("Failed to load attachment metadata", e);
+    }
   }
 
   public static synchronized AttachmentManager getInstance() {
@@ -76,7 +91,32 @@ public class AttachmentManager {
    * @return Attachment metadata or null if not found
    */
   public Attachment getMetadata(String attachmentId) {
-    return metadataCache.get(attachmentId);
+    // Check cache first
+    Attachment cached = metadataCache.get(attachmentId);
+    if (cached != null) {
+      return cached;
+    }
+
+    // Load from storage if not in cache
+    try {
+      Attachment loaded = storage.loadMetadata(attachmentId);
+      if (loaded != null) {
+        metadataCache.put(attachmentId, loaded);
+      }
+      return loaded;
+    } catch (IOException e) {
+      logger.error("Failed to load metadata for {}", attachmentId, e);
+      return null;
+    }
+  }
+
+  /**
+   * List all attachments.
+   *
+   * @return List of all attachments
+   */
+  public java.util.List<Attachment> listAll() {
+    return new java.util.ArrayList<>(metadataCache.values());
   }
 
   /**

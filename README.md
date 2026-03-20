@@ -290,16 +290,17 @@ curl -X POST http://localhost:8080/api/json \
 }
 ```
 
-#### File Upload
-- **URL**: `http://localhost:8080/api/upload`
+#### File Upload & Attachment Management
+- **Upload URL**: `http://localhost:8080/api/upload`
 - **Method**: POST
 - **Content-Type**: `multipart/form-data`
-- **Max File Size**: 10 MB (configurable)
+- **Max File Size**: 500 MB (configurable)
+- **Storage**: Chunked (1MB chunks) for memory efficiency
 
+**Upload File:**
 ```bash
 curl -X POST http://localhost:8080/api/upload \
-  -F "file=@/path/to/file.txt" \
-  -F "description=Test upload"
+  -F "file=@/path/to/file.pdf"
 ```
 
 **Response:**
@@ -309,21 +310,38 @@ curl -X POST http://localhost:8080/api/upload \
   "data": {
     "files": [
       {
+        "attachmentId": "uuid-here",
         "fieldName": "file",
-        "fileName": "file.txt",
-        "size": 1234,
-        "contentType": "text/plain",
-        "savedPath": "/tmp/upload-123456-file.txt"
+        "fileName": "file.pdf",
+        "size": 5242880,
+        "contentType": "application/pdf",
+        "storageType": "filesystem",
+        "hash": "sha256-hash-here",
+        "downloadUrl": "/api/attachment/uuid-here/download"
       }
     ],
-    "fields": {
-      "description": "Test upload"
-    },
     "fileCount": 1
   },
   "timestamp": 1234567890
 }
 ```
+
+**Attachment API Endpoints:**
+```bash
+# List all attachments
+curl http://localhost:8080/api/attachments
+
+# Download attachment (streams chunks, memory-efficient)
+curl -o file.pdf http://localhost:8080/api/attachment/{id}/download
+
+# Get attachment metadata
+curl http://localhost:8080/api/attachment/{id}
+
+# Delete attachment
+curl -X DELETE http://localhost:8080/api/attachment/{id}
+```
+
+**Memory Guarantee**: Uploads and downloads use only 1MB heap per request, regardless of file size (500MB file = 1MB memory usage).
 
 #### JavaScript Execution
 - **URL**: `http://localhost:8080/api/script`

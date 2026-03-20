@@ -239,7 +239,15 @@ attachments/
     chunk_1  (1MB)
     chunk_2  (1MB)
     ...
+    metadata.json  (attachment metadata)
 ```
+
+**Metadata Persistence:**
+- Each attachment's metadata is saved as `metadata.json` in its directory
+- Contains: id, fileName, contentType, sizeBytes, hash, storageType, storagePath, createdAt, updatedAt
+- Uses `JsonUtil` with custom `InstantTypeAdapter` for proper JSON serialization of `java.time.Instant` fields
+- Loaded into memory cache on server startup via `AttachmentManager`
+- Concurrency-safe: `ConcurrentHashMap` for cache, unique UUIDs prevent conflicts, immutable attachments
 
 #### Configuration
 
@@ -257,10 +265,26 @@ upload:
 
 #### API Endpoints
 
-- `POST /api/upload` - Upload file with chunking
-- `GET /api/attachment/{id}/download` - Stream download
-- `GET /api/attachment/{id}` - Get attachment metadata
-- `DELETE /api/attachment/{id}` - Delete attachment and chunks
+- `POST /api/upload` - Upload file with chunking (returns attachment ID and metadata)
+- `GET /api/attachments` - List all attachments with metadata and count
+- `GET /api/attachment/{id}/download` - Stream download (memory-efficient chunked streaming)
+- `GET /api/attachment/{id}` - Get attachment metadata (from cache or JSON file)
+- `DELETE /api/attachment/{id}` - Delete attachment directory, all chunks, and metadata
+
+**Example Usage:**
+```bash
+# Upload file
+curl -X POST http://localhost:9090/api/upload -F "file=@myfile.pdf"
+
+# List all attachments
+curl http://localhost:9090/api/attachments
+
+# Download attachment
+curl -o downloaded.pdf http://localhost:9090/api/attachment/{id}/download
+
+# Delete attachment
+curl -X DELETE http://localhost:9090/api/attachment/{id}
+```
 
 See `docs/MEMORY-GUARANTEE.md` for detailed memory analysis.
 

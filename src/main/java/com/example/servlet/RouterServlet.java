@@ -149,6 +149,16 @@ public class RouterServlet extends HttpServlet {
         return;
       }
 
+      // Handle attachment list request
+      if (path != null && path.equals("/api/attachments")) {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        AttachmentHandler.getInstance().handleList(response);
+        long responseTime = System.currentTimeMillis() - startTime;
+        logRequest(request, response.getStatus(), responseTime, 0);
+        return;
+      }
+
       // Handle attachment download requests
       if (path != null && path.startsWith("/api/attachment/")) {
         String[] parts = path.split("/");

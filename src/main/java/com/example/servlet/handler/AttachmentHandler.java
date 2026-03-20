@@ -114,6 +114,21 @@ public class AttachmentHandler {
   }
 
   /**
+   * Handle list all attachments.
+   */
+  public void handleList(HttpServletResponse response) throws IOException {
+    java.util.List<Attachment> attachments = attachmentManager.listAll();
+
+    java.util.Map<String, Object> data = new java.util.HashMap<>();
+    data.put("attachments", attachments);
+    data.put("count", attachments.size());
+
+    response.setStatus(HttpServletResponse.SC_OK);
+    response.setContentType("application/json");
+    response.getWriter().print(JsonUtil.successResponse(data));
+  }
+
+  /**
    * Handle attachment deletion.
    */
   public void handleDelete(HttpServletResponse response, String attachmentId) throws IOException {

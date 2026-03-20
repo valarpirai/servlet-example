@@ -53,4 +53,21 @@ public interface AttachmentStorage {
    * @return Storage type (filesystem, s3, database)
    */
   String getStorageType();
+
+  /**
+   * List all attachments.
+   *
+   * @return List of all attachment metadata
+   * @throws IOException if listing fails
+   */
+  java.util.List<Attachment> listAll() throws IOException;
+
+  /**
+   * Load attachment metadata.
+   *
+   * @param attachmentId Attachment identifier
+   * @return Attachment metadata or null if not found
+   * @throws IOException if loading fails
+   */
+  Attachment loadMetadata(String attachmentId) throws IOException;
 }

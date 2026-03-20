@@ -14,9 +14,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileUploadProcessor implements RequestProcessor {
 
+  private static final Logger logger = LoggerFactory.getLogger(FileUploadProcessor.class);
   private static final String CONTENT_TYPE = "multipart/form-data";
   private static final long MAX_FILE_SIZE =
       PropertiesUtil.getLong("upload.maxFileSize", 524288000L); // 500MB default
@@ -125,6 +128,7 @@ public class FileUploadProcessor implements RequestProcessor {
                   400))
           .build();
     } catch (Exception e) {
+      logger.error("Error processing file upload", e);
       return ProcessorResponse.builder()
           .statusCode(500)
           .body(

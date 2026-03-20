@@ -1,5 +1,6 @@
 package com.example.servlet.storage;
 
+import com.example.servlet.util.JsonUtil;
 import com.example.servlet.util.PropertiesUtil;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,8 +12,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,8 +57,12 @@ public class LocalFileSystemStorage implements AttachmentStorage {
     attachment.setId(attachmentId);
     attachment.setStorageType(getStorageType());
 
+    logger.debug("Starting to store attachment: {}", attachmentId);
+
     Path attachmentDir = baseDirectory.resolve(attachmentId);
     Files.createDirectories(attachmentDir);
+
+    logger.debug("Created attachment directory: {}", attachmentDir);
 
     MessageDigest digest;
     try {
@@ -90,6 +98,13 @@ public class LocalFileSystemStorage implements AttachmentStorage {
       attachment.setSizeBytes(chunkOutput.getTotalBytesWritten());
       attachment.setHash(HexFormat.of().formatHex(digest.digest()));
       attachment.setStoragePath(attachmentDir.toString());
+
+      logger.debug("About to save metadata for attachment: {}", attachmentId);
+
+      // Persist metadata
+      saveMetadata(attachmentDir, attachment);
+
+      logger.debug("Metadata saved successfully for attachment: {}", attachmentId);
 
       logger.info(
           "Stored attachment {} ({} bytes, {} chunks)",
@@ -136,6 +151,75 @@ public class LocalFileSystemStorage implements AttachmentStorage {
   @Override
   public String getStorageType() {
     return "filesystem";
+  }
+
+  /**
+   * List all attachments.
+   *
+   * @return List of all attachment metadata
+   * @throws IOException if listing fails
+   */
+  public List<Attachment> listAll() throws IOException {
+    List<Attachment> attachments = new ArrayList<>();
+
+    if (!Files.exists(baseDirectory)) {
+      return attachments;
+    }
+
+    try (Stream<Path> paths = Files.list(baseDirectory)) {
+      paths
+          .filter(Files::isDirectory)
+          .forEach(
+              attachmentDir -> {
+                try {
+                  Attachment attachment = loadMetadata(attachmentDir);
+                  if (attachment != null) {
+                    attachments.add(attachment);
+                  }
+                } catch (IOException e) {
+                  logger.warn("Failed to load metadata from {}", attachmentDir, e);
+                }
+              });
+    }
+
+    return attachments;
+  }
+
+  /**
+   * Load attachment metadata from directory.
+   *
+   * @param attachmentDir Attachment directory
+   * @return Attachment metadata or null if not found
+   * @throws IOException if loading fails
+   */
+  public Attachment loadMetadata(String attachmentId) throws IOException {
+    Path attachmentDir = baseDirectory.resolve(attachmentId);
+    return loadMetadata(attachmentDir);
+  }
+
+  private void saveMetadata(Path attachmentDir, Attachment attachment) throws IOException {
+    try {
+      Path metadataFile = attachmentDir.resolve("metadata.json");
+      logger.info("Saving metadata to: {}", metadataFile);
+      String json = JsonUtil.toJson(attachment);
+      logger.info("Metadata JSON generated: {}", json.substring(0, Math.min(200, json.length())));
+      Files.writeString(metadataFile, json);
+      logger.info("Metadata saved successfully");
+    } catch (Exception e) {
+      logger.error("Failed to save metadata", e);
+      throw new IOException("Failed to save metadata: " + e.getMessage(), e);
+    }
+  }
+
+  private Attachment loadMetadata(Path attachmentDir) throws IOException {
+    Path metadataFile = attachmentDir.resolve("metadata.json");
+
+    if (!Files.exists(metadataFile)) {
+      return null;
+    }
+
+    String json = Files.readString(metadataFile);
+    return JsonUtil.fromJson(json, Attachment.class);
   }
 
   private void writeChunk(Path attachmentDir, ChunkedOutputStream.ChunkData chunk)
