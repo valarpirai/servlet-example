@@ -1,19 +1,22 @@
 # Jakarta EE Servlet Example
 
-A simple web application using Jakarta EE Servlets with content-type based request processing, packaged as an executable JAR with embedded Apache Tomcat.
+A modern web application using Jakarta EE Servlets with **declarative YAML routing**, packaged as an executable JAR with embedded Apache Tomcat.
 
 ## Features
 
-- **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage, SHA-256 hashing, and download management
-- **Server-Side JavaScript**: Execute JavaScript code on the server with console output and performance metrics
+- **Beautiful Home Page**: Visit `/` for an elegant HTML dashboard with links to all endpoints
+- **Declarative Routing**: All 21 routes configured in `routes.yml` - no hardcoded routing logic
+- **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads
+- **Server-Side JavaScript**: Execute JavaScript code using Rhino engine with console output and performance metrics
 - **JavaScript Modules**: Create reusable modules with ES6 imports and CommonJS exports
+- **Database Browser**: Connect to PostgreSQL, MySQL, or Snowflake and execute SQL queries
 - **Template Rendering**: Render HTML templates with variable substitution and loop support
 - **Form & JSON Processing**: Handle URL-encoded forms and JSON payloads
-- **Interactive Web UI**: Built-in script editor and module manager accessible via browser
+- **Interactive Web UIs**: Built-in script editor, database browser, and module manager
 - **RESTful API**: JSON responses for all endpoints with consistent error handling
 - **Health Monitoring**: `/health` and `/metrics` endpoints for application monitoring
 - **YAML Configuration**: Easy configuration via `application.yml` with environment variable overrides
-- **Production Ready**: Packaged as executable JAR with embedded Tomcat server
+- **Production Ready**: Packaged as executable JAR with embedded Tomcat server (236-line servlet)
 
 ## Prerequisites
 
@@ -26,36 +29,56 @@ A simple web application using Jakarta EE Servlets with content-type based reque
 servlet-example/
 ├── pom.xml
 ├── modules/                 (JavaScript modules storage)
+├── attachments/             (Chunked file storage)
 ├── src/
 │   └── main/
 │       ├── java/
 │       │   └── com/
 │       │       └── example/
 │       │           ├── Main.java
+│       │           ├── datasource/      (Database connection strategies)
+│       │           ├── extlib/          (Dynamic JDBC driver loading)
 │       │           └── servlet/
-│       │               ├── RouterServlet.java
-│       │               ├── module/
-│       │               │   ├── Module.java
-│       │               │   ├── ModuleManager.java
-│       │               │   └── ModuleDependencyResolver.java
-│       │               ├── processor/
+│       │               ├── RouterServlet.java (236 lines - minimal)
+│       │               ├── route/       (Declarative routing)
+│       │               │   ├── RouteRegistry.java
+│       │               │   ├── RouteDispatcher.java
+│       │               │   └── Route.java (Lombok model)
+│       │               ├── handler/     (Singleton handlers)
+│       │               │   ├── AttachmentHandler.java
+│       │               │   └── DataBrowserHandler.java
+│       │               ├── processor/   (Request processors)
 │       │               │   ├── RequestProcessor.java (interface)
-│       │               │   ├── ProcessorRegistry.java
-│       │               │   ├── ProcessorResponse.java
+│       │               │   ├── ProcessorResponse.java (Lombok builder)
 │       │               │   ├── FileUploadProcessor.java
 │       │               │   ├── FormDataProcessor.java
 │       │               │   ├── JsonDataProcessor.java
 │       │               │   ├── ModuleProcessor.java
 │       │               │   ├── ScriptProcessor.java
 │       │               │   └── TemplateProcessor.java
+│       │               ├── storage/     (Chunked file storage)
+│       │               │   ├── AttachmentManager.java
+│       │               │   ├── LocalFileSystemStorage.java
+│       │               │   └── ChunkedOutputStream.java
+│       │               ├── module/
+│       │               │   ├── ModuleManager.java
+│       │               │   └── ModuleDependencyResolver.java
+│       │               ├── model/       (Lombok models)
+│       │               │   ├── Attachment.java
+│       │               │   ├── Module.java
+│       │               │   ├── Route.java
+│       │               │   └── ProcessorResponse.java
 │       │               └── util/
 │       │                   ├── JsonUtil.java
 │       │                   ├── PropertiesUtil.java
 │       │                   └── TemplateEngine.java
 │       └── resources/
 │           ├── application.yml
+│           ├── routes.yml              (All 21 routes defined here)
 │           └── static/
-│               └── script-editor.html
+│               ├── index.html          (Beautiful home page)
+│               ├── script-editor.html
+│               └── data-browser.html
 ```
 
 ## Configuration

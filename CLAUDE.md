@@ -40,41 +40,61 @@ Environment variables always take precedence over YAML defaults. Common override
 
 ## Core Architecture
 
-### Request Processing Strategy Pattern
+### Declarative Routing via routes.yml
 
-The application uses a **Strategy + Registry pattern** for content-type based routing:
+The application uses **fully declarative routing** through a YAML configuration file:
 
-1. **RouterServlet** (`RouterServlet.java:115`) receives all HTTP requests
-2. Extracts the `Content-Type` header from the request
-3. **ProcessorRegistry** (singleton) looks up the appropriate processor
-4. Each **RequestProcessor** implementation handles a specific content type
-5. Returns a **ProcessorResponse** with status code, body, and headers
+1. **RouterServlet** receives all HTTP requests
+2. **RouteRegistry** (singleton) loads all routes from `routes.yml` at startup
+3. **RouteDispatcher** dispatches requests based on route type (static, handler, processor, builtin)
+4. Returns appropriate response (HTML, JSON, files, etc.)
 
-#### Processor Registration Flow
-
-Processors are registered during servlet initialization in `RouterServlet.init()`:
-```java
-registry.register(new FormDataProcessor());       // application/x-www-form-urlencoded
-registry.register(new JsonDataProcessor());        // application/json
-registry.register(new FileUploadProcessor());      // multipart/form-data
-registry.register(new ScriptProcessor());          // application/javascript
-registry.register(new TemplateProcessor());        // text/html
+**Architecture Flow:**
+```
+HTTP Request → RouterServlet
+              ↓
+    RouteRegistry.findRoute(method, path)
+              ↓
+         RouteMatch found?
+          ↓           ↓
+        YES          NO
+          ↓           ↓
+   RouteDispatcher   404 JSON
+          ↓
+    Switch on type:
+    - static → serve HTML/JS/CSS files
+    - handler → invoke handler methods via reflection
+    - processor → instantiate and call RequestProcessor
+    - builtin → call RouterServlet methods (/health, /metrics)
 ```
 
-The `ProcessorRegistry` uses two lookup strategies:
-1. Direct lookup by normalized content type (e.g., "application/json")
-2. Fallback to `processor.supports(contentType)` for variants like "application/json; charset=UTF-8"
+**Key Components:**
+- **routes.yml** - Single source of truth for all 21 routes
+- **RouteRegistry** - Loads routes, performs pattern matching (wildcards, path params)
+- **RouteDispatcher** - Dispatches to appropriate handler based on route type
+- **RouterServlet** - Thin wrapper (236 lines) handling request timing and logging
 
-#### Adding New Processors
+#### Adding New Routes
 
-To add support for a new content type:
+To add a new route, simply edit `routes.yml`:
 
-1. Create a class implementing `RequestProcessor` interface (3 methods: `supports()`, `process()`, `getContentType()`)
-2. Register it in `RouterServlet.init()`: `registry.register(new YourProcessor())`
-3. Add the route path to `RouterServlet.doPost()` or `doGet()` switch statement
-4. The processor automatically handles all Content-Type matching via the registry
+```yaml
+- path: /api/myendpoint
+  method: POST
+  type: processor
+  processor: MyCustomProcessor
+  contentType: application/json
+  description: My custom endpoint
+```
 
-Example: To add XML support, implement `XmlDataProcessor`, register it in `init()`, and add `/api/xml` to the routing switch.
+Then add the processor class to `RouteDispatcher.getProcessorInstance()`:
+
+```java
+case "MyCustomProcessor":
+  return new MyCustomProcessor();
+```
+
+No changes needed to RouterServlet!
 
 ### JavaScript Execution Engine (Rhino)
 
@@ -275,17 +295,19 @@ upload:
 
 #### API Endpoints (Routing & Implementation)
 
-- `POST /api/upload` → `FileUploadProcessor.process()` → `AttachmentManager.store()`
-  - Handled by `RouterServlet.doPost()` → `handleProcessorRequest()`
-  - `FileUploadProcessor` gets attachment via `AttachmentManager.getInstance()`
+All routes defined in `routes.yml` and dispatched via `RouteDispatcher`:
+
+- `POST /api/upload` → `FileUploadProcessor` (via routes.yml)
+  - Route type: `processor`, processor: `FileUploadProcessor`
+  - Delegates to `AttachmentManager.store()` for chunked storage
   - Returns attachment ID, hash, download URL in response
 
-- `GET /api/attachments` → `AttachmentHandler.handleList()` → `AttachmentManager.listAll()`
-  - Handled by `RouterServlet.doGet()` (line 153)
+- `GET /api/attachments` → `AttachmentHandler.handleList()` (via routes.yml)
+  - Route type: `handler`, handler: `AttachmentHandler`, method: `handleList`
   - Returns all attachments from in-memory cache
 
 - `GET /api/attachment/{id}/download` → `AttachmentHandler.handleDownload()`
-  - Handled by `RouterServlet.doGet()` (line 163-179)
+  - Route type: `handler` with path parameter `{id}`
   - Streams via `ChunkedInputStream` (inner class in `LocalFileSystemStorage`)
   - Sets Content-Disposition header for file download
 
@@ -293,7 +315,6 @@ upload:
   - Returns metadata from cache or loads from metadata.json
 
 - `DELETE /api/attachment/{id}` → `AttachmentHandler.handleDelete()`
-  - Handled by `RouterServlet.doDelete()` (line 320-329)
   - Deletes directory recursively via `LocalFileSystemStorage.delete()`
   - Removes from cache via `AttachmentManager.delete()`
 
@@ -302,8 +323,8 @@ upload:
 - `LocalFileSystemStorage` - Implements `AttachmentStorage`, handles chunk I/O and metadata persistence
 - `ChunkedOutputStream` - Buffers and writes 1MB chunks during upload
 - `ChunkedInputStream` - Reads and streams chunks during download (inner class in LocalFileSystemStorage)
-- `AttachmentHandler` - HTTP handler for download/delete/list operations
-- `FileUploadProcessor` - Processes multipart uploads, delegates to AttachmentManager
+- `AttachmentHandler` - HTTP handler for download/delete/list operations (invoked via RouteDispatcher)
+- `FileUploadProcessor` - Processes multipart uploads, delegates to AttachmentManager (instantiated by RouteDispatcher)
 
 **Common Pitfalls to Avoid:**
 1. ❌ Never use `new Gson()` directly - always use `JsonUtil.toJson()` / `fromJson()`
@@ -322,60 +343,79 @@ upload:
 
 See `docs/MEMORY-GUARANTEE.md` for detailed memory analysis.
 
-### Route Registry System (Optional)
+### Route Registry System
 
-**NEW**: External route configuration system that moves routing logic from Java code to YAML.
+**Core routing mechanism** - All 21 application routes defined in YAML.
 
 **Location**: `src/main/resources/routes.yml`
 
 **Key Components**:
-- `RouteRegistry` - Loads routes.yml, performs pattern matching
-- `Route` - Represents a route with path patterns, methods, handlers
-- `RouteDispatcher` - Dispatches requests to handlers via reflection
+- `RouteRegistry` - Loads routes.yml at startup, performs pattern matching with wildcards and path parameters
+- `Route` - Lombok model representing route configuration (path, method, type, handler, etc.)
+- `RouteDispatcher` - Dispatches requests to appropriate handlers via reflection
 
 **Benefits**:
-- ✅ Add/modify routes without Java code changes
-- ✅ All routes visible in one YAML file
+- ✅ Single source of truth - all routes in one file
+- ✅ Add/modify routes by editing YAML (no Java code changes)
 - ✅ Automatic path parameter extraction (`{id}` → captured value)
 - ✅ Wildcard support (`/api/modules/**`)
-- ✅ Cleaner servlet code (no if-else chains)
+- ✅ Minimal servlet code (236 lines, 49% reduction from 461 lines)
+- ✅ No ProcessorRegistry or content-type matching needed
 
 **Route Types**:
-1. `static` - Serve static files from classpath
-2. `handler` - Invoke singleton handler methods (AttachmentHandler, DataBrowserHandler)
-3. `processor` - Content-type based processors (ModuleProcessor)
+1. `static` - Serve static files from classpath (HTML, CSS, JS)
+2. `handler` - Invoke singleton handler methods via reflection (AttachmentHandler, DataBrowserHandler)
+3. `processor` - Instantiate and call RequestProcessor implementations (all 5 processors)
 4. `builtin` - Built-in RouterServlet methods (handleHealth, handleMetrics)
 
-**Example Route**:
+**Example Routes**:
 ```yaml
+# Static file
+- path: /
+  method: GET
+  type: static
+  resource: static/index.html
+  contentType: text/html
+
+# Handler with path parameter
 - path: /api/attachment/{id}/download
   method: GET
   type: handler
   handler: AttachmentHandler
   handlerMethod: handleDownload
-  pathParams:
-    - id
-  description: Download attachment by ID
+  pathParams: [id]
+
+# Processor
+- path: /api/json
+  method: POST
+  type: processor
+  processor: JsonDataProcessor
+  contentType: application/json
 ```
 
-**Usage in RouterServlet** (optional integration):
+**RouterServlet Integration** (fully integrated):
 ```java
-RouteRegistry registry = RouteRegistry.getInstance();
-RouteRegistry.RouteMatch match = registry.findRoute("GET", request.getPathInfo());
+// All HTTP methods use single dispatch point
+@Override
+protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+  handleRequest(request, response, () -> dispatchOrNotFound(request, response));
+}
 
-if (match != null) {
-    RouteDispatcher dispatcher = new RouteDispatcher();
-    dispatcher.dispatch(match, request, response);
-} else {
-    handleNotFound(response, out, path);
+private void dispatchOrNotFound(HttpServletRequest request, HttpServletResponse response) {
+  RouteRegistry.RouteMatch match = RouteRegistry.getInstance().findRoute(method, path);
+  if (match != null && routeDispatcher.dispatch(match, request, response)) {
+    return; // Handled
+  }
+  // Handle builtin routes or return 404
 }
 ```
 
-**Status**: Currently implemented but **not integrated** into RouterServlet. The existing if-else routing logic is still active. Integration can be done gradually (hybrid approach) or completely replace existing routing.
+**Testing**:
+- `RouteRegistryTest.java` - 10 tests covering pattern matching, parameters, wildcards
+- `RouteDispatcherTest.java` - 11 tests verifying proper response handling for all route types
+- All 72 tests passing
 
-**Testing**: `RouteRegistryTest.java` - 10 tests covering all route types, parameter extraction, wildcard matching
-
-See `docs/ROUTE-REGISTRY.md` for detailed documentation and integration guide.
+See `docs/ROUTE-REGISTRY.md` for detailed documentation.
 
 ### Embedded Tomcat Setup
 
@@ -389,35 +429,36 @@ File upload limits are enforced at Tomcat level via multipart config (maxFileSiz
 ## Project Structure
 
 - **Main.java**: Embedded Tomcat bootstrap and server configuration
-- **RouterServlet.java**: Central servlet handling all HTTP routing
-- **route/** *(NEW)*: External route configuration system
-  - `RouteRegistry` - Loads routes.yml, performs route matching
-  - `Route` - Route definition with pattern matching and parameter extraction
-  - `RouteDispatcher` - Dispatches requests to handlers via reflection
-  - `routes.yml` - YAML configuration file defining all application routes
-- **processor/**: Strategy pattern implementations for different content types
-  - `RequestProcessor` - Interface defining processor contract
-  - `ProcessorRegistry` - Singleton registry for processor lookup
-  - `ProcessorResponse` - Builder pattern for processor responses
-  - Individual processors: Form, JSON, FileUpload, Script, Template, Module
+- **RouterServlet.java**: Minimal servlet (236 lines) - request timing, logging, and dispatch
+- **route/**: Declarative routing system
+  - `RouteRegistry` - Loads routes.yml at startup, performs pattern matching
+  - `Route` - Lombok model for route configuration (path, method, type, handler)
+  - `RouteDispatcher` - Dispatches to handlers via reflection based on route type
+  - `routes.yml` - YAML config defining all 21 application routes (single source of truth)
+- **processor/**: Request processor implementations
+  - `RequestProcessor` - Interface defining processor contract (supports, process, getContentType)
+  - `ProcessorResponse` - Lombok builder for HTTP responses
+  - Individual processors: FormData, JsonData, FileUpload, Script, Template, Module
 - **storage/**: Chunked file storage with strategy pattern
   - `AttachmentStorage` - Interface for storage strategies
-  - `Attachment` - File metadata model
-  - `AttachmentManager` - Singleton storage manager
-  - `LocalFileSystemStorage` - Filesystem storage with chunking
+  - `Attachment` - Lombok model for file metadata
+  - `AttachmentManager` - Singleton storage manager with in-memory cache
+  - `LocalFileSystemStorage` - Filesystem storage with 1MB chunking
   - `ChunkedOutputStream` - Memory-efficient write stream (1MB buffer)
   - `ChunkedInputStream` - Memory-efficient read stream (1MB chunks)
-- **handler/**: HTTP request handlers
-  - `AttachmentHandler` - File download/delete operations with streaming
-  - `DataBrowserHandler` - Database browser operations
+- **handler/**: Singleton HTTP request handlers (invoked via RouteDispatcher)
+  - `AttachmentHandler` - File download/delete/list operations with streaming
+  - `DataBrowserHandler` - Database browser operations (connect, query, tables)
 - **module/**: JavaScript module system
-  - `Module` - Module metadata model
+  - `Module` - Lombok model for module metadata
   - `ModuleManager` - Module CRUD and filesystem storage
   - `ModuleDependencyResolver` - Dependency resolution with cycle detection
+- **model/**: Shared Lombok models
+  - `Attachment`, `Module`, `Route`, `ProcessorResponse` - All use Lombok for boilerplate reduction
 - **util/**: Shared utilities
   - `PropertiesUtil` - YAML config loader with environment variable interpolation
-  - `JsonUtil` - Gson wrapper with Instant TypeAdapter for proper JSON serialization
-  - `TemplateEngine` - HTML template rendering with variable substitution and loops
+  - `JsonUtil` - Gson wrapper with custom Instant TypeAdapter (CRITICAL: must use for Instant serialization)
+  - `TemplateEngine` - HTML template rendering with variable substitution and for loops
 
 ## Feature Documentation
 
@@ -425,22 +466,30 @@ File upload limits are enforced at Tomcat level via multipart config (maxFileSiz
 
 ## Testing Endpoints
 
-The application exposes these endpoints (see `Main.java:50-64` for complete list):
+All 21 endpoints defined in `routes.yml`. Visit **http://localhost:8080/** for a beautiful home page with links to all endpoints.
 
-**GET endpoints:**
-- `/` - Welcome message with API documentation
-- `/health` - Health check with uptime
+**Interactive Tools:**
+- `/` - Beautiful HTML home page with organized endpoint cards
+- `/script-editor` - JavaScript IDE with Rhino engine and performance metrics
+- `/data-browser` - Database browser (PostgreSQL, MySQL, Snowflake)
+
+**Monitoring:**
+- `/health` - Health check with uptime (JSON)
 - `/metrics` - System metrics (memory, threads, request count)
-- `/script-editor` - Interactive JavaScript code editor (static HTML)
 
-**POST endpoints:**
-- `/api/form` - Form data (application/x-www-form-urlencoded)
-- `/api/json` - JSON payloads (application/json)
-- `/api/upload` - File uploads (multipart/form-data)
-- `/api/script` - JavaScript execution (application/javascript)
-- `/api/render` - Template rendering (text/html)
+**API Endpoints:**
+- `/api/json` (POST) - Echo JSON payloads
+- `/api/form` (POST) - Process form data (application/x-www-form-urlencoded)
+- `/api/upload` (POST) - File uploads with chunked storage (multipart/form-data)
+- `/api/script` (POST) - Execute JavaScript server-side (application/javascript)
+- `/api/render` (POST) - Render HTML templates (text/html)
+- `/api/attachments` (GET) - List uploaded files
+- `/api/attachment/{id}` (GET/DELETE) - Get metadata or delete attachment
+- `/api/attachment/{id}/download` (GET) - Download file with streaming
+- `/api/modules/**` (GET/POST/PUT/DELETE) - JavaScript module CRUD
+- `/api/data-browser/*` (POST) - Database operations
 
-Use curl examples from README.md or the interactive script editor at `/script-editor`.
+Use curl examples from README.md or the interactive tools at `/script-editor` and `/data-browser`.
 
 ### Interactive Script Editor
 

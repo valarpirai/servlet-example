@@ -2,7 +2,7 @@
 
 ## Overview
 
-The route registry system externalizes route configuration from Java code to YAML files, making it easier to maintain and modify routes without recompiling.
+The route registry system is the **core routing mechanism** for the application. All 21 routes are defined in `routes.yml`, eliminating hardcoded routing logic and reducing RouterServlet from 461 to 236 lines (49% reduction).
 
 ## Architecture
 
@@ -34,10 +34,38 @@ Central configuration file defining all application routes.
 ```
 
 **Supported Route Types:**
-- `static` - Serve static files from classpath
-- `handler` - Invoke custom handler methods
-- `processor` - Content-type based processors
-- `builtin` - Built-in RouterServlet methods
+
+1. **`static`** - Serve static HTML/CSS/JS files from classpath
+```yaml
+- path: /
+  type: static
+  resource: static/index.html
+  contentType: text/html
+```
+
+2. **`handler`** - Invoke singleton handler methods via reflection
+```yaml
+- path: /api/attachment/{id}/download
+  type: handler
+  handler: AttachmentHandler
+  handlerMethod: handleDownload
+  pathParams: [id]
+```
+
+3. **`processor`** - Instantiate RequestProcessor implementations
+```yaml
+- path: /api/json
+  type: processor
+  processor: JsonDataProcessor  # Instantiated by RouteDispatcher
+  contentType: application/json
+```
+
+4. **`builtin`** - Built-in RouterServlet methods (/health, /metrics)
+```yaml
+- path: /health
+  type: builtin
+  handler: handleHealth
+```
 
 ### 2. `RouteRegistry.java`
 Singleton that loads routes.yml and provides route matching.
@@ -134,31 +162,42 @@ protected void doGet(HttpServletRequest request, HttpServletResponse response) {
 - ❌ Difficult to visualize all routes
 - ❌ Error-prone string operations
 
-### After (Route Registry)
+### After (Route Registry) - Current Implementation
 ```java
-// RouterServlet.java
+// RouterServlet.java - Now only 236 lines (was 461)
 @Override
 protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-    RouteRegistry registry = RouteRegistry.getInstance();
-    RouteDispatcher dispatcher = new RouteDispatcher();
+    handleRequest(request, response, () -> dispatchOrNotFound(request, response));
+}
 
-    RouteRegistry.RouteMatch match = registry.findRoute("GET", request.getPathInfo());
+private void dispatchOrNotFound(HttpServletRequest request, HttpServletResponse response) {
+    String path = request.getPathInfo();
+    RouteRegistry.RouteMatch match = RouteRegistry.getInstance().findRoute(method, path);
 
-    if (match != null) {
-        dispatcher.dispatch(match, request, response);
-    } else {
-        handleNotFound(response, out, request.getPathInfo());
+    if (match != null && routeDispatcher.dispatch(match, request, response)) {
+        return; // Handled successfully
     }
+
+    // Handle builtin routes (/health, /metrics) or return 404
+    if (match != null && "builtin".equals(match.getRoute().getType())) {
+        // ... builtin handler logic
+    } else {
+        // Return 404 JSON
+    }
+}
 }
 ```
 
-**Benefits:**
-- ✅ Routes defined in YAML (no Java changes)
-- ✅ Clean, simple dispatch logic
-- ✅ Automatic path parameter extraction
-- ✅ Easy to add/modify routes
-- ✅ All routes visible in one place
-- ✅ Type-safe pattern matching
+**Benefits Achieved:**
+- ✅ **49% code reduction**: RouterServlet reduced from 461 to 236 lines
+- ✅ **Single source of truth**: All 21 routes defined in routes.yml
+- ✅ **No ProcessorRegistry**: Processors instantiated declaratively by RouteDispatcher
+- ✅ **No hardcoded routing**: Zero if-else chains for route matching
+- ✅ **Automatic path parameters**: `{id}` extraction without manual string parsing
+- ✅ **Wildcard support**: `/api/modules/**` matches all sub-paths
+- ✅ **Easy route additions**: Edit YAML, add processor case, done
+- ✅ **Comprehensive tests**: 11 RouteDispatcher tests + 10 RouteRegistry tests
+- ✅ **4 route types**: static, handler, processor, builtin
 
 ## Route Configuration Examples
 
@@ -204,35 +243,62 @@ protected void doGet(HttpServletRequest request, HttpServletResponse response) {
   description: Health check endpoint
 ```
 
+### Processor Route (No ProcessorRegistry Needed)
+```yaml
+- path: /api/json
+  method: POST
+  type: processor
+  processor: JsonDataProcessor  # RouteDispatcher instantiates this
+  contentType: application/json
+  description: JSON data processing
+```
+
+**RouteDispatcher.getProcessorInstance():**
+```java
+switch (processorName) {
+    case "JsonDataProcessor": return new JsonDataProcessor();
+    case "FormDataProcessor": return new FormDataProcessor();
+    case "ScriptProcessor": return new ScriptProcessor();
+    // ... add new processors here
+}
+```
+
 ## Testing
 
 Run route registry tests:
 ```bash
-mvn test -Dtest=RouteRegistryTest
+mvn test -Dtest=RouteRegistryTest      # 10 tests - pattern matching
+mvn test -Dtest=RouteDispatcherTest    # 11 tests - response handling
+mvn test                               # 72 total tests (all passing)
 ```
 
-**Test Coverage:**
-- ✅ Route loading from YAML
+**RouteRegistryTest Coverage:**
+- ✅ Route loading from YAML (21 routes)
 - ✅ Exact path matching
-- ✅ Path parameter extraction
-- ✅ Wildcard matching
-- ✅ Method filtering
-- ✅ Static file routes
-- ✅ All endpoint types
+- ✅ Path parameter extraction (`{id}`)
+- ✅ Wildcard matching (`/**`)
+- ✅ Method filtering (GET, POST, PUT, DELETE)
+- ✅ All route types (static, handler, processor, builtin)
 
-## Integration with RouterServlet
+**RouteDispatcherTest Coverage:**
+- ✅ Static file serving (HTML with correct content-type)
+- ✅ Static file 404 handling
+- ✅ Handler routes (with/without path params)
+- ✅ Processor routes (all 5 processors)
+- ✅ Builtin routes (return false by design)
+- ✅ Proper response types (HTML, JSON, streams)
 
-The route registry is **optional** and can be integrated gradually:
+## Integration Status
 
-1. **Current approach**: Keep existing RouterServlet logic
-2. **Hybrid approach**: Use registry for new routes, keep old code for existing routes
-3. **Full migration**: Replace all if-else chains with dispatcher
+**✅ FULLY INTEGRATED** - The route registry is now the core routing mechanism.
 
-**Recommended: Hybrid Approach**
+**Current Architecture:**
 ```java
+// RouterServlet.java (236 lines)
 @Override
 protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-    // Try route registry first
+    handleRequest(request, response, () -> dispatchOrNotFound(request, response));
+}
     RouteRegistry registry = RouteRegistry.getInstance();
     RouteRegistry.RouteMatch match = registry.findRoute("GET", request.getPathInfo());
 
