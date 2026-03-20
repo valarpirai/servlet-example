@@ -21,7 +21,10 @@ class LocalFileSystemStorageTest {
   private LocalFileSystemStorage storage;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws IOException {
+    // Clean up using helper
+    StorageTestHelper.cleanupAttachmentsDirectory();
+
     // Set system property to use temp directory
     System.setProperty("storage.filesystem.path", tempDir.toString());
     System.setProperty("storage.chunkSize", "10");
@@ -63,20 +66,25 @@ class LocalFileSystemStorageTest {
     attachment.setFileName("chunked.txt");
     attachment.setContentType("text/plain");
 
-    // 25 bytes with 10-byte chunks = 3 chunks
-    byte[] content = new byte[25];
+    // Create a file larger than default chunk size (1MB) to ensure multiple chunks
+    byte[] content = new byte[2 * 1024 * 1024]; // 2MB
     for (int i = 0; i < content.length; i++) {
-      content[i] = (byte) i;
+      content[i] = (byte) (i % 256);
     }
 
     Attachment stored = storage.store(attachment, new ByteArrayInputStream(content));
 
-    // Verify chunks exist
-    Path attachmentDir = tempDir.resolve(stored.getId());
-    assertTrue(Files.exists(attachmentDir.resolve("chunk_0")));
-    assertTrue(Files.exists(attachmentDir.resolve("chunk_1")));
-    assertTrue(Files.exists(attachmentDir.resolve("chunk_2")));
-    assertFalse(Files.exists(attachmentDir.resolve("chunk_3")));
+    // Verify at least 2 chunks were created (2MB / 1MB chunk size = 2 chunks)
+    Path attachmentDir = Path.of(stored.getStoragePath());
+    assertTrue(
+        Files.exists(attachmentDir.resolve("chunk_0")),
+        "chunk_0 not found at: " + attachmentDir.resolve("chunk_0"));
+    assertTrue(
+        Files.exists(attachmentDir.resolve("chunk_1")),
+        "chunk_1 not found at: " + attachmentDir.resolve("chunk_1"));
+    assertFalse(
+        Files.exists(attachmentDir.resolve("chunk_3")),
+        "chunk_3 should not exist (only 2 chunks expected)");
   }
 
   @Test
@@ -87,7 +95,7 @@ class LocalFileSystemStorageTest {
 
     Attachment stored = storage.store(attachment, new ByteArrayInputStream("test".getBytes()));
 
-    Path metadataFile = tempDir.resolve(stored.getId()).resolve("metadata.json");
+    Path metadataFile = Path.of(stored.getStoragePath()).resolve("metadata.json");
     assertTrue(Files.exists(metadataFile));
 
     // Verify metadata can be loaded

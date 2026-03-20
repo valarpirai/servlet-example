@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.example.servlet.model.ProcessorResponse;
+import com.example.servlet.storage.AttachmentManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.ByteArrayInputStream;
@@ -27,10 +28,15 @@ class FileUploadProcessorTest {
   private FileUploadProcessor processor;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     MockitoAnnotations.openMocks(this);
     System.setProperty("storage.filesystem.path", tempDir.toString());
     System.setProperty("storage.type", "filesystem");
+
+    // Clean up and reset using helper
+    com.example.servlet.storage.StorageTestHelper.cleanupAttachmentsDirectory();
+    com.example.servlet.storage.StorageTestHelper.resetSingleton(AttachmentManager.class);
+
     processor = new FileUploadProcessor();
   }
 
@@ -138,7 +144,7 @@ class FileUploadProcessorTest {
     assertEquals(200, response.getStatusCode());
     assertTrue(response.getBody().contains("file1.txt"));
     assertTrue(response.getBody().contains("file2.txt"));
-    assertTrue(response.getBody().contains("\"fileCount\":2"));
+    assertTrue(response.getBody().contains("\"fileCount\": 2"));
   }
 
   @Test

@@ -20,9 +20,14 @@ class AttachmentManagerTest {
   private AttachmentManager manager;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     System.setProperty("storage.filesystem.path", tempDir.toString());
     System.setProperty("storage.type", "filesystem");
+
+    // Clean up and reset using helper
+    StorageTestHelper.cleanupAttachmentsDirectory();
+    StorageTestHelper.resetSingleton(AttachmentManager.class);
+
     manager = AttachmentManager.getInstance();
   }
 

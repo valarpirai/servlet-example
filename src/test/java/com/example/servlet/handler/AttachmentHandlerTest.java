@@ -32,10 +32,15 @@ class AttachmentHandlerTest {
   private StringWriter responseWriter;
 
   @BeforeEach
-  void setUp() throws IOException {
+  void setUp() throws Exception {
     MockitoAnnotations.openMocks(this);
     System.setProperty("storage.filesystem.path", tempDir.toString());
     System.setProperty("storage.type", "filesystem");
+
+    // Clean up and reset using helper
+    com.example.servlet.storage.StorageTestHelper.cleanupAttachmentsDirectory();
+    com.example.servlet.storage.StorageTestHelper.resetSingleton(AttachmentManager.class);
+    com.example.servlet.storage.StorageTestHelper.resetSingleton(AttachmentHandler.class);
 
     handler = AttachmentHandler.getInstance();
     attachmentManager = AttachmentManager.getInstance();
@@ -159,9 +164,9 @@ class AttachmentHandlerTest {
     verify(response).setContentType("application/json");
 
     String responseBody = responseWriter.toString();
-    assertTrue(responseBody.contains("file1.txt"));
-    assertTrue(responseBody.contains("file2.txt"));
-    assertTrue(responseBody.contains("\"count\":2"));
+    assertTrue(responseBody.contains("file1.txt"), "file1.txt not found in: " + responseBody);
+    assertTrue(responseBody.contains("file2.txt"), "file2.txt not found in: " + responseBody);
+    assertTrue(responseBody.contains("\"count\": 2"), "count: 2 not found in: " + responseBody);
   }
 
   @Test

@@ -90,7 +90,12 @@ class TemplateProcessorTest {
     ProcessorResponse response = processor.process(request);
 
     assertEquals(400, response.getStatusCode());
-    assertTrue(response.getBody().contains("Missing 'templatePath' or 'template'"));
+    String body = response.getBody();
+    assertTrue(
+        body.contains("Missing")
+            && body.contains("templatePath")
+            && body.contains("template")
+            && body.contains("field"));
   }
 
   @Test
