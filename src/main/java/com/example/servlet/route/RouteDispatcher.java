@@ -5,8 +5,6 @@ import com.example.servlet.handler.DataBrowserHandler;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.model.Route;
 import com.example.servlet.processor.FileUploadProcessor;
-import com.example.servlet.processor.FormDataProcessor;
-import com.example.servlet.processor.JsonDataProcessor;
 import com.example.servlet.processor.ModuleProcessor;
 import com.example.servlet.processor.ScriptProcessor;
 import com.example.servlet.processor.TemplateProcessor;
@@ -27,6 +25,12 @@ import org.slf4j.LoggerFactory;
 public class RouteDispatcher {
 
   private static final Logger logger = LoggerFactory.getLogger(RouteDispatcher.class);
+
+  // Whitelist of allowed static resource directories
+  private static final String[] ALLOWED_RESOURCE_PREFIXES = {"static/", "templates/"};
+
+  // Buffer size for streaming static files
+  private static final int STATIC_FILE_BUFFER_SIZE = 4096;
 
   /**
    * Dispatch request to the matched route handler.
@@ -76,6 +80,17 @@ public class RouteDispatcher {
     String resource = route.getResource();
     String contentType = route.getContentType();
 
+    // Validate resource path for security
+    if (!isValidResourcePath(resource)) {
+      logger.warn("Rejected invalid resource path: {}", resource);
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      response.setContentType("application/json");
+      response.setCharacterEncoding("UTF-8");
+      PrintWriter out = response.getWriter();
+      out.print("{\"error\":\"Forbidden\",\"message\":\"Invalid resource path\",\"status\":403}");
+      return true;
+    }
+
     try (InputStream is = getClass().getClassLoader().getResourceAsStream(resource)) {
       if (is == null) {
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -88,7 +103,7 @@ public class RouteDispatcher {
       response.setContentType(contentType);
       response.setCharacterEncoding("UTF-8");
 
-      byte[] buffer = new byte[4096];
+      byte[] buffer = new byte[STATIC_FILE_BUFFER_SIZE];
       int bytesRead;
       java.io.OutputStream outputStream = response.getOutputStream();
 
@@ -99,6 +114,45 @@ public class RouteDispatcher {
       outputStream.flush();
       return true;
     }
+  }
+
+  /**
+   * Validates a resource path to prevent path traversal attacks.
+   *
+   * @param resourcePath The resource path to validate
+   * @return true if the path is safe to use
+   */
+  private boolean isValidResourcePath(String resourcePath) {
+    if (resourcePath == null || resourcePath.isEmpty()) {
+      return false;
+    }
+
+    // Reject absolute paths
+    if (resourcePath.startsWith("/")) {
+      return false;
+    }
+
+    // Reject path traversal attempts
+    if (resourcePath.contains("..")) {
+      return false;
+    }
+
+    // Reject null bytes (used in some attacks)
+    if (resourcePath.contains("\0")) {
+      return false;
+    }
+
+    // Normalize path separators (Windows compatibility)
+    String normalizedPath = resourcePath.replace('\\', '/');
+
+    // Check if path starts with an allowed prefix
+    for (String allowedPrefix : ALLOWED_RESOURCE_PREFIXES) {
+      if (normalizedPath.startsWith(allowedPrefix)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /** Handle custom handler invocation via reflection. */
@@ -250,10 +304,6 @@ public class RouteDispatcher {
         return new ModuleProcessor();
       case "FileUploadProcessor":
         return new FileUploadProcessor();
-      case "FormDataProcessor":
-        return new FormDataProcessor();
-      case "JsonDataProcessor":
-        return new JsonDataProcessor();
       case "ScriptProcessor":
         return new ScriptProcessor();
       case "TemplateProcessor":

@@ -5,7 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
-public interface RequestProcessor {
+public interface IRequestProcessor {
 
   /**
    * Check if this processor supports the given content type

@@ -20,7 +20,7 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 
-public class ScriptProcessor implements RequestProcessor {
+public class ScriptProcessor implements IRequestProcessor {
 
   private static final String CONTENT_TYPE = "application/javascript";
   private static final long SCRIPT_TIMEOUT = PropertiesUtil.getLong("script.timeout", 5000L);

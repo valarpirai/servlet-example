@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TemplateProcessor implements RequestProcessor {
+public class TemplateProcessor implements IRequestProcessor {
 
   private static final String CONTENT_TYPE = "text/html";
 

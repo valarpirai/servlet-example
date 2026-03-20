@@ -18,7 +18,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileUploadProcessor implements RequestProcessor {
+public class FileUploadProcessor implements IRequestProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(FileUploadProcessor.class);
   private static final String CONTENT_TYPE = "multipart/form-data";

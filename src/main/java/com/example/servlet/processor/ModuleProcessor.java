@@ -16,7 +16,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ModuleProcessor implements RequestProcessor {
+public class ModuleProcessor implements IRequestProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(ModuleProcessor.class);
   private static final String CONTENT_TYPE = "application/json";

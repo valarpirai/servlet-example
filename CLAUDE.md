@@ -365,7 +365,7 @@ See `docs/MEMORY-GUARANTEE.md` for detailed memory analysis.
 **Route Types**:
 1. `static` - Serve static files from classpath (HTML, CSS, JS)
 2. `handler` - Invoke singleton handler methods via reflection (AttachmentHandler, DataBrowserHandler)
-3. `processor` - Instantiate and call RequestProcessor implementations (all 5 processors)
+3. `processor` - Instantiate and call IRequestProcessor implementations (all 4 processors)
 4. `builtin` - Built-in RouterServlet methods (handleHealth, handleMetrics)
 
 **Example Routes**:
@@ -436,9 +436,9 @@ File upload limits are enforced at Tomcat level via multipart config (maxFileSiz
   - `RouteDispatcher` - Dispatches to handlers via reflection based on route type
   - `routes.yml` - YAML config defining all 21 application routes (single source of truth)
 - **processor/**: Request processor implementations
-  - `RequestProcessor` - Interface defining processor contract (supports, process, getContentType)
+  - `IRequestProcessor` - Interface defining processor contract (supports, process, getContentType)
   - `ProcessorResponse` - Lombok builder for HTTP responses
-  - Individual processors: FormData, JsonData, FileUpload, Script, Template, Module
+  - Individual processors: FileUpload, Script, Template, Module
 - **storage/**: Chunked file storage with strategy pattern
   - `AttachmentStorage` - Interface for storage strategies
   - `Attachment` - Lombok model for file metadata
@@ -478,8 +478,6 @@ All 21 endpoints defined in `routes.yml`. Visit **http://localhost:8080/** for a
 - `/metrics` - System metrics (memory, threads, request count)
 
 **API Endpoints:**
-- `/api/json` (POST) - Echo JSON payloads
-- `/api/form` (POST) - Process form data (application/x-www-form-urlencoded)
 - `/api/upload` (POST) - File uploads with chunked storage (multipart/form-data)
 - `/api/script` (POST) - Execute JavaScript server-side (application/javascript)
 - `/api/render` (POST) - Render HTML templates (text/html)

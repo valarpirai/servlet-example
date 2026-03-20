@@ -71,20 +71,6 @@ routes:
     contentType: application/json
     description: File upload (multipart/form-data)
 
-  - path: /api/form
-    method: POST
-    type: processor
-    processor: FormDataProcessor
-    contentType: application/json
-    description: Form data processing
-
-  - path: /api/json
-    method: POST
-    type: processor
-    processor: JsonDataProcessor
-    contentType: application/json
-    description: JSON data processing
-
   - path: /api/script
     method: POST
     type: processor

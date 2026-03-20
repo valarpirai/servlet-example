@@ -48,11 +48,9 @@ servlet-example/
 │       │               │   ├── AttachmentHandler.java
 │       │               │   └── DataBrowserHandler.java
 │       │               ├── processor/   (Request processors)
-│       │               │   ├── RequestProcessor.java (interface)
+│       │               │   ├── IRequestProcessor.java (interface)
 │       │               │   ├── ProcessorResponse.java (Lombok builder)
 │       │               │   ├── FileUploadProcessor.java
-│       │               │   ├── FormDataProcessor.java
-│       │               │   ├── JsonDataProcessor.java
 │       │               │   ├── ModuleProcessor.java
 │       │               │   ├── ScriptProcessor.java
 │       │               │   └── TemplateProcessor.java
@@ -166,8 +164,6 @@ GET Endpoints:
   - http://localhost:8080/api/modules/{path} (Get specific module)
 
 POST Endpoints:
-  - http://localhost:8080/api/form   (Content-Type: application/x-www-form-urlencoded)
-  - http://localhost:8080/api/json   (Content-Type: application/json)
   - http://localhost:8080/api/upload (Content-Type: multipart/form-data)
   - http://localhost:8080/api/script (Content-Type: application/javascript)
   - http://localhost:8080/api/render (Content-Type: text/html)
@@ -200,7 +196,7 @@ curl http://localhost:8080/
   "version": "1.0",
   "endpoints": {
     "GET": ["/", "/health", "/metrics", "/script-editor"],
-    "POST": ["/api/form", "/api/json", "/api/upload", "/api/script", "/api/render"]
+    "POST": ["/api/upload", "/api/script", "/api/render"]
   },
   "timestamp": 1234567890
 }
@@ -251,59 +247,6 @@ curl http://localhost:8080/metrics
 ```
 
 ### POST Endpoints
-
-#### Form Data Submission
-- **URL**: `http://localhost:8080/api/form`
-- **Method**: POST
-- **Content-Type**: `application/x-www-form-urlencoded`
-
-```bash
-curl -X POST http://localhost:8080/api/form \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "name=John&email=john@example.com&age=30"
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "name": "John",
-    "email": "john@example.com",
-    "age": "30"
-  },
-  "timestamp": 1234567890
-}
-```
-
-#### JSON Data Processing
-- **URL**: `http://localhost:8080/api/json`
-- **Method**: POST
-- **Content-Type**: `application/json`
-
-```bash
-curl -X POST http://localhost:8080/api/json \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Jane","email":"jane@example.com","preferences":{"theme":"dark"}}'
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "received": {
-      "name": "Jane",
-      "email": "jane@example.com",
-      "preferences": {
-        "theme": "dark"
-      }
-    },
-    "size": 75
-  },
-  "timestamp": 1234567890
-}
-```
 
 #### File Upload
 Upload files up to 500MB with automatic storage management.
@@ -631,12 +574,12 @@ curl -X POST http://localhost:8080/api/render \
 ### Request Processing Flow
 
 ```
-HTTP Request → RouterServlet → Content-Type Check → ProcessorRegistry
-                                                            ↓
-                    ┌───────────────────────────────────────┴───────────────────────────────┐
+HTTP Request → RouterServlet → RouteRegistry (routes.yml) → RouteDispatcher
+                                                                    ↓
+                    ┌───────────────────────────────────────────────┴───────────────────────┐
                     ↓                   ↓                   ↓                ↓               ↓
-          FormDataProcessor   JsonDataProcessor   FileUploadProcessor   ScriptProcessor   TemplateProcessor
-         (urlencoded forms)   (JSON payloads)     (file uploads)        (JavaScript)      (HTML templates)
+          FileUploadProcessor   ScriptProcessor   TemplateProcessor   ModuleProcessor   Handlers
+            (file uploads)        (JavaScript)      (HTML templates)    (modules)    (attachments, DB)
                     ↓                   ↓                   ↓                ↓               ↓
               ProcessorResponse ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ←
                     ↓
@@ -646,24 +589,26 @@ HTTP Request → RouterServlet → Content-Type Check → ProcessorRegistry
 ### Design Patterns
 
 - **Strategy Pattern**: Request processors implement a common interface
-- **Registry Pattern**: Central registry for processor discovery and routing
+- **Declarative Routing**: YAML-based route configuration with RouteRegistry
 - **Builder Pattern**: ProcessorResponse construction
-- **Singleton Pattern**: ProcessorRegistry and PropertiesUtil
+- **Singleton Pattern**: RouteRegistry, AttachmentManager, and PropertiesUtil
 - **Template Method**: Placeholder resolution in configuration
 
 ### Key Components
 
-1. **RouterServlet**: Central servlet handling all HTTP requests
-2. **ProcessorRegistry**: Manages and routes to appropriate processors
-3. **RequestProcessor**: Interface for content-type specific processing
-4. **ScriptProcessor**: JavaScript execution engine with performance monitoring and module support
-5. **ModuleProcessor**: Handles module CRUD operations via REST API
-6. **ModuleManager**: Manages filesystem storage and retrieval of JavaScript modules
-7. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
-8. **TemplateProcessor**: HTML template rendering with variable substitution
-9. **TemplateEngine**: Custom template parser and renderer
-10. **PropertiesUtil**: YAML configuration loader with environment variable support
-11. **JsonUtil**: JSON serialization/deserialization wrapper
+1. **RouterServlet**: Minimal servlet (236 lines) handling all HTTP requests
+2. **RouteRegistry**: Loads routes.yml and performs pattern matching with validation
+3. **RouteDispatcher**: Dispatches requests to handlers/processors via reflection
+4. **IRequestProcessor**: Interface for content-type specific processing
+5. **ScriptProcessor**: JavaScript execution engine with security sandbox and performance monitoring
+6. **ModuleProcessor**: Handles module CRUD operations via REST API
+7. **ModuleManager**: Manages filesystem storage and retrieval of JavaScript modules
+8. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
+9. **TemplateProcessor**: HTML template rendering with variable substitution
+10. **TemplateEngine**: Custom template parser and renderer
+11. **AttachmentManager**: Manages chunked file storage (memory-efficient)
+12. **PropertiesUtil**: YAML configuration loader with environment variable support
+13. **JsonUtil**: JSON serialization/deserialization wrapper
 
 ## Thread Pool Configuration
 

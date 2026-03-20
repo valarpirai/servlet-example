@@ -341,4 +341,175 @@ public class RouteDispatcherTest {
     String output = stringWriter.toString();
     assertTrue(output.contains("\"status\"") || output.contains("\"error\""));
   }
+
+  // Security tests for path traversal protection
+
+  @Test
+  public void testPathTraversalWithDotDot() throws IOException {
+    // Given: Malicious route attempting path traversal with ..
+    Route route = new Route();
+    route.setPath("/evil");
+    route.setType("static");
+    route.setResource("static/../../../etc/passwd");
+    route.setContentType("text/plain");
+
+    Map<String, String> pathParams = new HashMap<>();
+    RouteRegistry.RouteMatch match = new RouteRegistry.RouteMatch(route, pathParams);
+
+    StringWriter stringWriter = new StringWriter();
+    PrintWriter writer = new PrintWriter(stringWriter);
+    when(response.getWriter()).thenReturn(writer);
+
+    // When: Dispatch the request
+    boolean handled = dispatcher.dispatch(match, request, response);
+
+    // Then: Returns 403 Forbidden
+    assertTrue(handled);
+    verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+    verify(response).setContentType("application/json");
+    writer.flush();
+    String output = stringWriter.toString();
+    assertTrue(output.contains("\"error\":\"Forbidden\""));
+    assertTrue(output.contains("\"status\":403"));
+  }
+
+  @Test
+  public void testPathTraversalWithAbsolutePath() throws IOException {
+    // Given: Malicious route with absolute path
+    Route route = new Route();
+    route.setPath("/evil");
+    route.setType("static");
+    route.setResource("/etc/passwd");
+    route.setContentType("text/plain");
+
+    Map<String, String> pathParams = new HashMap<>();
+    RouteRegistry.RouteMatch match = new RouteRegistry.RouteMatch(route, pathParams);
+
+    StringWriter stringWriter = new StringWriter();
+    PrintWriter writer = new PrintWriter(stringWriter);
+    when(response.getWriter()).thenReturn(writer);
+
+    // When: Dispatch the request
+    boolean handled = dispatcher.dispatch(match, request, response);
+
+    // Then: Returns 403 Forbidden
+    assertTrue(handled);
+    verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+    verify(response).setContentType("application/json");
+    writer.flush();
+    String output = stringWriter.toString();
+    assertTrue(output.contains("\"error\":\"Forbidden\""));
+  }
+
+  @Test
+  public void testPathTraversalWithNullByte() throws IOException {
+    // Given: Malicious route with null byte
+    Route route = new Route();
+    route.setPath("/evil");
+    route.setType("static");
+    route.setResource("static/test\0.html");
+    route.setContentType("text/html");
+
+    Map<String, String> pathParams = new HashMap<>();
+    RouteRegistry.RouteMatch match = new RouteRegistry.RouteMatch(route, pathParams);
+
+    StringWriter stringWriter = new StringWriter();
+    PrintWriter writer = new PrintWriter(stringWriter);
+    when(response.getWriter()).thenReturn(writer);
+
+    // When: Dispatch the request
+    boolean handled = dispatcher.dispatch(match, request, response);
+
+    // Then: Returns 403 Forbidden
+    assertTrue(handled);
+    verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+  }
+
+  @Test
+  public void testPathTraversalWithUnauthorizedDirectory() throws IOException {
+    // Given: Route trying to access non-whitelisted directory
+    Route route = new Route();
+    route.setPath("/evil");
+    route.setType("static");
+    route.setResource("config/application.properties");
+    route.setContentType("text/plain");
+
+    Map<String, String> pathParams = new HashMap<>();
+    RouteRegistry.RouteMatch match = new RouteRegistry.RouteMatch(route, pathParams);
+
+    StringWriter stringWriter = new StringWriter();
+    PrintWriter writer = new PrintWriter(stringWriter);
+    when(response.getWriter()).thenReturn(writer);
+
+    // When: Dispatch the request
+    boolean handled = dispatcher.dispatch(match, request, response);
+
+    // Then: Returns 403 Forbidden
+    assertTrue(handled);
+    verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+  }
+
+  @Test
+  public void testPathTraversalWithWindowsBackslashes() throws IOException {
+    // Given: Malicious route using Windows-style path traversal
+    Route route = new Route();
+    route.setPath("/evil");
+    route.setType("static");
+    route.setResource("static\\..\\..\\etc\\passwd");
+    route.setContentType("text/plain");
+
+    Map<String, String> pathParams = new HashMap<>();
+    RouteRegistry.RouteMatch match = new RouteRegistry.RouteMatch(route, pathParams);
+
+    StringWriter stringWriter = new StringWriter();
+    PrintWriter writer = new PrintWriter(stringWriter);
+    when(response.getWriter()).thenReturn(writer);
+
+    // When: Dispatch the request
+    boolean handled = dispatcher.dispatch(match, request, response);
+
+    // Then: Returns 403 Forbidden
+    assertTrue(handled);
+    verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+  }
+
+  @Test
+  public void testValidStaticResourceInTemplatesDirectory() throws IOException {
+    // Given: Valid route for templates directory
+    Route route = new Route();
+    route.setPath("/test");
+    route.setType("static");
+    route.setResource("templates/welcome.html");
+    route.setContentType("text/html");
+
+    Map<String, String> pathParams = new HashMap<>();
+    RouteRegistry.RouteMatch match = new RouteRegistry.RouteMatch(route, pathParams);
+
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    when(response.getOutputStream())
+        .thenReturn(
+            new jakarta.servlet.ServletOutputStream() {
+              @Override
+              public void write(int b) {
+                outputStream.write(b);
+              }
+
+              @Override
+              public boolean isReady() {
+                return true;
+              }
+
+              @Override
+              public void setWriteListener(jakarta.servlet.WriteListener writeListener) {}
+            });
+
+    // When: Dispatch the request
+    boolean handled = dispatcher.dispatch(match, request, response);
+
+    // Then: Response is handled successfully
+    assertTrue(handled);
+    verify(response).setContentType("text/html");
+    verify(response).setCharacterEncoding("UTF-8");
+    assertTrue(outputStream.size() > 0, "Template content should be written");
+  }
 }
