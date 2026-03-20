@@ -242,12 +242,22 @@ attachments/
     metadata.json  (attachment metadata)
 ```
 
-**Metadata Persistence:**
+**Metadata Persistence (Implementation Details):**
 - Each attachment's metadata is saved as `metadata.json` in its directory
 - Contains: id, fileName, contentType, sizeBytes, hash, storageType, storagePath, createdAt, updatedAt
-- Uses `JsonUtil` with custom `InstantTypeAdapter` for proper JSON serialization of `java.time.Instant` fields
-- Loaded into memory cache on server startup via `AttachmentManager`
-- Concurrency-safe: `ConcurrentHashMap` for cache, unique UUIDs prevent conflicts, immutable attachments
+- **CRITICAL**: Must use `JsonUtil.toJson()` / `JsonUtil.fromJson()` for all JSON serialization
+  - `JsonUtil` has custom `InstantTypeAdapter` registered for `java.time.Instant` fields
+  - Using `new Gson()` directly will cause `JsonIOException` on Instant serialization
+  - This bug was fixed in commit 5e6eabd - LocalFileSystemStorage.saveMetadata() and loadMetadata()
+- Metadata cache: `ConcurrentHashMap<String, Attachment>` in `AttachmentManager`
+  - Loaded on startup via `loadAllMetadata()` which scans attachments directory
+  - Updated in-memory on each upload/delete operation
+  - Thread-safe for concurrent access
+- Concurrency safety:
+  - `ConcurrentHashMap` for cache (thread-safe reads/writes)
+  - Unique UUIDs prevent upload conflicts
+  - Attachments are immutable (never updated after creation)
+  - `Files.writeString()` provides atomic writes for metadata.json
 
 #### Configuration
 
@@ -263,28 +273,52 @@ upload:
   maxRequestSize: 1073741824   # 1GB
 ```
 
-#### API Endpoints
+#### API Endpoints (Routing & Implementation)
 
-- `POST /api/upload` - Upload file with chunking (returns attachment ID and metadata)
-- `GET /api/attachments` - List all attachments with metadata and count
-- `GET /api/attachment/{id}/download` - Stream download (memory-efficient chunked streaming)
-- `GET /api/attachment/{id}` - Get attachment metadata (from cache or JSON file)
-- `DELETE /api/attachment/{id}` - Delete attachment directory, all chunks, and metadata
+- `POST /api/upload` → `FileUploadProcessor.process()` → `AttachmentManager.store()`
+  - Handled by `RouterServlet.doPost()` → `handleProcessorRequest()`
+  - `FileUploadProcessor` gets attachment via `AttachmentManager.getInstance()`
+  - Returns attachment ID, hash, download URL in response
 
-**Example Usage:**
-```bash
-# Upload file
-curl -X POST http://localhost:9090/api/upload -F "file=@myfile.pdf"
+- `GET /api/attachments` → `AttachmentHandler.handleList()` → `AttachmentManager.listAll()`
+  - Handled by `RouterServlet.doGet()` (line 153)
+  - Returns all attachments from in-memory cache
 
-# List all attachments
-curl http://localhost:9090/api/attachments
+- `GET /api/attachment/{id}/download` → `AttachmentHandler.handleDownload()`
+  - Handled by `RouterServlet.doGet()` (line 163-179)
+  - Streams via `ChunkedInputStream` (inner class in `LocalFileSystemStorage`)
+  - Sets Content-Disposition header for file download
 
-# Download attachment
-curl -o downloaded.pdf http://localhost:9090/api/attachment/{id}/download
+- `GET /api/attachment/{id}` → `AttachmentHandler.handleMetadata()`
+  - Returns metadata from cache or loads from metadata.json
 
-# Delete attachment
-curl -X DELETE http://localhost:9090/api/attachment/{id}
-```
+- `DELETE /api/attachment/{id}` → `AttachmentHandler.handleDelete()`
+  - Handled by `RouterServlet.doDelete()` (line 320-329)
+  - Deletes directory recursively via `LocalFileSystemStorage.delete()`
+  - Removes from cache via `AttachmentManager.delete()`
+
+**Key Classes & Their Roles:**
+- `AttachmentManager` - Singleton coordinating storage operations, manages metadata cache
+- `LocalFileSystemStorage` - Implements `AttachmentStorage`, handles chunk I/O and metadata persistence
+- `ChunkedOutputStream` - Buffers and writes 1MB chunks during upload
+- `ChunkedInputStream` - Reads and streams chunks during download (inner class in LocalFileSystemStorage)
+- `AttachmentHandler` - HTTP handler for download/delete/list operations
+- `FileUploadProcessor` - Processes multipart uploads, delegates to AttachmentManager
+
+**Common Pitfalls to Avoid:**
+1. ❌ Never use `new Gson()` directly - always use `JsonUtil.toJson()` / `fromJson()`
+2. ❌ Don't load entire file into memory - use streaming APIs
+3. ❌ Don't modify Attachment objects after creation (they're immutable)
+4. ❌ Don't forget to update metadata cache when adding/deleting attachments
+5. ❌ Don't use `response.getWriter()` after `response.getOutputStream()` (or vice versa)
+   - Static files and downloads use OutputStream, JSON responses use Writer
+
+**Testing Considerations:**
+- Test large files (100MB+) to verify chunking works
+- Verify SHA-256 hash matches after download
+- Test concurrent uploads (ensure no file conflicts)
+- Verify metadata persists across server restarts
+- Test deletion removes both files and cache entry
 
 See `docs/MEMORY-GUARANTEE.md` for detailed memory analysis.
 

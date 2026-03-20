@@ -4,24 +4,16 @@ A simple web application using Jakarta EE Servlets with content-type based reque
 
 ## Features
 
-- **Content-Type Request Processors**: Automatic routing based on request Content-Type header
-  - File Upload Processor (multipart/form-data)
-  - Form Data Processor (application/x-www-form-urlencoded)
-  - JSON Data Processor (application/json)
-  - JavaScript Execution Engine (application/javascript) - Server-side JS with Rhino
-  - Template Rendering Engine (text/html) - Custom template engine with variable substitution
-- **JavaScript Module System**: Organize and reuse JavaScript code
-  - ES6-style import syntax with CommonJS exports
-  - Module dependency resolution with circular dependency detection
-  - File-based module storage with namespaced paths
-  - Integrated module manager UI
-- **Interactive Script Editor**: Web-based JavaScript code editor with real-time execution
-- **Performance Monitoring**: Execution time and memory usage tracking for scripts
-- **YAML Configuration**: Externalized configuration with environment variable support
-- **Health & Metrics**: Built-in monitoring endpoints
-- **Strategy Pattern**: Clean, extensible architecture for request processing
-- **Pure Jakarta EE**: No frameworks, just servlets (with Gson for JSON and SnakeYAML for config)
-- **Embedded Tomcat**: Self-contained executable JAR
+- **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage, SHA-256 hashing, and download management
+- **Server-Side JavaScript**: Execute JavaScript code on the server with console output and performance metrics
+- **JavaScript Modules**: Create reusable modules with ES6 imports and CommonJS exports
+- **Template Rendering**: Render HTML templates with variable substitution and loop support
+- **Form & JSON Processing**: Handle URL-encoded forms and JSON payloads
+- **Interactive Web UI**: Built-in script editor and module manager accessible via browser
+- **RESTful API**: JSON responses for all endpoints with consistent error handling
+- **Health Monitoring**: `/health` and `/metrics` endpoints for application monitoring
+- **YAML Configuration**: Easy configuration via `application.yml` with environment variable overrides
+- **Production Ready**: Packaged as executable JAR with embedded Tomcat server
 
 ## Prerequisites
 
@@ -290,14 +282,10 @@ curl -X POST http://localhost:8080/api/json \
 }
 ```
 
-#### File Upload & Attachment Management
-- **Upload URL**: `http://localhost:8080/api/upload`
-- **Method**: POST
-- **Content-Type**: `multipart/form-data`
-- **Max File Size**: 500 MB (configurable)
-- **Storage**: Chunked (1MB chunks) for memory efficiency
+#### File Upload
+Upload files up to 500MB with automatic storage management.
 
-**Upload File:**
+**Upload a file:**
 ```bash
 curl -X POST http://localhost:8080/api/upload \
   -F "file=@/path/to/file.pdf"
@@ -310,38 +298,35 @@ curl -X POST http://localhost:8080/api/upload \
   "data": {
     "files": [
       {
-        "attachmentId": "uuid-here",
-        "fieldName": "file",
+        "attachmentId": "5efbb4ae-7910-4410-bc4a-e7590a6674cc",
         "fileName": "file.pdf",
         "size": 5242880,
         "contentType": "application/pdf",
-        "storageType": "filesystem",
-        "hash": "sha256-hash-here",
-        "downloadUrl": "/api/attachment/uuid-here/download"
+        "hash": "c9999a9c8d5f697...",
+        "downloadUrl": "/api/attachment/5efbb4ae-7910-4410-bc4a-e7590a6674cc/download"
       }
     ],
     "fileCount": 1
-  },
-  "timestamp": 1234567890
+  }
 }
 ```
 
-**Attachment API Endpoints:**
+**Managing attachments:**
 ```bash
-# List all attachments
+# List all uploaded files
 curl http://localhost:8080/api/attachments
 
-# Download attachment (streams chunks, memory-efficient)
-curl -o file.pdf http://localhost:8080/api/attachment/{id}/download
+# Download a file
+curl -o myfile.pdf http://localhost:8080/api/attachment/{attachmentId}/download
 
-# Get attachment metadata
-curl http://localhost:8080/api/attachment/{id}
+# Get file information
+curl http://localhost:8080/api/attachment/{attachmentId}
 
-# Delete attachment
-curl -X DELETE http://localhost:8080/api/attachment/{id}
+# Delete a file
+curl -X DELETE http://localhost:8080/api/attachment/{attachmentId}
 ```
 
-**Memory Guarantee**: Uploads and downloads use only 1MB heap per request, regardless of file size (500MB file = 1MB memory usage).
+Files are automatically split into chunks for efficient storage and streaming. SHA-256 hash is calculated for integrity verification.
 
 #### JavaScript Execution
 - **URL**: `http://localhost:8080/api/script`
