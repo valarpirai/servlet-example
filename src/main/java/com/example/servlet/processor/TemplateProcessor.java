@@ -1,13 +1,12 @@
 package com.example.servlet.processor;
 
 import com.example.servlet.model.ProcessorResponse;
-import com.example.servlet.util.JsonUtil;
+import com.example.servlet.util.RequestHelper;
+import com.example.servlet.util.ResponseHelper;
 import com.example.servlet.util.TemplateEngine;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,19 +24,8 @@ public class TemplateProcessor implements IRequestProcessor {
   public ProcessorResponse process(HttpServletRequest request)
       throws IOException, ServletException {
     try {
-      // Read request body (expected to be JSON with template and data)
-      String requestBody = readRequestBody(request);
-
-      if (requestBody == null || requestBody.trim().isEmpty()) {
-        return ProcessorResponse.builder()
-            .statusCode(400)
-            .contentType("application/json")
-            .body(JsonUtil.errorResponse("Bad Request", "Empty request body", 400))
-            .build();
-      }
-
-      // Parse JSON
-      JsonObject json = JsonParser.parseString(requestBody).getAsJsonObject();
+      // Read and parse JSON
+      JsonObject json = RequestHelper.readJsonBody(request);
 
       // Get template path or inline template
       String templatePath = null;
@@ -48,20 +36,14 @@ public class TemplateProcessor implements IRequestProcessor {
       } else if (json.has("template")) {
         inlineTemplate = json.get("template").getAsString();
       } else {
-        return ProcessorResponse.builder()
-            .statusCode(400)
-            .contentType("application/json")
-            .body(
-                JsonUtil.errorResponse(
-                    "Bad Request", "Missing 'templatePath' or 'template' field", 400))
-            .build();
+        return ResponseHelper.badRequest("Missing 'templatePath' or 'template' field");
       }
 
       // Get data for template
       Map<String, Object> data = new HashMap<>();
       if (json.has("data") && json.get("data").isJsonObject()) {
         JsonObject dataJson = json.getAsJsonObject("data");
-        data = convertJsonObjectToMap(dataJson);
+        data = RequestHelper.jsonObjectToMap(dataJson);
       }
 
       // Load or use template
@@ -70,11 +52,7 @@ public class TemplateProcessor implements IRequestProcessor {
         try {
           templateContent = TemplateEngine.loadTemplate("templates/" + templatePath);
         } catch (IOException e) {
-          return ProcessorResponse.builder()
-              .statusCode(404)
-              .contentType("application/json")
-              .body(JsonUtil.errorResponse("Not Found", "Template not found: " + templatePath, 404))
-              .build();
+          return ResponseHelper.notFound("Template not found: " + templatePath);
         }
       } else {
         templateContent = inlineTemplate;
@@ -90,80 +68,17 @@ public class TemplateProcessor implements IRequestProcessor {
           .body(renderedHtml)
           .build();
 
+    } catch (IllegalArgumentException e) {
+      return ResponseHelper.badRequest(e.getMessage());
     } catch (com.google.gson.JsonSyntaxException e) {
-      return ProcessorResponse.builder()
-          .statusCode(400)
-          .contentType("application/json")
-          .body(JsonUtil.errorResponse("Bad Request", "Invalid JSON: " + e.getMessage(), 400))
-          .build();
+      return ResponseHelper.badRequest("Invalid JSON: " + e.getMessage());
     } catch (Exception e) {
-      return ProcessorResponse.builder()
-          .statusCode(500)
-          .contentType("application/json")
-          .body(
-              JsonUtil.errorResponse(
-                  "Internal Server Error", "Error rendering template: " + e.getMessage(), 500))
-          .build();
+      return ResponseHelper.internalError("Error rendering template: " + e.getMessage());
     }
   }
 
   @Override
   public String getContentType() {
     return CONTENT_TYPE;
-  }
-
-  /** Read request body */
-  private String readRequestBody(HttpServletRequest request) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader reader = request.getReader()) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        sb.append(line);
-      }
-    }
-    return sb.toString();
-  }
-
-  /** Convert JsonObject to Map recursively */
-  @SuppressWarnings("unchecked")
-  private Map<String, Object> convertJsonObjectToMap(JsonObject jsonObject) {
-    Map<String, Object> map = new HashMap<>();
-
-    jsonObject
-        .entrySet()
-        .forEach(
-            entry -> {
-              String key = entry.getKey();
-              com.google.gson.JsonElement value = entry.getValue();
-
-              if (value.isJsonNull()) {
-                map.put(key, null);
-              } else if (value.isJsonPrimitive()) {
-                if (value.getAsJsonPrimitive().isNumber()) {
-                  map.put(key, value.getAsNumber());
-                } else if (value.getAsJsonPrimitive().isBoolean()) {
-                  map.put(key, value.getAsBoolean());
-                } else {
-                  map.put(key, value.getAsString());
-                }
-              } else if (value.isJsonObject()) {
-                map.put(key, convertJsonObjectToMap(value.getAsJsonObject()));
-              } else if (value.isJsonArray()) {
-                java.util.List<Object> list = new java.util.ArrayList<>();
-                value
-                    .getAsJsonArray()
-                    .forEach(
-                        element -> {
-                          if (element.isJsonObject()) {
-                            list.add(convertJsonObjectToMap(element.getAsJsonObject()));
-                          } else if (element.isJsonPrimitive()) {
-                            list.add(element.getAsString());
-                          }
-                        });
-                map.put(key, list);
-              }
-            });
-
-    return map;
   }
 }

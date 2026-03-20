@@ -3,8 +3,8 @@ package com.example.servlet.processor;
 import com.example.servlet.model.Attachment;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.storage.AttachmentManager;
-import com.example.servlet.util.JsonUtil;
 import com.example.servlet.util.PropertiesUtil;
+import com.example.servlet.util.ResponseHelper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -44,10 +44,7 @@ public class FileUploadProcessor implements IRequestProcessor {
       Collection<Part> parts = request.getParts();
 
       if (parts == null || parts.isEmpty()) {
-        return ProcessorResponse.builder()
-            .statusCode(400)
-            .body(JsonUtil.errorResponse("Bad Request", "No multipart data provided", 400))
-            .build();
+        return ResponseHelper.badRequest("No multipart data provided");
       }
 
       List<Map<String, Object>> fileInfoList = new ArrayList<>();
@@ -62,16 +59,10 @@ public class FileUploadProcessor implements IRequestProcessor {
 
           // Check file size
           if (size > MAX_FILE_SIZE) {
-            return ProcessorResponse.builder()
-                .statusCode(413)
-                .body(
-                    JsonUtil.errorResponse(
-                        "Payload Too Large",
-                        "File size exceeds maximum limit of "
-                            + (MAX_FILE_SIZE / 1024 / 1024)
-                            + " MB",
-                        413))
-                .build();
+            return ResponseHelper.errorResponse(
+                413,
+                "Payload Too Large",
+                "File size exceeds maximum limit of " + (MAX_FILE_SIZE / 1024 / 1024) + " MB");
           }
 
           // Create attachment metadata
@@ -114,28 +105,15 @@ public class FileUploadProcessor implements IRequestProcessor {
       }
       responseData.put("fileCount", fileInfoList.size());
 
-      String responseBody = JsonUtil.successResponse(responseData);
-
-      return ProcessorResponse.builder().statusCode(200).body(responseBody).build();
+      return ResponseHelper.successResponse(responseData);
 
     } catch (IllegalStateException e) {
       // This can happen if the request is not multipart
-      return ProcessorResponse.builder()
-          .statusCode(400)
-          .body(
-              JsonUtil.errorResponse(
-                  "Bad Request",
-                  "Request is not a valid multipart request: " + e.getMessage(),
-                  400))
-          .build();
+      return ResponseHelper.badRequest(
+          "Request is not a valid multipart request: " + e.getMessage());
     } catch (Exception e) {
       logger.error("Error processing file upload", e);
-      return ProcessorResponse.builder()
-          .statusCode(500)
-          .body(
-              JsonUtil.errorResponse(
-                  "Internal Server Error", "Error processing file upload: " + e.getMessage(), 500))
-          .build();
+      return ResponseHelper.internalError("Error processing file upload: " + e.getMessage());
     }
   }
 

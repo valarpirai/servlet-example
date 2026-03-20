@@ -2,7 +2,7 @@ package com.example.servlet.handler;
 
 import com.example.servlet.model.Attachment;
 import com.example.servlet.storage.AttachmentManager;
-import com.example.servlet.util.JsonUtil;
+import com.example.servlet.util.ResponseHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -35,20 +35,14 @@ public class AttachmentHandler {
       throws IOException {
 
     if (!attachmentManager.exists(attachmentId)) {
-      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      response.setContentType("application/json");
-      response.getWriter().print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
+      ResponseHelper.sendNotFound(response, "Attachment not found");
       return;
     }
 
     Attachment attachment = attachmentManager.getMetadata(attachmentId);
 
     if (attachment == null) {
-      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      response.setContentType("application/json");
-      response
-          .getWriter()
-          .print(JsonUtil.errorResponse("Not Found", "Attachment metadata not found", 404));
+      ResponseHelper.sendNotFound(response, "Attachment metadata not found");
       return;
     }
 
@@ -89,15 +83,11 @@ public class AttachmentHandler {
     Attachment attachment = attachmentManager.getMetadata(attachmentId);
 
     if (attachment == null) {
-      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      response.setContentType("application/json");
-      response.getWriter().print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
+      ResponseHelper.sendNotFound(response, "Attachment not found");
       return;
     }
 
-    response.setStatus(HttpServletResponse.SC_OK);
-    response.setContentType("application/json");
-    response.getWriter().print(JsonUtil.successResponse(attachment));
+    ResponseHelper.sendJsonSuccess(response, attachment);
   }
 
   /** Handle list all attachments. */
@@ -108,29 +98,20 @@ public class AttachmentHandler {
     data.put("attachments", attachments);
     data.put("count", attachments.size());
 
-    response.setStatus(HttpServletResponse.SC_OK);
-    response.setContentType("application/json");
-    response.getWriter().print(JsonUtil.successResponse(data));
+    ResponseHelper.sendJsonSuccess(response, data);
   }
 
   /** Handle attachment deletion. */
   public void handleDelete(HttpServletResponse response, String attachmentId) throws IOException {
 
     if (!attachmentManager.exists(attachmentId)) {
-      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      response.setContentType("application/json");
-      response.getWriter().print(JsonUtil.errorResponse("Not Found", "Attachment not found", 404));
+      ResponseHelper.sendNotFound(response, "Attachment not found");
       return;
     }
 
     attachmentManager.delete(attachmentId);
 
-    response.setStatus(HttpServletResponse.SC_OK);
-    response.setContentType("application/json");
-    response
-        .getWriter()
-        .print(
-            JsonUtil.successResponse(
-                java.util.Map.of("message", "Attachment deleted", "attachmentId", attachmentId)));
+    ResponseHelper.sendJsonSuccess(
+        response, java.util.Map.of("message", "Attachment deleted", "attachmentId", attachmentId));
   }
 }
