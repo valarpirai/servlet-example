@@ -1,5 +1,118 @@
 # Development Guide
 
+**Last updated**: 2026-03-22
+
+Quick reference for development workflows, tools, and best practices.
+
+## Development Workflows
+
+### TDD Loop (Test-Driven Development)
+
+```bash
+# 1. Write failing test
+mvn test -Dtest=MyNewTest
+
+# 2. Implement feature
+# ... code ...
+
+# 3. Run test again
+mvn test -Dtest=MyNewTest
+
+# 4. Refactor if needed
+
+# 5. Run full suite
+mvn test
+```
+
+### Feature Addition Workflow
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/my-feature
+
+# 2. Add route to routes.yml
+# ... edit routes.yml ...
+
+# 3. Create processor/handler
+# ... create MyProcessor.java ...
+
+# 4. Register in RouteDispatcher
+# ... edit RouteDispatcher.java ...
+
+# 5. Write tests
+# ... create MyProcessorTest.java ...
+
+# 6. Run tests
+mvn test
+
+# 7. Format code (or pre-commit hook does it)
+mvn spotless:apply
+
+# 8. Commit
+git commit -m "feat: add my feature"
+```
+
+### Bug Fix Workflow
+
+```bash
+# 1. Reproduce bug with test
+# ... create FailingTest.java ...
+
+# 2. Fix bug
+# ... edit code ...
+
+# 3. Verify fix
+mvn test -Dtest=FailingTest
+
+# 4. Run full suite (ensure no regressions)
+mvn test
+
+# 5. Commit
+git commit -m "fix: resolve issue with X"
+```
+
+## Debugging
+
+### Enable Debug Logging
+
+```yaml
+# src/main/resources/application.yml
+logging:
+  level:
+    com.example: DEBUG
+    org.apache.catalina: INFO
+```
+
+### Remote Debugging
+
+```bash
+# Start with debug port
+java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
+  -jar target/servlet-example.jar
+
+# Connect IDE debugger to localhost:5005
+```
+
+### Useful Breakpoints
+
+- `RouteRegistry.java:findRoute()` - Route matching
+- `RouteDispatcher.java:dispatch()` - Handler dispatch
+- `LocalFileSystemStorage.java:store()` - File upload
+- `ScriptProcessor.java:executeScript()` - JavaScript execution
+
+### View Logs
+
+```bash
+# Tail logs
+tail -f logs/application.log
+
+# Search by correlation ID
+grep "correlationId=abc-123" logs/application.log
+
+# Find slow requests (> 1000ms)
+grep "responseTimeMs=" logs/application.log | awk -F'responseTimeMs=' '{print $2}' | awk '{if ($1 > 1000) print}'
+```
+
 ## Code Formatting
 
 This project uses **Spotless** with **Google Java Format** to maintain consistent code style.
@@ -154,16 +267,175 @@ git commit -m "your message"
 git push
 ```
 
+## Performance Profiling
+
+### Memory Profiling
+
+```bash
+# Run with heap dump on OOM
+java -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=heapdump.hprof \
+  -jar target/servlet-example.jar
+
+# Check memory usage
+curl http://localhost:8080/metrics | jq '.metrics.memory'
+
+# Monitor with jconsole
+jconsole <pid>
+```
+
+### CPU Profiling
+
+```bash
+# Enable flight recorder
+java -XX:+UnlockCommercialFeatures -XX:+FlightRecorder \
+  -XX:StartFlightRecording=duration=60s,filename=recording.jfr \
+  -jar target/servlet-example.jar
+
+# Analyze with jmc
+jmc recording.jfr
+```
+
+### Request Profiling
+
+```bash
+# Check slow requests in logs
+grep "responseTimeMs=" logs/application.log | \
+  awk -F'responseTimeMs=' '{print $2}' | \
+  awk '{print $1}' | sort -n | tail -10
+```
+
+## Adding Dependencies
+
+```xml
+<!-- Add to pom.xml -->
+<dependency>
+    <groupId>com.example</groupId>
+    <artifactId>my-library</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+```bash
+# Update dependencies
+mvn clean install
+
+# Check for updates
+mvn versions:display-dependency-updates
+
+# Check for vulnerabilities
+mvn dependency-check:check
+```
+
+## Common Tasks
+
+### Change Server Port
+
+```bash
+# Environment variable
+SERVER_PORT=9090 mvn -PappRun
+
+# Or edit application.yml
+server:
+  port: 9090
+```
+
+### Add New Route
+
+1. Edit `src/main/resources/routes.yml`
+2. Register processor in `RouteDispatcher.getProcessorInstance()`
+3. Write tests
+4. Run `mvn test`
+
+**See**: docs/ROUTE-REGISTRY.md
+
+### Add New Database Type
+
+1. Create `MyDatabaseStrategy.java` implementing `DataSourceStrategy`
+2. Register in `DataSourceRegistry` constructor
+3. Add connection fields to `DB_FIELDS` in `data-browser.html`
+4. Write tests
+5. Run `mvn test -Dtest=DataSource*Test`
+
+**See**: docs/data-browser.md
+
+### Modify Chunk Size
+
+```yaml
+# src/main/resources/application.yml
+storage:
+  chunkSize: 2097152  # 2MB instead of 1MB
+```
+
+**Note**: Affects memory usage. 2MB chunks = 2MB buffer per concurrent upload.
+
+### Clean Build Directory
+
+```bash
+mvn clean
+rm -rf target/
+rm -rf attachments/  # If needed
+rm -rf extlib/       # If needed
+```
+
 ## Troubleshooting
 
 ### "Spotless check failed"
-Run `mvn spotless:apply` to fix formatting issues.
+```bash
+mvn spotless:apply
+git add .
+git commit -m "your message"
+```
 
 ### "Lombok not working in IDE"
-Ensure Lombok plugin is installed and annotation processing is enabled.
+**IntelliJ**: Install Lombok plugin + enable annotation processing
+**VSCode**: Install "Language Support for Java"
+**Eclipse**: Download lombok.jar, run `java -jar lombok.jar`
 
 ### "Pre-commit hook not running"
-Ensure `.git/hooks/pre-commit` is executable:
 ```bash
 chmod +x .git/hooks/pre-commit
 ```
+
+### "Port 8080 already in use"
+```bash
+lsof -ti:8080 | xargs kill -9
+# Or use different port
+SERVER_PORT=9090 mvn -PappRun
+```
+
+### "Tests failing"
+```bash
+# Clean build
+mvn clean test
+
+# Run specific test with debug
+mvn test -Dtest=FailingTest -X
+
+# Skip tests temporarily (not recommended)
+mvn package -DskipTests
+```
+
+### "JsonIOException with Instant fields"
+**Always use `JsonUtil.toJson()` / `fromJson()`, NEVER `new Gson()`**
+
+See: docs/TROUBLESHOOTING.md
+
+## IDE Setup
+
+### IntelliJ IDEA
+1. Import as Maven project
+2. Install Lombok plugin
+3. Enable annotation processing
+4. Set Java 17+ SDK
+5. Install Google Java Format plugin (optional)
+
+### VS Code
+1. Install "Language Support for Java"
+2. Install "Maven for Java"
+3. Open workspace
+4. Extensions auto-configure
+
+### Eclipse
+1. Import as Maven project
+2. Install Lombok (run lombok.jar installer)
+3. Install Spotless Eclipse plugin (optional)

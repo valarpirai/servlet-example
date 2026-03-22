@@ -1,6 +1,19 @@
 # Data Browser
 
+**Last updated**: 2026-03-22
+
 A web-based database browser at `/data-browser`. Connect to PostgreSQL, MySQL, or Snowflake — JDBC drivers are downloaded on demand, no server restart required.
+
+**Key files**:
+- `datasource/DataSourceStrategy.java` - Strategy interface
+- `datasource/DataSourceRegistry.java` - Strategy registry (singleton)
+- `datasource/PostgreSqlStrategy.java` - PostgreSQL implementation
+- `datasource/MySqlStrategy.java` - MySQL implementation
+- `datasource/SnowflakeStrategy.java` - Snowflake implementation
+- `handler/DataBrowserHandler.java` - Session management, query execution
+- `src/main/resources/static/data-browser.html` - UI
+
+**Tests**: `DataSourceRegistryTest`, `PostgreSqlStrategyTest`, `MySqlStrategyTest`, `SnowflakeStrategyTest`
 
 ## Quick Start
 

@@ -258,4 +258,22 @@ public class PropertiesUtil {
   public static Map<String, Object> getAllProperties() {
     return properties;
   }
+
+  /**
+   * Get the application environment (dev, prod, etc.)
+   *
+   * @return The environment name (defaults to "dev")
+   */
+  public static String getEnvironment() {
+    return getString("application.environment", "dev");
+  }
+
+  /**
+   * Check if the application is running in development mode
+   *
+   * @return true if environment is "dev", false otherwise
+   */
+  public static boolean isDevEnvironment() {
+    return "dev".equalsIgnoreCase(getEnvironment());
+  }
 }

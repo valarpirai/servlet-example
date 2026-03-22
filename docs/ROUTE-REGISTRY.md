@@ -1,8 +1,18 @@
 # Route Registry System
 
+**Last updated**: 2026-03-22 | **Status**: ✅ Fully Integrated
+
+**TL;DR**: Edit `routes.yml` → Add processor/handler case → Done. No RouterServlet changes needed.
+
 ## Overview
 
 The route registry system is the **core routing mechanism** for the application. All 21 routes are defined in `routes.yml`, eliminating hardcoded routing logic and reducing RouterServlet from 461 to 236 lines (49% reduction).
+
+**Key files**:
+- `src/main/resources/routes.yml` - All 21 route definitions
+- `src/main/java/com/example/servlet/route/RouteRegistry.java` - Loads & matches routes
+- `src/main/java/com/example/servlet/route/RouteDispatcher.java` - Dispatches to handlers
+- `src/main/java/com/example/servlet/RouterServlet.java` - HTTP entry point (236 lines)
 
 ## Architecture
 
@@ -366,7 +376,25 @@ private Object getHandlerInstance(String handlerName) {
 
 4. **No servlet changes required!**
 
-## Route Matching Order
+## Common Mistakes
+
+### 1. Route Not Found (404)
+**Symptom**: New route returns 404 JSON.
+
+**Checklist**:
+- ✅ Route defined in `routes.yml`?
+- ✅ HTTP method matches (GET, POST, PUT, DELETE)?
+- ✅ Path pattern correct (check `{params}` syntax)?
+- ✅ Route order correct (specific before wildcards)?
+- ✅ Processor registered in `RouteDispatcher.getProcessorInstance()`?
+- ✅ Handler registered in `RouteDispatcher.getHandlerInstance()`?
+- ✅ Server restarted?
+
+**Debug**: Breakpoint at `RouteRegistry.java:findRoute()` and `RouteDispatcher.java:dispatch()`
+
+**See**: docs/TROUBLESHOOTING.md
+
+### 2. Route Order Matters
 
 Routes are matched in the order they appear in routes.yml. More specific routes should come before wildcard routes:
 
@@ -379,6 +407,24 @@ Routes are matched in the order they appear in routes.yml. More specific routes 
 # ❌ Incorrect order
 - path: /api/**                           # Would match everything first!
 - path: /api/attachment/{id}/download    # Never reached
+```
+
+### 3. Forgot to Register Processor/Handler
+
+After adding route to `routes.yml`, must register in dispatcher:
+
+**For processors**:
+```java
+// RouteDispatcher.java:getProcessorInstance()
+case "MyNewProcessor":
+    return new MyNewProcessor();
+```
+
+**For handlers**:
+```java
+// RouteDispatcher.java:getHandlerInstance()
+case "MyNewHandler":
+    return MyNewHandler.getInstance();
 ```
 
 ## Performance

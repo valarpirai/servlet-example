@@ -63,6 +63,15 @@ routes:
     contentType: application/json
     description: Module management endpoints
 
+  # Scripted REST API endpoints
+  - path: /api/v1/**
+    method: [GET, POST, PUT, DELETE, PATCH]
+    type: handler
+    handler: ApiHandler
+    handlerMethod: handleRequest
+    contentType: application/json
+    description: Scripted REST API endpoints (loads JS from scripts/api/)
+
   # Content-Type Based Processing
   - path: /api/upload
     method: POST

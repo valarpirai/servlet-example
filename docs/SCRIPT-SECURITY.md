@@ -1,5 +1,18 @@
 # JavaScript Sandbox Security
 
+**Last updated**: 2026-03-22 | **Security Audit**: 2026-03-20 | **Tests**: 26/26 passing ✅
+
+**Quick Summary**: Rhino sandbox with ClassShutter blocks System, File I/O, Network, Reflection, Database. 26 automated tests validate all attack vectors.
+
+**Key files**:
+- `processor/ScriptProcessor.java:39-147` - ClassShutter implementation (whitelist/blacklist)
+- `processor/ScriptProcessor.java:executeScript()` - Timeout & memory enforcement
+- `test/java/.../ScriptProcessorSecurityTest.java` - 26 security validation tests
+
+## Test Status: 26/26 Passing ✅
+
+All security controls validated with automated tests. See "Tested Security Controls" section below.
+
 ## Overview
 
 The ScriptProcessor uses Mozilla Rhino with a custom ClassShutter to provide a sandboxed JavaScript execution environment. This document details the security mechanisms, tested protections, and known limitations.

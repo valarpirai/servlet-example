@@ -7,6 +7,9 @@ server:
 application:
   name: "Jakarta EE Servlet Application"
   version: "1.0"
+  # Environment name: dev, prod (can be overridden with ENVIRONMENT)
+  # Controls stack trace exposure in error responses
+  environment: ${ENVIRONMENT:dev}
 
 # File Upload Configuration
 upload:

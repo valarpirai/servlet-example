@@ -1,5 +1,18 @@
 # Memory Guarantee: < 1GB Heap Usage
 
+**Last updated**: 2026-03-22
+
+**Quick Summary**: 500MB file = 1MB heap usage (99.8% reduction). Memory scales with concurrent requests, NOT file sizes.
+
+**When to read this**: Before modifying anything in `storage/` package.
+
+**Key files**:
+- `storage/LocalFileSystemStorage.java` - Chunking implementation
+- `storage/ChunkedOutputStream.java` - 1MB write buffer
+- `storage/LocalFileSystemStorage.java:ChunkedInputStream` - Inner class for streaming reads
+- `processor/FileUploadProcessor.java` - Multipart upload handler
+- `handler/AttachmentHandler.java` - Download/delete operations
+
 ## How We Handle Large Files Without Memory Issues
 
 ### Problem

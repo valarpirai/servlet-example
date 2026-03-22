@@ -1,5 +1,6 @@
 package com.example.servlet.route;
 
+import com.example.servlet.handler.ApiHandler;
 import com.example.servlet.handler.AttachmentHandler;
 import com.example.servlet.handler.DataBrowserHandler;
 import com.example.servlet.model.ProcessorResponse;
@@ -288,6 +289,8 @@ public class RouteDispatcher {
   /** Get handler instance by name (singleton pattern). */
   private Object getHandlerInstance(String handlerName) {
     switch (handlerName) {
+      case "ApiHandler":
+        return ApiHandler.getInstance();
       case "AttachmentHandler":
         return AttachmentHandler.getInstance();
       case "DataBrowserHandler":

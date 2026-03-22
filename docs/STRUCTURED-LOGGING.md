@@ -1,8 +1,35 @@
 # Structured Logging with Correlation IDs
 
+**Last updated**: 2026-03-22
+
+**Quick Summary**: Every HTTP request gets a unique correlation ID. All logs include correlationId, requestId, method, path, clientIp via MDC.
+
+**Key files**:
+- `util/CorrelationIdFilter.java` - Servlet filter, populates MDC
+- `util/StructuredLogger.java` - Wrapper around SLF4J with MDC context
+- `RouterServlet.java` - Logs request timing with correlation IDs
+- `Main.java` - Registers CorrelationIdFilter
+
+**Performance**: ~1-2ms overhead per request, ~1KB memory per request
+
 ## Overview
 
 The application uses **structured logging** with **correlation IDs** for distributed tracing and better log analysis. Every HTTP request gets a unique correlation ID that persists through the entire request lifecycle.
+
+## Integration Points
+
+**Automatically integrated**:
+- ✅ `RouterServlet` - All requests logged with correlation IDs
+- ✅ `AttachmentHandler` - File operations include correlation IDs
+- ✅ `DataBrowserHandler` - Database operations include correlation IDs
+
+**To integrate in new code**:
+```java
+private static final StructuredLogger logger =
+    StructuredLogger.create(LoggerFactory.getLogger(MyClass.class));
+```
+
+**See also**: docs/ROUTE-REGISTRY.md for request flow
 
 ## Features
 
