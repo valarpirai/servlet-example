@@ -1,0 +1,490 @@
+# Development Guide
+
+**Last updated**: [YYYY-MM-DD]
+
+Quick reference for development workflows, tools, and best practices.
+
+---
+
+## ✅ Definition of Done
+
+Use this checklist to verify your changes are complete before committing.
+
+### For Any Change
+
+- [ ] **Code compiles**: `[build_command]` succeeds
+- [ ] **Tests pass**: `[test_command]` succeeds
+- [ ] **Code formatted**: `[format_command]` passes
+- [ ] **Lint passes**: `[lint_command]` passes (if applicable)
+- [ ] **No compilation warnings**: Check build output
+- [ ] **Manual test passed**: If user-facing, test manually
+- [ ] **Documentation updated**: If behavior changed, update relevant .md files
+- [ ] **No debug code**: No print statements, commented code, or unresolved TODOs
+
+### For Critical Areas
+
+[CUSTOMIZE: Add area-specific checklists]
+
+**If modifying [storage/data layer]:**
+- [ ] All above +
+- [ ] Uses [streaming/async patterns] (no blocking operations)
+- [ ] [Specific tests] pass: `[test_command]`
+- [ ] [Performance test]: [specific verification]
+- [ ] Integration test: [manual verification steps]
+
+**If modifying [routing/API layer]:**
+- [ ] All above +
+- [ ] [Config file] syntax valid
+- [ ] [Handler/Controller] registered properly
+- [ ] Route tests pass: `[test_command]`
+- [ ] Manual test: `[curl_or_http_test]`
+
+**If modifying [security layer]:**
+- [ ] All above +
+- [ ] All security tests pass: `[security_test_command]`
+- [ ] No sensitive data in logs
+- [ ] Input validation added
+- [ ] [Security review if needed]
+
+### Ready to Commit?
+
+**Final checks:**
+```bash
+# 1. Full test suite
+[test_all_command]
+
+# 2. Build successfully
+[build_command]
+
+# 3. Format/lint check
+[format_command]
+[lint_command]
+
+# 4. Git status clean
+git status
+
+# 5. Manual smoke test
+[run_server_command]
+[health_check_command]
+```
+
+**All green?** ✅ Commit with descriptive message
+
+**Commit message format**: `[type]: [description]`
+- `feat:` for new features
+- `fix:` for bug fixes
+- `refactor:` for code improvements
+- `docs:` for documentation
+- `test:` for test changes
+- `chore:` for maintenance
+
+---
+
+## Development Workflows
+
+[CUSTOMIZE: Add your team's workflows]
+
+### TDD Loop (Test-Driven Development)
+
+```bash
+# 1. Write failing test
+[create_test_file]
+[test_command]  # Should fail
+
+# 2. Implement feature
+[edit_source_file]
+
+# 3. Run test again
+[test_command]  # Should pass
+
+# 4. Refactor if needed
+
+# 5. Run full suite
+[test_all_command]
+```
+
+### Feature Addition Workflow
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/my-feature
+
+# 2. [Add your implementation steps]
+# Example: Add route, create handler, write tests
+
+# 3. Write tests
+[create_test_file]
+
+# 4. Run tests
+[test_command]
+
+# 5. Format code
+[format_command]
+
+# 6. Commit
+git commit -m "feat: add my feature"
+```
+
+### Bug Fix Workflow
+
+```bash
+# 1. Reproduce bug with test
+[create_failing_test]
+
+# 2. Fix bug
+[edit_source]
+
+# 3. Verify fix
+[test_command]
+
+# 4. Run full suite (check for regressions)
+[test_all_command]
+
+# 5. Commit
+git commit -m "fix: resolve issue with X"
+```
+
+---
+
+## Quick Commands
+
+[CUSTOMIZE: Replace with your tech stack commands]
+
+```bash
+# Development
+[dev_server]                          # Start dev server
+[build]                               # Build for production
+[build_dev]                           # Build for development
+[clean]                               # Clean build artifacts
+
+# Testing
+[test_all]                            # Run all tests
+[test_one]                            # Run specific test
+[test_watch]                          # Watch mode
+[test_coverage]                       # Generate coverage report
+
+# Code Quality
+[format_check]                        # Check formatting
+[format_apply]                        # Apply formatting
+[lint]                                # Run linter
+[typecheck]                           # Type checking (if applicable)
+
+# Dependencies
+[install_deps]                        # Install dependencies
+[add_dep]                             # Add new dependency
+[update_deps]                         # Update dependencies
+
+# Environment
+[env_var]=value [dev_server]          # Custom environment
+[health_check]                        # Check health endpoint
+```
+
+**See**: `COMMAND-MAPPING-REFERENCE.md` for cross-stack equivalents
+
+---
+
+## Development Environment Setup
+
+[CUSTOMIZE: Setup instructions for your stack]
+
+### Prerequisites
+
+- [Tool 1]: Version [X.Y.Z+]
+- [Tool 2]: Version [X.Y.Z+]
+- [Database]: Version [X.Y+] (if applicable)
+
+### Initial Setup
+
+```bash
+# 1. Clone repository
+git clone [repo_url]
+cd [project_name]
+
+# 2. Install dependencies
+[install_command]
+
+# 3. Configure environment
+cp [env_example] [env_file]
+# Edit [env_file] with your settings
+
+# 4. Setup database (if applicable)
+[db_setup_command]
+
+# 5. Run migrations (if applicable)
+[migration_command]
+
+# 6. Start development server
+[dev_server_command]
+
+# 7. Verify setup
+[health_check_command]
+```
+
+---
+
+## IDE Setup
+
+[CUSTOMIZE: IDE configuration for your stack]
+
+### [IDE Name - e.g., VS Code]
+
+**Extensions/Plugins**:
+- [Extension 1]: [Purpose]
+- [Extension 2]: [Purpose]
+
+**Settings**:
+```json
+{
+  "[language]": {
+    "[setting]": "[value]"
+  }
+}
+```
+
+### [Another IDE - e.g., IntelliJ]
+
+**Plugins**:
+- [Plugin 1]
+- [Plugin 2]
+
+**Configuration**:
+- [Setting 1]: [How to configure]
+- [Setting 2]: [How to configure]
+
+---
+
+## Debugging
+
+[CUSTOMIZE: Debugging setup]
+
+### Enable Debug Logging
+
+```bash
+# Set log level
+[env_var]=debug [dev_server_command]
+
+# Or edit config
+[edit_config_file]
+# Set: [log_level: debug]
+```
+
+### Remote Debugging
+
+```bash
+# Start with debug port
+[debug_server_command]
+
+# Connect IDE debugger to [host]:[port]
+```
+
+### Useful Breakpoints
+
+- `[path/to/file]:[line]` - [What to debug here]
+- `[path/to/file]:[line]` - [What to debug here]
+
+### View Logs
+
+```bash
+# Tail logs
+[log_command]
+
+# Search logs
+[grep_command]
+
+# Find slow requests
+[performance_log_command]
+```
+
+---
+
+## Testing
+
+[CUSTOMIZE: Testing practices]
+
+### Running Tests
+
+```bash
+# All tests
+[test_all_command]
+
+# Specific test
+[test_one_command]
+
+# With coverage
+[test_coverage_command]
+
+# Watch mode
+[test_watch_command]
+```
+
+### Writing Tests
+
+**Test file location**: [where tests go]
+
+**Naming convention**: [test file naming pattern]
+
+**Example test**:
+```[language]
+[test_example_code]
+```
+
+### Test Categories
+
+- **Unit tests**: [location and purpose]
+- **Integration tests**: [location and purpose]
+- **E2E tests**: [location and purpose] (if applicable)
+
+---
+
+## Code Quality
+
+[CUSTOMIZE: Code quality tools]
+
+### Formatting
+
+**Tool**: [formatter name]
+
+**Config**: `[config_file]`
+
+**Commands**:
+```bash
+[format_check]  # Check only
+[format_apply]  # Apply fixes
+```
+
+### Linting
+
+**Tool**: [linter name]
+
+**Config**: `[config_file]`
+
+**Commands**:
+```bash
+[lint]          # Run linter
+[lint_fix]      # Auto-fix (if available)
+```
+
+### Pre-commit Hooks
+
+[If using pre-commit hooks]
+
+**Setup**:
+```bash
+[pre_commit_install]
+```
+
+**Runs**:
+- [Check 1]
+- [Check 2]
+
+---
+
+## Common Tasks
+
+[CUSTOMIZE: Frequent development tasks]
+
+### Change [Port/Configuration]
+
+```bash
+# Environment variable
+[ENV_VAR]=[value] [dev_server_command]
+
+# Or edit [config_file]
+[setting]: [value]
+```
+
+### Add New [Route/Endpoint]
+
+1. [Step 1]
+2. [Step 2]
+3. Write test
+4. Run `[test_command]`
+
+**See**: docs/features/ROUTING.md
+
+### Add New [Database Model/Entity]
+
+1. [Step 1]
+2. [Step 2]
+3. [Migration command if applicable]
+
+**See**: docs/features/DATABASE.md
+
+### Clean Build
+
+```bash
+[clean_command]
+[build_command]
+```
+
+---
+
+## Troubleshooting
+
+[CUSTOMIZE: Common development issues]
+
+### "[Build/Compile Error]"
+
+**Solution**:
+```bash
+[fix_command]
+```
+
+### "[Dependency Issue]"
+
+**Solution**:
+```bash
+[dependency_fix_command]
+```
+
+### "[Port Already in Use]"
+
+**Solution**:
+```bash
+[kill_process_command]
+# Or use different port
+[custom_port_command]
+```
+
+**See**: docs/TROUBLESHOOTING.md for more issues
+
+---
+
+## Performance Profiling
+
+[CUSTOMIZE: Performance analysis]
+
+### Memory Profiling
+
+```bash
+[memory_profiling_command]
+[analyze_command]
+```
+
+### CPU Profiling
+
+```bash
+[cpu_profiling_command]
+[visualize_command]
+```
+
+---
+
+## Template Customization Guide
+
+**To use this template:**
+
+1. Replace all `[placeholders]` with actual commands
+2. Add your team's workflows
+3. Document IDE setup for 1-2 popular IDEs
+4. Fill debugging section with actual debug commands
+5. Customize Definition of Done for 2-3 critical areas
+6. Add 5-10 common development tasks
+7. Delete this customization guide
+
+**Minimum viable dev guide**:
+- Definition of Done checklist
+- Quick Commands section
+- Basic setup instructions
+
+**See `ADAPTATION-GUIDE.md` for help**

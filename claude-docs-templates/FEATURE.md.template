@@ -1,0 +1,338 @@
+# [Feature Name]
+
+**Last updated**: [YYYY-MM-DD] | **Status**: ✅ Complete | ⚠️ Partial | 📋 Planned
+
+## 📋 TL;DR (for Claude Code)
+
+[2-3 sentence summary of what this feature does]
+
+**How to use**: [One sentence on basic usage]
+**Common errors**: [Most common mistake]
+**Test command**: `[command to test this feature]`
+**Key files**: [List 2-3 most critical files]
+
+---
+
+## Key Files
+
+[CUSTOMIZE: List 3-5 critical files with paths and line references]
+
+**Example:**
+- `[path/to/main/file.ext]` - [Description of what's in this file]
+- `[path/to/config.ext:line-range]` - [Critical configuration/implementation]
+- `[path/to/test.ext]` - [Test suite location]
+
+---
+
+## ✅ Pre-flight Checklist
+
+**Before modifying:**
+- [ ] Read `[key_file]` to understand [concept]
+- [ ] Understand: NEVER [anti-pattern]
+- [ ] Understand: ALWAYS [best practice]
+- [ ] Run tests: `[test_command]` (should pass)
+- [ ] [Additional check if needed]
+
+**After modifying:**
+- [ ] [Validation step 1]
+- [ ] [Validation step 2]
+- [ ] Tests pass: `[test_command]`
+- [ ] Manual verification: `[manual_test_command]`
+- [ ] Code formatted: `[format_command]`
+- [ ] [Additional validation if needed]
+
+---
+
+## Overview
+
+[CUSTOMIZE: 2-3 paragraphs explaining the architecture]
+
+**Example structure:**
+
+This feature provides [high-level description]. It uses [pattern/technology] to achieve [goal].
+
+**Architecture**:
+- [Component 1]: [Responsibility]
+- [Component 2]: [Responsibility]
+- [Component 3]: [Responsibility]
+
+**Key design decisions**:
+- [Decision 1]: [Rationale]
+- [Decision 2]: [Rationale]
+
+---
+
+## How It Works
+
+[CUSTOMIZE: Step-by-step explanation with code examples]
+
+### [Sub-feature 1]
+
+[Description]
+
+**Example:**
+```[language]
+[Code example showing usage]
+```
+
+**Flow:**
+```
+[Step 1]
+    ↓
+[Step 2]
+    ↓
+[Step 3]
+```
+
+### [Sub-feature 2]
+
+[Description and example]
+
+---
+
+## Configuration
+
+[CUSTOMIZE: Configuration options for this feature]
+
+**File**: `[path/to/config]`
+
+```[config_format]
+[feature_name]:
+  [option1]: [default_value]  # [Description]
+  [option2]: [default_value]  # [Description]
+```
+
+**Environment overrides**:
+- `[ENV_VAR_1]=[value]` - [What it does]
+- `[ENV_VAR_2]=[value]` - [What it does]
+
+---
+
+## API / Usage Examples
+
+[CUSTOMIZE: Show how to use this feature]
+
+### Basic Usage
+
+**[Language] example:**
+```[language]
+[Basic code example]
+```
+
+### Advanced Usage
+
+**[Scenario] example:**
+```[language]
+[Advanced code example]
+```
+
+---
+
+## 🧪 Validation Commands
+
+[CUSTOMIZE: Concrete commands to verify this feature works]
+
+**After making changes:**
+
+```bash
+# 1. Unit tests
+[test_command for this feature]
+
+# 2. Integration test
+[integration_test_command]
+
+# 3. Manual verification
+[start_server_command]
+[test_request_command]
+
+# 4. Expected result
+[what you should see]
+
+# 5. Check logs (if applicable)
+[log_command]
+```
+
+**Example verification flow:**
+```bash
+# For a routing feature:
+cargo test routes::            # Run route tests
+cargo run                      # Start server
+curl localhost:3000/api/test   # Test endpoint
+# Expected: HTTP 200 with JSON response
+```
+
+---
+
+## Common Mistakes
+
+[CUSTOMIZE: Top 3-5 errors developers make with this feature]
+
+### 1. [Mistake Name]
+
+**Symptom**: [What error you see]
+
+**Cause**: [Why it happens]
+
+**Fix**:
+```[language]
+// ❌ WRONG
+[wrong_code]
+
+// ✅ CORRECT
+[correct_code]
+```
+
+**Why**: [Explanation]
+
+---
+
+### 2. [Another Mistake]
+
+**Symptom**: [Error description]
+
+**Cause**: [Root cause]
+
+**Fix**: [Solution steps]
+
+---
+
+## Performance Considerations
+
+[CUSTOMIZE: Performance tips for this feature]
+
+**Benchmarks** (if applicable):
+- [Operation]: [Time/throughput]
+- [Operation]: [Time/throughput]
+
+**Optimization tips**:
+- [Tip 1]: [Description and impact]
+- [Tip 2]: [Description and impact]
+
+**Memory usage**:
+- [Pattern]: [Memory characteristics]
+
+---
+
+## Testing
+
+[CUSTOMIZE: How to test this feature]
+
+### Unit Tests
+
+**Location**: `[path/to/tests]`
+
+**Run tests**:
+```bash
+[test_command]
+```
+
+**Key test cases**:
+- [Test 1]: [What it validates]
+- [Test 2]: [What it validates]
+
+### Integration Tests
+
+**Location**: `[path/to/integration/tests]`
+
+**Run tests**:
+```bash
+[integration_test_command]
+```
+
+---
+
+## Troubleshooting
+
+[CUSTOMIZE: Feature-specific troubleshooting]
+
+### [Issue 1]
+
+**Problem**: [Description]
+
+**Diagnosis**:
+```bash
+[diagnostic_command]
+```
+
+**Solution**: [Fix steps]
+
+---
+
+### [Issue 2]
+
+**Problem**: [Description]
+
+**Solution**: [Fix steps]
+
+**See also**: docs/TROUBLESHOOTING.md section [X]
+
+---
+
+## Security Considerations
+
+[CUSTOMIZE: Security aspects of this feature, if applicable]
+
+**Threats**:
+- [Threat 1]: [Description and mitigation]
+- [Threat 2]: [Description and mitigation]
+
+**Best practices**:
+- [Practice 1]
+- [Practice 2]
+
+---
+
+## Migration Guide
+
+[CUSTOMIZE: If this replaces an old implementation]
+
+**From [old approach] to [new approach]:**
+
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Breaking changes**:
+- [Change 1]: [Impact and how to update]
+- [Change 2]: [Impact and how to update]
+
+---
+
+## See Also
+
+[CUSTOMIZE: Related documentation]
+
+- **Related features**: docs/features/[OTHER_FEATURE].md
+- **Architecture**: docs/ARCHITECTURE.md
+- **Troubleshooting**: docs/TROUBLESHOOTING.md
+- **API reference**: [URL if applicable]
+
+---
+
+## Template Customization Guide
+
+**To use this template:**
+
+1. Replace `[Feature Name]` in title
+2. Update status badge (✅ Complete, ⚠️ Partial, 📋 Planned)
+3. Fill in TL;DR with 2-3 sentences
+4. List 3-5 key files with actual paths
+5. Customize pre-flight checklist (4-6 items each)
+6. Write overview (2-3 paragraphs)
+7. Add How It Works with code examples
+8. Add validation commands (3-5 concrete tests)
+9. Document 3-5 common mistakes
+10. Delete this customization guide section
+
+**Minimum viable feature doc**:
+- Title + Status
+- TL;DR
+- Key Files (3 files minimum)
+- Pre-flight Checklist
+
+**Can expand later**:
+- Performance section
+- Migration guide
+- Advanced examples
+
+**See `ADAPTATION-GUIDE.md` for detailed instructions**

@@ -1,0 +1,207 @@
+# Tech Stack Configuration
+# Optional: Use this file to centralize command mappings
+# Place in: .claude/tech-stack.yml
+
+---
+
+# Stack identification
+stack:
+  language: [CUSTOMIZE: java, rust, javascript, go, python, cpp]
+  framework: [CUSTOMIZE: spring-boot, axum, express, chi, fastapi]
+  version: [CUSTOMIZE: language/framework version]
+
+---
+
+# Development commands
+commands:
+  # Server
+  dev_server: "[CUSTOMIZE: mvn -PappRun, cargo run, npm run dev]"
+  dev_server_debug: "[CUSTOMIZE: with debug flags]"
+  dev_server_custom_port: "[ENV_VAR]={port} [dev_server_command]"
+
+  # Build
+  build: "[CUSTOMIZE: mvn package, cargo build --release, npm run build]"
+  build_dev: "[CUSTOMIZE: mvn compile, cargo build, npm run build:dev]"
+  clean: "[CUSTOMIZE: mvn clean, cargo clean, rm -rf dist]"
+
+  # Testing
+  test_all: "[CUSTOMIZE: mvn test, cargo test, npm test]"
+  test_one: "[CUSTOMIZE: test single file/function command]"
+  test_pattern: "[CUSTOMIZE: test by pattern]"
+  test_watch: "[CUSTOMIZE: watch mode if available]"
+  test_coverage: "[CUSTOMIZE: coverage command]"
+
+  # Code Quality
+  format_check: "[CUSTOMIZE: mvn spotless:check, cargo fmt --check, npm run format:check]"
+  format_apply: "[CUSTOMIZE: mvn spotless:apply, cargo fmt, npm run format]"
+  lint: "[CUSTOMIZE: checkstyle, clippy, eslint command]"
+  lint_fix: "[CUSTOMIZE: auto-fix command if available]"
+  typecheck: "[CUSTOMIZE: compile, cargo check, tsc --noEmit]"
+
+  # Dependencies
+  install_deps: "[CUSTOMIZE: mvn install, cargo build, npm install]"
+  add_dep: "[CUSTOMIZE: how to add dependency]"
+  update_deps: "[CUSTOMIZE: update command]"
+  list_deps: "[CUSTOMIZE: list dependencies]"
+  audit_security: "[CUSTOMIZE: security audit command]"
+
+  # Health & Monitoring
+  health_check: "[CUSTOMIZE: curl localhost:PORT/health]"
+  metrics: "[CUSTOMIZE: curl localhost:PORT/metrics]"
+  logs: "[CUSTOMIZE: tail -f logs/app.log or equivalent]"
+
+---
+
+# File paths
+paths:
+  # Source code
+  source: "[CUSTOMIZE: src/main/java, src, src/]"
+  source_main: "[CUSTOMIZE: Main.java, main.rs, index.ts]"
+
+  # Tests
+  tests: "[CUSTOMIZE: src/test/java, tests/, __tests__/]"
+  test_pattern: "[CUSTOMIZE: *Test.java, *_test.rs, *.test.ts]"
+
+  # Configuration
+  config: "[CUSTOMIZE: src/main/resources, config/, .]"
+  main_config: "[CUSTOMIZE: application.yml, Cargo.toml, package.json]"
+  env_file: "[CUSTOMIZE: .env, config/.env]"
+
+  # Build artifacts
+  build_output: "[CUSTOMIZE: target/, dist/, build/]"
+  artifact_pattern: "[CUSTOMIZE: *.jar, binary name, *.js]"
+
+---
+
+# File patterns (for glob searches)
+patterns:
+  source_files: "[CUSTOMIZE: **/*.java, **/*.rs, **/*.ts]"
+  test_files: "[CUSTOMIZE: **/*Test.java, **/*_test.rs, **/*.test.ts]"
+  config_files: "[CUSTOMIZE: **/*.yml, **/*.toml, **/*.json]"
+
+  # Specific patterns
+  handlers: "[CUSTOMIZE: **/handler/*.java, src/handlers/**/*.rs]"
+  models: "[CUSTOMIZE: **/model/*.java, src/models/**/*.rs]"
+  services: "[CUSTOMIZE: **/service/*.java, src/services/**/*.rs]"
+
+---
+
+# Tech-specific settings
+settings:
+  # Port configuration
+  default_port: [CUSTOMIZE: 8080, 3000, 8000]
+  port_env_var: "[CUSTOMIZE: SERVER_PORT, PORT]"
+
+  # Memory settings (if applicable)
+  default_heap: "[CUSTOMIZE: -Xmx1024m or equivalent]"
+
+  # Logging
+  log_level_env_var: "[CUSTOMIZE: LOG_LEVEL, RUST_LOG]"
+  log_file: "[CUSTOMIZE: logs/application.log, logs/app.log]"
+
+---
+
+# Build/Package manager details
+package_manager:
+  name: "[CUSTOMIZE: maven, cargo, npm, go-modules, pip]"
+  version_file: "[CUSTOMIZE: pom.xml, Cargo.toml, package.json, go.mod]"
+  lock_file: "[CUSTOMIZE: pom.xml, Cargo.lock, package-lock.json, go.sum]"
+
+  # Cache locations
+  cache_dir: "[CUSTOMIZE: ~/.m2, ~/.cargo, node_modules, vendor]"
+  clean_cache: "[CUSTOMIZE: command to clear cache]"
+
+---
+
+# Testing framework
+testing:
+  framework: "[CUSTOMIZE: junit5, cargo-test, jest, go-test, pytest]"
+  runner: "[CUSTOMIZE: maven-surefire, built-in, jest, go-test, pytest]"
+  coverage_tool: "[CUSTOMIZE: jacoco, tarpaulin, istanbul, go-cover, coverage]"
+
+  # Test organization
+  unit_test_location: "[CUSTOMIZE: path]"
+  integration_test_location: "[CUSTOMIZE: path]"
+  e2e_test_location: "[CUSTOMIZE: path if applicable]"
+
+---
+
+# IDE/Editor configurations
+ide:
+  recommended:
+    - name: "[CUSTOMIZE: IntelliJ IDEA, VS Code, etc.]"
+      extensions: "[CUSTOMIZE: list extensions]"
+    - name: "[CUSTOMIZE: Another IDE]"
+      plugins: "[CUSTOMIZE: list plugins]"
+
+  # Formatting
+  formatter: "[CUSTOMIZE: google-java-format, rustfmt, prettier]"
+  formatter_config: "[CUSTOMIZE: config file if applicable]"
+
+---
+
+# Deployment
+deployment:
+  artifact_type: "[CUSTOMIZE: jar, binary, docker-image]"
+  dockerfile: "[CUSTOMIZE: Dockerfile location if applicable]"
+
+  # Production build
+  prod_build: "[CUSTOMIZE: mvn package, cargo build --release, npm run build]"
+  prod_env: "[CUSTOMIZE: how to set production env]"
+
+---
+
+# Usage Examples
+
+# Example 1: Java/Maven Project
+# stack:
+#   language: java
+#   framework: spring-boot
+#   version: "17"
+#
+# commands:
+#   dev_server: "mvn -PappRun"
+#   build: "mvn clean package"
+#   test_all: "mvn test"
+#   format_apply: "mvn spotless:apply"
+
+# Example 2: Rust/Axum Project
+# stack:
+#   language: rust
+#   framework: axum
+#   version: "1.75"
+#
+# commands:
+#   dev_server: "cargo run"
+#   build: "cargo build --release"
+#   test_all: "cargo test"
+#   format_apply: "cargo fmt"
+
+# Example 3: TypeScript/Express Project
+# stack:
+#   language: typescript
+#   framework: express
+#   version: "5.0"
+#
+# commands:
+#   dev_server: "npm run dev"
+#   build: "npm run build"
+#   test_all: "npm test"
+#   format_apply: "npm run format"
+
+---
+
+# Template Customization Guide
+#
+# To use this template:
+# 1. Copy to .claude/tech-stack.yml in your project
+# 2. Replace all [CUSTOMIZE: ...] markers
+# 3. Fill in your actual commands
+# 4. Update paths for your project structure
+# 5. Remove these comments
+#
+# This file helps Claude Code understand your project
+# without hard-coding tech-specific commands in docs.
+#
+# Optional: You can skip this file and just customize
+# CLAUDE.md directly with your commands.

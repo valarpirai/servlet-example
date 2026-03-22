@@ -1,0 +1,375 @@
+# Codebase Navigation Map
+
+**Last updated**: [YYYY-MM-DD]
+
+Quick reference for navigating the codebase and understanding component relationships.
+
+## 📋 TL;DR (for Claude Code)
+
+**Total tests**: [NUMBER] tests ([all passing | X failing])
+**Main [packages/modules/directories]**: [CUSTOMIZE: route/, services/, models/]
+**Entry point**: [CUSTOMIZE: src/main.java, main.rs, index.ts]
+**Config files**: [CUSTOMIZE: application.yml, Cargo.toml, package.json]
+
+**Quick navigation**:
+- Routing? → [CUSTOMIZE: routes/, src/routes/]
+- Business logic? → [CUSTOMIZE: services/, handlers/]
+- Database? → [CUSTOMIZE: repositories/, db/]
+- Models/Types? → [CUSTOMIZE: models/, types/]
+
+**Before modifying**:
+- Read "When Working On..." section for your area
+- Check Component Dependencies to find related files
+- Run relevant tests from Test Structure section
+
+---
+
+## [Package/Module] Structure
+
+[CUSTOMIZE: Replace with your project's structure]
+
+**For Java projects:**
+```
+src/main/java/com/example/[project]/
+├── Main.java                           # Application entry point (XX lines)
+├── [MainServlet/Controller].java       # HTTP request router
+│
+├── route/                              # Declarative routing system
+│   ├── RouteRegistry.java              # YAML loader & pattern matcher
+│   ├── Route.java                      # Route model
+│   └── RouteDispatcher.java            # Handler dispatch
+│
+├── [processor or handlers]/            # Request processors
+│   ├── [Interface].java                # Processor interface
+│   ├── [Implementation1].java          # Specific handler
+│   └── [Implementation2].java          # Another handler
+│
+├── storage/                            # File storage
+│   ├── [Interface].java                # Storage strategy interface
+│   ├── [Implementation].java           # Specific implementation
+│   └── [Helper].java                   # Utilities
+│
+├── [datasource or db]/                 # Database layer
+│   ├── [Strategy].java                 # Strategy pattern
+│   └── [Implementation].java           # DB-specific code
+│
+├── model/                              # Domain models
+│   ├── [Model1].java
+│   └── [Model2].java
+│
+└── util/                               # Shared utilities
+    ├── [Config].java                   # Configuration loader
+    ├── [Json].java                     # JSON utilities
+    └── [Logger].java                   # Logging wrapper
+```
+
+**For Rust projects:**
+```
+src/
+├── main.rs                             # Application entry point
+├── lib.rs                              # Library root (for tests)
+│
+├── routes/                             # HTTP handlers
+│   ├── mod.rs                          # Router configuration
+│   ├── [feature1].rs                   # Feature handlers
+│   └── [feature2].rs                   # More handlers
+│
+├── services/                           # Business logic layer
+│   ├── mod.rs
+│   └── [feature]_service.rs            # Feature service
+│
+├── repositories/                       # Data access layer
+│   ├── mod.rs
+│   └── [feature]_repo.rs               # Data repository
+│
+├── models/                             # Domain models
+│   ├── mod.rs
+│   └── [model].rs                      # Serde models
+│
+├── middleware/                         # HTTP middleware
+│   ├── mod.rs
+│   ├── auth.rs                         # Authentication
+│   └── logging.rs                      # Request logging
+│
+└── [utils or common]/                  # Shared utilities
+    ├── mod.rs
+    ├── config.rs                       # Config loader
+    └── errors.rs                       # Error types
+```
+
+**For JavaScript/TypeScript projects:**
+```
+src/
+├── index.[js|ts]                       # Application entry point
+├── app.[js|ts]                         # Express/Fastify app setup
+│
+├── routes/                             # Route definitions
+│   ├── index.[js|ts]                   # Router setup
+│   └── [feature].routes.[js|ts]        # Feature routes
+│
+├── controllers/                        # Request handlers
+│   └── [feature].controller.[js|ts]   # Feature controller
+│
+├── services/                           # Business logic
+│   └── [feature].service.[js|ts]      # Feature service
+│
+├── models/                             # Data models
+│   └── [model].[js|ts]                # Model definition
+│
+├── middleware/                         # Express middleware
+│   ├── auth.[js|ts]                   # Authentication
+│   └── errorHandler.[js|ts]           # Error handling
+│
+└── utils/                              # Utilities
+    ├── config.[js|ts]                 # Configuration
+    └── logger.[js|ts]                 # Logging
+```
+
+---
+
+## Configuration Files
+
+[CUSTOMIZE: List all configuration files]
+
+**Example:**
+```
+[config_directory]/
+├── [main_config].[yml|toml|json]      # Main configuration
+├── [dev_config].[ext]                  # Development overrides
+└── [prod_config].[ext]                 # Production settings
+
+[build_file]                            # Dependency management (pom.xml, Cargo.toml, package.json)
+```
+
+**Key settings**:
+- **Server port**: [Where configured]
+- **Database**: [Where configured]
+- **Logging**: [Where configured]
+- **Environment overrides**: [How to override]
+
+---
+
+## Test Structure
+
+[CUSTOMIZE: Replace with your project's test organization]
+
+**For Java projects:**
+```
+src/test/java/com/example/[project]/
+├── [package1]/
+│   ├── [Class1]Test.java              # XX tests: [description]
+│   └── [Class2]Test.java              # XX tests: [description]
+│
+└── [package2]/
+    └── [Class3]Test.java              # XX tests: [description]
+```
+
+**For Rust projects:**
+```
+tests/
+├── integration/
+│   ├── [feature1]_test.rs             # Integration tests
+│   └── [feature2]_test.rs             # More integration tests
+
+Unit tests in src/**/*.rs using #[cfg(test)] modules
+```
+
+**For JavaScript projects:**
+```
+__tests__/ or tests/ or spec/
+├── unit/
+│   └── [feature].test.[js|ts]         # Unit tests
+│
+└── integration/
+    └── [feature].integration.test.[js|ts] # Integration tests
+```
+
+**Total**: [NUMBER] tests ([breakdown by type])
+
+---
+
+## When Working On...
+
+[CUSTOMIZE: Add sections for each major area]
+
+### [Feature 1] Changes
+**Files to check**:
+- `[path/to/main/file]` - [Description]
+- `[path/to/related/file]` - [Description]
+
+**Tests to run**:
+```bash
+[test_command_for_this_area]
+```
+
+**Reference**: docs/features/[FEATURE].md
+
+---
+
+### [Feature 2] Changes
+**Files to check**:
+- `[path/to/file]` - [Description]
+
+**Critical**:
+- ⚠️ [Important constraint]
+- ⚠️ [Important pattern to follow]
+
+**Tests to run**:
+```bash
+[test_command]
+```
+
+**Reference**: docs/features/[FEATURE].md
+
+---
+
+## Component Dependencies
+
+### Request Flow
+```
+[Diagram or description of how requests flow through the system]
+
+Example:
+HTTP Request
+    ↓
+[Entry Point - Servlet/Router/App]
+    ↓
+[Middleware/Filters]
+    ↓
+[Route Matching]
+    ↓
+[Handler/Controller]
+    ↓
+[Service Layer]
+    ↓
+[Repository/Data Access]
+    ↓
+[Response]
+```
+
+### [Feature] Flow (e.g., File Upload)
+```
+[Specific feature flow diagram]
+
+Example:
+POST /api/upload
+    ↓
+[Handler].handleUpload()
+    ↓
+[Service].store(file)
+    ↓
+[Storage].write(chunks)
+    ↓
+Disk: [path/to/storage]
+    ↓
+[Cache].put(id, metadata)
+```
+
+---
+
+## 📦 Import/Dependency Graph
+
+**If you modify these files, also check their dependents:**
+
+### Core Utilities (High Impact)
+**`[path/to/core/util]`** → Check:
+- ✅ `[dependent1]` (uses [function])
+- ✅ `[dependent2]` (uses [function])
+- ✅ Any code handling [specific types]
+
+**`[path/to/another/core/file]`** → Check:
+- ✅ `[dependent1]` ([usage description])
+- ✅ `[dependent2]` ([usage description])
+
+### [System 1] (Medium Impact)
+**`[path/to/file]`** → Check:
+- ✅ `[dependent]` (calls [method])
+- ✅ `[config/file]` (data source)
+
+### [System 2] (Low Impact - Isolated)
+**`[path/to/isolated/file]`** → Check:
+- ✅ `[registration_file]` (registration)
+- ✅ Tests: `[test_pattern]`
+
+---
+
+## 🔗 Dependency Quick Reference
+
+| When modifying... | Impact | Must verify |
+|-------------------|--------|-------------|
+| `[core_file]` | 🔥 High | [What to check] |
+| `[important_file]` | 🟨 Medium | [What to check] |
+| `[isolated_file]` | 🟩 Low | [What to check] |
+
+---
+
+## Critical Code Locations
+
+[CUSTOMIZE: Add file:line references for critical code]
+
+### [Feature 1]
+- `[path/to/file]:[line-range]` - [Description of what's here]
+- `[path/to/method]` - [Method description]
+
+### [Feature 2]
+- `[path/to/file]:[line-range]` - [Critical implementation]
+- `[path/to/config]` - [Configuration location]
+
+---
+
+## Quick Commands
+
+[CUSTOMIZE: Add project-specific commands]
+
+```bash
+# Build & Run
+[build_command]                        # Production build
+[dev_command]                          # Development run
+[run_built_artifact]                   # Run built artifact
+
+# Testing
+[test_all]                             # All tests
+[test_one]                             # Specific test
+[test_with_coverage]                   # Coverage report
+
+# Monitoring
+[health_check]                         # Health check
+[metrics]                              # Metrics endpoint
+[logs]                                 # View logs
+
+# Tools
+[format]                               # Format code
+[lint]                                 # Lint code
+[typecheck]                            # Type checking (if applicable)
+```
+
+---
+
+## Documentation Index
+
+| Topic | Document | Key Files |
+|-------|----------|-----------|
+| Overview | CLAUDE.md | All [packages/modules] |
+| Navigation | docs/CODEBASE-MAP.md | This file |
+| Architecture | docs/ARCHITECTURE.md | System design |
+| [Feature 1] | docs/features/[FEATURE].md | [paths] |
+| [Feature 2] | docs/features/[FEATURE].md | [paths] |
+| Development | docs/DEVELOPMENT.md | [build file] |
+| Troubleshooting | docs/TROUBLESHOOTING.md | - |
+
+---
+
+## Template Customization Guide
+
+**To use this template:**
+
+1. Replace all `[CUSTOMIZE: ...]` and `[placeholders]` with your project specifics
+2. Update [Package/Module] Structure for your language
+3. Document your test organization
+4. Map component dependencies
+5. Add "When Working On..." sections for 3-5 major areas
+6. Create dependency graph for critical files
+7. List critical code locations with file:line references
+8. Delete this customization guide section
+
+**See `ADAPTATION-GUIDE.md` for detailed instructions**

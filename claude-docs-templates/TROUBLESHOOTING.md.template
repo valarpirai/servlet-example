@@ -1,0 +1,425 @@
+# Troubleshooting Guide
+
+**Last updated**: [YYYY-MM-DD]
+
+Quick solutions to common issues. **Search by symptom, not cause**.
+
+---
+
+## Quick Index
+
+[CUSTOMIZE: Add links to your most common issues]
+
+- [Build/Compile Errors](#buildcompile-errors)
+- [Test Failures](#test-failures)
+- [Runtime Errors](#runtime-errors)
+- [Performance Issues](#performance-issues)
+- [Database Issues](#database-issues)
+- [Configuration Issues](#configuration-issues)
+
+---
+
+## Build/Compile Errors
+
+[CUSTOMIZE: Add stack-specific build issues]
+
+### "[Dependency Not Found Error]"
+
+**Symptoms**: [Error message pattern]
+
+**Cause**: [Why it happens]
+
+**Fix**:
+```bash
+[fix_command_1]
+[fix_command_2]
+```
+
+**Why**: [Explanation]
+
+---
+
+### "[Compilation Failed]"
+
+**Symptoms**: [Error pattern]
+
+**Cause**: [Root cause]
+
+**Fix**:
+```bash
+# 1. Clean build
+[clean_command]
+
+# 2. Rebuild
+[build_command]
+
+# 3. If still fails, check [X]
+[diagnostic_command]
+```
+
+---
+
+## Test Failures
+
+[CUSTOMIZE: Common test issues]
+
+### "All Tests Fail with [Error]"
+
+**Symptoms**: [What you see]
+
+**Diagnosis**:
+```bash
+[diagnostic_command]
+```
+
+**Common causes**:
+1. [Cause 1]: [How to check]
+2. [Cause 2]: [How to check]
+
+**Fix**: [Solution steps]
+
+---
+
+### "[Specific Test] Fails"
+
+**Symptoms**: [Error message]
+
+**Cause**: [Why]
+
+**Fix**:
+```bash
+[fix_steps]
+```
+
+**Reference**: [file:line or docs link]
+
+---
+
+## Runtime Errors
+
+[CUSTOMIZE: Runtime issues specific to your stack]
+
+### "[Common Runtime Error]"
+
+**Symptoms**: [Error message or behavior]
+
+**Diagnosis**:
+```bash
+# Check logs
+[log_command]
+
+# Look for
+[grep_pattern]
+```
+
+**Cause**: [Why it happens]
+
+**Fix**:
+```[language]
+// ❌ WRONG
+[wrong_code]
+
+// ✅ CORRECT
+[correct_code]
+```
+
+**Affected files**: `[path/to/file.ext]`
+
+**Reference**: [doc reference]
+
+---
+
+### "[Port Already in Use]"
+
+**Symptoms**: `[error_message]`
+
+**Fix**:
+```bash
+# Find process using port
+[find_process_command]
+
+# Kill process
+[kill_command]
+
+# Or use different port
+[custom_port_command]
+```
+
+---
+
+### "[Configuration Not Found]"
+
+**Symptoms**: [Error message]
+
+**Cause**: [Missing config file or env var]
+
+**Fix**:
+```bash
+# 1. Check if config exists
+[check_config_command]
+
+# 2. Create if missing
+[create_config_command]
+
+# 3. Verify format
+[validate_config_command]
+```
+
+---
+
+## Performance Issues
+
+[CUSTOMIZE: Performance problems]
+
+### "[Slow Response Times]"
+
+**Symptoms**: [How to detect]
+
+**Check metrics**:
+```bash
+[metrics_command]
+```
+
+**Look for**:
+- [Metric 1]: [What value indicates problem]
+- [Metric 2]: [What value indicates problem]
+
+**Common causes**:
+1. [Cause 1]: [How to fix]
+2. [Cause 2]: [How to fix]
+
+---
+
+### "[Memory Issue]"
+
+**Symptoms**: [Error or behavior]
+
+**Diagnosis**:
+```bash
+[memory_check_command]
+```
+
+**Solutions**:
+- **If [condition]**: [Fix]
+- **If [condition]**: [Fix]
+
+**Reference**: docs/features/[FEATURE].md
+
+---
+
+## Database Issues
+
+[CUSTOMIZE: Database-specific problems]
+
+### "[Connection Failed]"
+
+**Symptoms**: [Error message]
+
+**Checklist**:
+- [ ] Database server running?
+- [ ] Connection string correct?
+- [ ] Credentials valid?
+- [ ] Network accessible?
+
+**Test connection**:
+```bash
+[db_connection_test_command]
+```
+
+**Fix**: [Steps]
+
+---
+
+### "[Migration Failed]"
+
+**Symptoms**: [Error]
+
+**Cause**: [Why]
+
+**Fix**:
+```bash
+# 1. Rollback
+[rollback_command]
+
+# 2. Check migration file
+[check_migration]
+
+# 3. Retry
+[migration_command]
+```
+
+---
+
+## Configuration Issues
+
+[CUSTOMIZE: Config problems]
+
+### "[Environment Variable Not Loaded]"
+
+**Symptoms**: [What happens]
+
+**Check**:
+```bash
+# Verify env var is set
+[check_env_command]
+
+# Check loading mechanism
+[verify_loading]
+```
+
+**Fix**: [Solution]
+
+---
+
+### "[Config File Invalid]"
+
+**Symptoms**: [Error message]
+
+**Validate**:
+```bash
+[validation_command]
+```
+
+**Common mistakes**:
+- [Mistake 1]: [How to fix]
+- [Mistake 2]: [How to fix]
+
+---
+
+## Development Environment
+
+[CUSTOMIZE: Dev environment issues]
+
+### "[IDE Not Recognizing Code]"
+
+**Symptoms**: [What IDE shows]
+
+**Fix for [IDE 1]**:
+```bash
+[fix_commands]
+```
+
+**Fix for [IDE 2]**:
+```bash
+[fix_commands]
+```
+
+---
+
+### "[Format Check Fails on Commit]"
+
+**Symptoms**: Pre-commit hook rejects commit
+
+**Fix**:
+```bash
+[format_command]
+git add .
+git commit -m "your message"
+```
+
+---
+
+## [Framework-Specific Section]
+
+[CUSTOMIZE: Add framework-specific issues]
+
+### "[Framework Error 1]"
+
+**Symptoms**: [Description]
+
+**Cause**: [Why]
+
+**Fix**: [Solution]
+
+---
+
+### "[Framework Error 2]"
+
+**Symptoms**: [Description]
+
+**Fix**: [Solution]
+
+---
+
+## Getting More Help
+
+### Check Logs
+
+**Default location**: `[log_path]`
+
+**View logs**:
+```bash
+[view_logs_command]
+```
+
+**Search logs**:
+```bash
+[search_logs_command]
+```
+
+### Enable Debug Logging
+
+```bash
+# Set debug level
+[enable_debug_command]
+
+# Or edit config
+[config_file_path]
+[log_level_setting]: debug
+```
+
+### Run Diagnostics
+
+```bash
+# Check system status
+[health_check_command]
+
+# Check configuration
+[config_check_command]
+
+# Check dependencies
+[dependency_check_command]
+```
+
+### Still Stuck?
+
+1. **Search issues**: [issue_tracker_url]
+2. **Check docs**: Review relevant doc in docs/features/
+3. **Ask team**: [team_chat_or_forum]
+4. **Create issue**: [how_to_create_issue]
+
+---
+
+## Quick Reference
+
+[CUSTOMIZE: Most common fixes]
+
+| Issue | Quick Fix Command |
+|-------|------------------|
+| Build fails | `[clean && build]` |
+| Tests fail | `[clean && test]` |
+| Port in use | `[kill_process]` |
+| Format wrong | `[format_apply]` |
+| Deps outdated | `[update_deps]` |
+
+---
+
+## Template Customization Guide
+
+**To use this template:**
+
+1. Add 10-15 common issues for your stack
+2. Use "Symptoms → Diagnosis → Fix" format
+3. Include actual error messages
+4. Provide exact commands (copy-paste ready)
+5. Add framework-specific section
+6. Link to relevant feature docs
+7. Delete this customization guide
+
+**Structure each issue**:
+- **Symptoms**: What the user sees
+- **Cause**: Why it happens (optional)
+- **Fix**: Exact steps to resolve
+- **Reference**: Link to relevant docs
+
+**See `ADAPTATION-GUIDE.md` for help**

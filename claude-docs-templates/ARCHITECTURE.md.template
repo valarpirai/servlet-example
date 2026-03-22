@@ -1,0 +1,331 @@
+# Architecture Overview
+
+**Last updated**: [YYYY-MM-DD]
+**Tech stack**: [Language] | **Framework**: [Framework Name]
+
+High-level architecture and design decisions for this project.
+
+---
+
+## System Overview
+
+[CUSTOMIZE: 2-3 paragraphs describing the system]
+
+**Purpose**: [What does this system do?]
+
+**Architecture style**: [e.g., Layered, Hexagonal, Microservices, Monolith]
+
+**Key components**:
+- [Component 1]: [Responsibility]
+- [Component 2]: [Responsibility]
+- [Component 3]: [Responsibility]
+
+---
+
+## Architecture Diagram
+
+[CUSTOMIZE: ASCII or reference to diagram]
+
+```
+[Client/Browser]
+        ↓
+   [Load Balancer] (optional)
+        ↓
+   [Web Server / Entry Point]
+        ↓
+   [Routing Layer]
+        ↓
+   [Middleware / Filters]
+        ↓
+   [Handlers / Controllers]
+        ↓
+   [Service Layer]
+        ↓
+   [Repository / Data Access]
+        ↓
+   [Database / Storage]
+```
+
+---
+
+## Layers
+
+[CUSTOMIZE: Describe each architectural layer]
+
+### Presentation Layer
+**Location**: `[path/to/presentation]`
+**Responsibility**: [What it does]
+**Technologies**: [List frameworks/libraries]
+
+### Business Logic Layer
+**Location**: `[path/to/business]`
+**Responsibility**: [What it does]
+**Patterns**: [Design patterns used]
+
+### Data Access Layer
+**Location**: `[path/to/data]`
+**Responsibility**: [What it does]
+**Technologies**: [ORM, query builders, etc.]
+
+---
+
+## Core Patterns
+
+[CUSTOMIZE: List 3-5 key design patterns]
+
+### [Pattern 1 - e.g., Strategy Pattern]
+**Used in**: [Where it's used]
+**Purpose**: [Why we use it]
+**Example**: `[path/to/file.ext]`
+
+### [Pattern 2 - e.g., Singleton Pattern]
+**Used in**: [Where it's used]
+**Purpose**: [Why we use it]
+**Caution**: [When not to use]
+
+---
+
+## Data Flow
+
+[CUSTOMIZE: Show how data flows through the system]
+
+### Request Flow
+```
+HTTP Request
+    ↓
+[Entry point]
+    ↓
+[Authentication/Authorization]
+    ↓
+[Validation]
+    ↓
+[Business Logic]
+    ↓
+[Data Access]
+    ↓
+HTTP Response
+```
+
+### [Specific Feature] Flow
+[Detailed flow for important features]
+
+---
+
+## Technology Stack
+
+[CUSTOMIZE: List all major technologies]
+
+| Category | Technology | Version | Purpose |
+|----------|-----------|---------|---------|
+| Language | [e.g., Rust] | [1.75+] | [Core language] |
+| Framework | [e.g., Axum] | [0.7+] | [Web framework] |
+| Database | [e.g., PostgreSQL] | [15+] | [Data storage] |
+| ORM/Query | [e.g., SQLx] | [0.7+] | [Database access] |
+| Testing | [e.g., Cargo test] | [Built-in] | [Test framework] |
+| Logging | [e.g., tracing] | [0.1+] | [Observability] |
+
+---
+
+## Key Design Decisions
+
+[CUSTOMIZE: Document major architectural decisions]
+
+### Why [Technology/Pattern Choice]?
+
+**Options considered**:
+1. [Option 1]: [Pros/Cons]
+2. [Option 2]: [Pros/Cons]
+3. **[Chosen option]**: [Why chosen]
+
+**Decision**: [Final choice]
+
+**Rationale**: [Detailed reasoning]
+
+**Trade-offs**: [What we gave up]
+
+**Date**: [When decided]
+
+---
+
+## Scalability
+
+[CUSTOMIZE: How the system scales]
+
+**Current capacity**:
+- [Metric 1]: [Current limit]
+- [Metric 2]: [Current limit]
+
+**Scaling strategy**:
+- **Horizontal**: [How to scale out]
+- **Vertical**: [How to scale up]
+
+**Bottlenecks**:
+- [Bottleneck 1]: [Description and mitigation]
+- [Bottleneck 2]: [Description and mitigation]
+
+---
+
+## Security Architecture
+
+[CUSTOMIZE: Security design]
+
+**Authentication**: [How users authenticate]
+
+**Authorization**: [How permissions work]
+
+**Data protection**:
+- At rest: [Encryption method]
+- In transit: [TLS/HTTPS]
+
+**Security layers**:
+1. [Layer 1]: [What it protects]
+2. [Layer 2]: [What it protects]
+
+**See**: docs/features/SECURITY.md for details
+
+---
+
+## Error Handling
+
+[CUSTOMIZE: How errors are handled]
+
+**Strategy**: [e.g., Result types, Exceptions, Error codes]
+
+**Error flow**:
+```
+Error occurs
+    ↓
+[Catch at boundary]
+    ↓
+[Log with context]
+    ↓
+[Map to user-friendly message]
+    ↓
+[Return HTTP error response]
+```
+
+**Error types**:
+- [ValidationError]: [When used]
+- [DatabaseError]: [When used]
+- [AuthError]: [When used]
+
+---
+
+## Observability
+
+[CUSTOMIZE: Monitoring and debugging]
+
+**Logging**:
+- **Framework**: [e.g., tracing, SLF4J, winston]
+- **Format**: [Structured, JSON, etc.]
+- **Levels**: [INFO, DEBUG, ERROR]
+
+**Metrics**:
+- **Endpoint**: [/metrics]
+- **Format**: [Prometheus, JSON, etc.]
+
+**Tracing**:
+- **Correlation IDs**: [How implemented]
+- **Distributed tracing**: [If applicable]
+
+**See**: docs/features/LOGGING.md for details
+
+---
+
+## Performance Characteristics
+
+[CUSTOMIZE: Expected performance]
+
+**Latency targets**:
+- [Endpoint/Operation]: [< Xms p95]
+- [Endpoint/Operation]: [< Xms p95]
+
+**Throughput targets**:
+- [Requests/second]: [Target]
+
+**Resource usage**:
+- **Memory**: [Expected usage]
+- **CPU**: [Expected usage]
+
+---
+
+## Deployment Architecture
+
+[CUSTOMIZE: How the system is deployed]
+
+**Environments**:
+- Development: [Where and how]
+- Staging: [Where and how]
+- Production: [Where and how]
+
+**Infrastructure**:
+- [Component]: [How deployed]
+- [Database]: [How deployed]
+- [Storage]: [How deployed]
+
+**CI/CD**: [Brief description, link to detailed docs]
+
+---
+
+## Dependencies
+
+[CUSTOMIZE: External dependencies]
+
+**External services**:
+- [Service 1]: [What it's used for]
+- [Service 2]: [What it's used for]
+
+**Third-party libraries**: See `[build_file]`
+
+**System dependencies**:
+- [Dependency 1]: [Version requirement]
+- [Dependency 2]: [Version requirement]
+
+---
+
+## Future Considerations
+
+[CUSTOMIZE: Planned improvements]
+
+**Planned changes**:
+- [ ] [Feature/improvement 1]
+- [ ] [Feature/improvement 2]
+
+**Technical debt**:
+- [Item 1]: [What needs improvement]
+- [Item 2]: [What needs improvement]
+
+**Scaling plans**:
+- [When we hit X users]: [What needs to change]
+
+---
+
+## See Also
+
+- **Codebase map**: docs/CODEBASE-MAP.md
+- **Feature docs**: docs/features/
+- **Development guide**: docs/DEVELOPMENT.md
+- **Decision records**: docs/decisions/ (if exists)
+
+---
+
+## Template Customization Guide
+
+**To use this template:**
+
+1. Update system overview (2-3 paragraphs)
+2. Draw architecture diagram (ASCII or tool)
+3. Document each layer with paths
+4. List 3-5 core design patterns
+5. Add data flow diagrams
+6. Fill technology stack table
+7. Document 2-3 key design decisions
+8. Delete this customization guide
+
+**Minimum viable architecture doc**:
+- System Overview
+- Architecture Diagram
+- Layers description
+- Technology Stack
+
+**See `ADAPTATION-GUIDE.md` for instructions**

@@ -1,0 +1,285 @@
+# CLAUDE.md
+
+**Last updated**: [YYYY-MM-DD]
+**Tech stack**: [Language] | **Framework**: [Framework Name]
+
+Quick guidance for Claude Code. **All details in topic-specific docs below.**
+
+## 🚀 Where to Look
+
+**Task** | **Doc** | **Key Files**
+---|---|---
+Routing | docs/features/ROUTING.md | [CUSTOMIZE: e.g., routes/, main.rs, app.js]
+File storage | docs/features/STORAGE.md | [CUSTOMIZE: e.g., storage/, uploads/]
+Security | docs/features/SECURITY.md | [CUSTOMIZE: e.g., middleware/, auth/]
+Database | docs/features/DATABASE.md | [CUSTOMIZE: e.g., db/, models/]
+Logging | docs/features/LOGGING.md | [CUSTOMIZE: e.g., logging/, observability/]
+Code structure | docs/CODEBASE-MAP.md | All packages/modules
+Issues/fixes | docs/TROUBLESHOOTING.md | -
+Dev setup | docs/DEVELOPMENT.md | [CUSTOMIZE: e.g., pom.xml, Cargo.toml, package.json]
+
+---
+
+## 🔀 Quick Decision Tree
+
+**Adding functionality?**
+- New HTTP endpoint? → [CUSTOMIZE: Add to routes file] → See docs/features/ROUTING.md
+- Database model? → [CUSTOMIZE: Create in models/] → See docs/features/DATABASE.md
+- Middleware/filter? → [CUSTOMIZE: Add to middleware/] → See docs/features/SECURITY.md
+- File storage feature? → [CUSTOMIZE: Modify storage/] → Use streaming APIs → See docs/features/STORAGE.md
+- Logging feature? → [CUSTOMIZE: Use logging framework] → See docs/features/LOGGING.md
+
+**Fixing a bug?**
+- Test failing? → **Read docs/TROUBLESHOOTING.md first**
+- [CUSTOMIZE: Add common error pattern] → [CUSTOMIZE: Solution reference]
+- Memory issue? → Check streaming usage → See docs/features/STORAGE.md
+- Route 404? → Check route registration → See docs/features/ROUTING.md
+- Build error? → [CUSTOMIZE: Run format command] → See docs/DEVELOPMENT.md
+
+**Exploring codebase?**
+- First time? → Read docs/CODEBASE-MAP.md
+- Looking for file? → Use File Patterns below
+- Understanding flow? → Check Component Dependencies in docs/CODEBASE-MAP.md
+
+---
+
+## ⚠️ CRITICAL
+
+[CUSTOMIZE: Add 3-5 critical constraints specific to your tech stack]
+
+**Example patterns:**
+- **1. NEVER [anti-pattern]** → Always [best practice]
+  - Why: [Rationale]
+  - File: [path/to/file.ext:line-range]
+
+- **2. NEVER [blocking operation in async context]** → [Use correct pattern]
+  - Why: [Performance/correctness reason]
+  - Doc: docs/features/[FEATURE].md
+
+- **3. NEVER [unsafe operation]** → [Safe alternative]
+  - Why: [Security/safety reason]
+  - File: [path/to/critical/file.ext:line]
+
+---
+
+## ⚠️ KNOWN ISSUES
+
+[CUSTOMIZE: Document any partial implementations or known bugs]
+
+| Component | Status | Issue | Workaround |
+|-----------|--------|-------|------------|
+| [Feature name] | ⚠️ Partial | [Description of issue] | [Workaround or "See docs/..." |
+| [Test suite] | ⚠️ Flaky | [X/Y tests passing] | [How to handle] |
+
+**Note**: Check [CUSTOMIZE: issue tracker URL] for latest status
+
+---
+
+## 🔍 File Patterns (Quick Locate)
+
+**Configuration:**
+- Main config: [CUSTOMIZE: e.g., src/main/resources/application.yml, config/default.toml, .env]
+- Routes: [CUSTOMIZE: e.g., src/main/resources/routes.yml, src/routes.rs, routes/index.js]
+
+**Source code (by package/module):**
+- All [handlers/controllers]: [CUSTOMIZE: src/main/java/**/handler/*.java, src/handlers/**/*.rs, src/controllers/*.ts]
+- All [services/processors]: [CUSTOMIZE: Pattern for business logic]
+- All [repositories/data]: [CUSTOMIZE: Pattern for data access layer]
+- Storage layer: [CUSTOMIZE: Pattern]
+- Utilities: [CUSTOMIZE: Pattern]
+- [Core routing]: [CUSTOMIZE: Pattern]
+
+**Tests:**
+- All tests: [CUSTOMIZE: src/test/**/*Test.java, tests/**/*.rs, __tests__/**/*.test.ts]
+- Tests for X: [CUSTOMIZE: Pattern to find specific tests]
+- Integration tests: [CUSTOMIZE: Pattern]
+- Unit tests: [CUSTOMIZE: Pattern]
+
+**Documentation:**
+- All docs: `docs/*.md`
+- Main guide: `CLAUDE.md`
+
+**[Additional patterns specific to your stack]:**
+- [CUSTOMIZE: Add more patterns as needed]
+
+---
+
+## Commands
+
+[CUSTOMIZE: Replace with your tech stack's commands]
+
+```bash
+# Development
+[dev_server_command]                    # Dev server (e.g., mvn -PappRun, cargo run, npm run dev)
+[build_command]                         # Build (e.g., mvn package, cargo build --release)
+[test_all_command]                      # Run all tests
+[test_one_command]                      # Run specific test
+[format_command]                        # Format code
+
+# Environment
+[env_var]=value [dev_server_command]    # Custom port/config
+[health_check_command]                  # Health check (e.g., curl localhost:8080/health)
+```
+
+**Common commands reference**:
+- See docs/DEVELOPMENT.md for full command list
+- See `COMMAND-MAPPING-REFERENCE.md` for cross-stack equivalents
+
+---
+
+## Config
+
+[CUSTOMIZE: List main configuration files]
+
+**Example:**
+- `[main_config_file]` - [key settings: port, memory, timeouts]
+- `[routes_config]` - [routing configuration if separate]
+
+**Env vars override config**: `[ENV_VAR_PATTERN]=value`
+
+---
+
+## Architecture
+
+[CUSTOMIZE: One-line description of each layer]
+
+**Example patterns:**
+- **Routing**: [Request] → [Router] → [Handler] → [Service] → [Repository]
+- **Storage**: [Upload] → [Streaming] → [Chunked I/O] → [Filesystem/S3]
+- **Security**: [Request] → [Auth Middleware] → [Validation] → [Handler]
+- **Database**: [ORM/Query Builder] → [Connection Pool] → [Database]
+
+**Structure**: [CUSTOMIZE: List main directories/packages]
+
+**See docs/CODEBASE-MAP.md for full details**
+**See docs/ARCHITECTURE.md for detailed architecture**
+
+---
+
+## 📝 Common Recipes
+
+[CUSTOMIZE: Add 5-7 step-by-step workflows specific to your stack]
+
+### Recipe: Add New [Endpoint/Route]
+```bash
+# 1. [Read relevant file to understand pattern]
+# [read_command] [path/to/routes/file]
+
+# 2. [Add route/endpoint]
+# [Edit route configuration or create new handler file]
+
+# 3. [Register handler if needed]
+# [Edit registration file if your framework requires it]
+
+# 4. [Write test]
+# [Create test file]
+
+# 5. Validate
+[test_command]
+[lint_or_format_command]
+
+# 6. Manual test
+[run_server_command]
+[curl_or_test_command]
+```
+
+**Expected result**: [Describe successful outcome]
+
+### Recipe: Fix [Common Error Type]
+```bash
+# 1. Identify the error
+[log_command or error message pattern]
+
+# 2. Find problematic code
+[search_command]
+
+# 3. Apply fix
+# [Description of fix]
+
+# 4. Test
+[test_command]
+
+# 5. Verify
+[verification_command]
+```
+
+### Recipe: Add New [Database/Storage/Feature]
+```bash
+# 1-N steps specific to your stack
+```
+
+**See docs/DEVELOPMENT.md for more recipes**
+
+---
+
+## 📚 Reading Priority (Context Optimization)
+
+**Always read first:**
+1. `CLAUDE.md` (this file) - Critical warnings and quick reference
+2. `docs/TROUBLESHOOTING.md` - If fixing a bug or issue
+
+**Read based on task type:**
+- Adding route? → `docs/features/ROUTING.md` **only**
+- Storage issue? → `docs/features/STORAGE.md` + [relevant source files]
+- Security concern? → `docs/features/SECURITY.md`
+- Database work? → `docs/features/DATABASE.md`
+- Logging work? → `docs/features/LOGGING.md`
+- General exploration? → `docs/CODEBASE-MAP.md`
+- Development setup? → `docs/DEVELOPMENT.md`
+
+**Don't read unless needed:**
+- `docs/decisions/` - Architecture Decision Records (historical context)
+- [CUSTOMIZE: Add docs that are optional/historical]
+
+**Token optimization tip**: Use TL;DR sections at top of docs, skip detailed sections if not needed.
+
+---
+
+## Before Modifying
+
+[CUSTOMIZE: Add quick checklist references for critical areas]
+
+**Example patterns:**
+- **Routes**: Check [routes file] → Register handler → Test
+- **Storage**: Use streaming → No blocking I/O → Update cache → Test
+- **Security**: Check [security config] → Validate → Test
+
+**Full checklists in docs/features/**
+
+---
+
+## Stuck?
+
+1. **docs/TROUBLESHOOTING.md** - [Number]+ common issues with solutions
+2. **docs/CODEBASE-MAP.md** - Navigate packages/modules, find files
+3. **Run relevant tests** - Understand expected behavior
+4. **Enable DEBUG logging** - [How to enable debug logs]
+5. **Check [CUSTOMIZE: team chat/issues/wiki]** - Team-specific resources
+
+---
+
+## Additional Resources
+
+[CUSTOMIZE: Add links to external resources]
+
+- **Project wiki**: [URL if applicable]
+- **API documentation**: [URL if applicable]
+- **Team guidelines**: [URL if applicable]
+- **CI/CD pipeline**: [URL if applicable]
+
+---
+
+## Template Customization Guide
+
+**To use this template:**
+
+1. Replace all `[CUSTOMIZE: ...]` markers with your project-specific information
+2. Update commands in Commands section for your tech stack
+3. Add 3-5 critical constraints in ⚠️ CRITICAL section
+4. Update file patterns for your language (e.g., `.java` → `.rs` → `.ts`)
+5. Fill in Common Recipes with your framework-specific workflows
+6. Update architecture description for your stack
+7. Delete this customization guide section
+
+**See `ADAPTATION-GUIDE.md` for detailed step-by-step instructions**
+**See `COMMAND-MAPPING-REFERENCE.md` for command equivalents across stacks**
