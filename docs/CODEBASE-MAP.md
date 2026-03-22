@@ -2,7 +2,26 @@
 
 **Last updated**: 2026-03-22
 
-Quick reference for navigating the codebase and understanding component relationships.
+## 📋 TL;DR (for Claude Code)
+
+**Total tests**: 72 tests (all passing)
+**Main packages**: route/, processor/, storage/, handler/, datasource/, util/
+**Entry point**: `Main.java` → `RouterServlet.java`
+**Config files**: `application.yml`, `routes.yml`
+
+**Quick navigation**:
+- Routing? → `route/` + `routes.yml`
+- Business logic? → `processor/` + `handler/`
+- File storage? → `storage/LocalFileSystemStorage.java`
+- Database? → `datasource/*Strategy.java`
+- Utilities? → `util/`
+
+**Before modifying**:
+- Read "When Working On..." section for your area
+- Check Component Dependencies to find related files
+- Run relevant tests from Test Structure section
+
+---
 
 ## Package Structure
 
@@ -344,6 +363,92 @@ open http://localhost:8080/            # Home page
 open http://localhost:8080/script-editor     # JavaScript IDE
 open http://localhost:8080/data-browser      # Database browser
 ```
+
+---
+
+## 📦 Import/Dependency Graph
+
+**If you modify these files, also check their dependents:**
+
+### Core Utilities (High Impact)
+**`util/JsonUtil.java`** → Check:
+- ✅ `storage/LocalFileSystemStorage.java` (uses `toJson`/`fromJson` for metadata)
+- ✅ `storage/AttachmentManager.java` (metadata serialization)
+- ✅ `handler/DataBrowserHandler.java` (query result serialization)
+- ✅ Any code handling `Attachment` or `Module` objects
+
+**`util/StructuredLogger.java`** → Check:
+- ✅ `RouterServlet.java` (request logging)
+- ✅ `handler/AttachmentHandler.java` (file operation logging)
+- ✅ `handler/DataBrowserHandler.java` (query logging)
+- ✅ Any new processors/handlers you've added
+
+**`util/PropertiesUtil.java`** → Check:
+- ✅ `Main.java` (loads application.yml)
+- ✅ `ScriptProcessor.java` (reads script.timeout, script.maxMemory)
+- ✅ `storage/AttachmentManager.java` (reads storage.chunkSize)
+
+### Routing System (Medium Impact)
+**`route/RouteRegistry.java`** → Check:
+- ✅ `RouterServlet.java` (calls `findRoute()`)
+- ✅ `route/RouteDispatcher.java` (uses `RouteMatch`)
+- ✅ `src/main/resources/routes.yml` (data source)
+
+**`route/RouteDispatcher.java`** → Check:
+- ✅ `RouterServlet.java` (calls `dispatch()`)
+- ✅ All processors in `processor/` (dispatched via reflection)
+- ✅ All handlers in `handler/` (dispatched via reflection)
+
+### Storage System (Medium Impact)
+**`storage/LocalFileSystemStorage.java`** → Check:
+- ✅ `storage/AttachmentManager.java` (uses this as strategy)
+- ✅ `processor/FileUploadProcessor.java` (stores files)
+- ✅ `handler/AttachmentHandler.java` (retrieves files)
+
+**`storage/AttachmentManager.java`** → Check:
+- ✅ `processor/FileUploadProcessor.java` (stores attachments)
+- ✅ `handler/AttachmentHandler.java` (retrieves/deletes attachments)
+
+### Database System (Low Impact - Isolated)
+**`datasource/DataSourceRegistry.java`** → Check:
+- ✅ `datasource/*Strategy.java` (registered strategies)
+- ✅ `handler/DataBrowserHandler.java` (looks up strategies)
+
+**`datasource/*Strategy.java`** → Check:
+- ✅ `DataSourceRegistry.java` (registration)
+- ✅ Tests: `src/test/java/**/*Strategy*Test.java`
+
+### Script Execution (Medium Impact)
+**`processor/ScriptProcessor.java`** → Check:
+- ✅ `route/RouteDispatcher.java` (instantiates this processor)
+- ✅ `src/main/resources/routes.yml` (route definition)
+- ✅ `ScriptProcessorSecurityTest.java` (26 security tests)
+
+### Request Processing (Low Impact - Isolated)
+**Processors** (`processor/*Processor.java`) → Check:
+- ✅ `route/RouteDispatcher.java` (registration in `getProcessorInstance()`)
+- ✅ `src/main/resources/routes.yml` (route definition)
+- ✅ Corresponding test file
+
+**Handlers** (`handler/*Handler.java`) → Check:
+- ✅ `route/RouteDispatcher.java` (registration in `getHandlerInstance()`)
+- ✅ `src/main/resources/routes.yml` (route definition)
+- ✅ Corresponding test file
+
+---
+
+## 🔗 Dependency Quick Reference
+
+| When modifying... | Impact | Must verify |
+|-------------------|--------|-------------|
+| `JsonUtil.java` | 🔥 High | All storage code, all model serialization |
+| `RouteRegistry.java` | 🔥 High | RouterServlet, RouteDispatcher, routes.yml |
+| `LocalFileSystemStorage.java` | 🟨 Medium | AttachmentManager, upload/download handlers |
+| `StructuredLogger.java` | 🟨 Medium | All request handlers and processors |
+| `PropertiesUtil.java` | 🟨 Medium | Main.java, all config readers |
+| `ScriptProcessor.java` | 🟨 Medium | Security tests, RouteDispatcher |
+| Individual processors | 🟩 Low | Only RouteDispatcher + routes.yml |
+| Individual strategies | 🟩 Low | Only DataSourceRegistry |
 
 ---
 

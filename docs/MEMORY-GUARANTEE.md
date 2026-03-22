@@ -13,6 +13,25 @@
 - `processor/FileUploadProcessor.java` - Multipart upload handler
 - `handler/AttachmentHandler.java` - Download/delete operations
 
+## ✅ Pre-flight Checklist
+
+**Before modifying storage code:**
+- [ ] Read `storage/LocalFileSystemStorage.java` to understand chunking
+- [ ] Understand: NEVER use `Files.readAllBytes()` or load entire file
+- [ ] Understand: ALWAYS use `InputStream`/`OutputStream` with buffers
+- [ ] Understand: ALWAYS use `JsonUtil` NOT `new Gson()`
+- [ ] Run `mvn test -Dtest=*Storage*Test` (should pass)
+
+**After modifying storage code:**
+- [ ] Code uses streaming (no `byte[]` for file content)
+- [ ] Uses `JsonUtil.toJson()` / `fromJson()` for metadata
+- [ ] Uses `ChunkedOutputStream` / `ChunkedInputStream`
+- [ ] Tests pass: `mvn test -Dtest=*Storage*Test`
+- [ ] Memory test: Upload 100MB file, check `curl localhost:8080/metrics` shows < 10MB heap usage
+- [ ] Cache updated if metadata changed
+
+---
+
 ## How We Handle Large Files Without Memory Issues
 
 ### Problem
@@ -248,6 +267,58 @@ curl http://localhost:8080/metrics
 3. ✅ **No OutOfMemoryError, ever**
 4. ✅ **Linear memory growth** with concurrent requests
 5. ✅ **Predictable, bounded memory usage**
+
+## 🧪 Validation Commands
+
+**After changing storage code:**
+
+```bash
+# 1. Unit tests
+mvn test -Dtest=*Storage*Test
+mvn test -Dtest=AttachmentManagerTest
+
+# 2. Integration test - Upload file
+curl -X POST http://localhost:8080/api/upload \
+  -F "file=@test.txt" \
+  -F "description=Test upload"
+
+# Save attachment ID from response
+ATTACHMENT_ID="<id-from-response>"
+
+# 3. Integration test - Download file
+curl http://localhost:8080/api/attachment/$ATTACHMENT_ID/download -o downloaded.txt
+
+# 4. Verify file integrity
+diff test.txt downloaded.txt  # Should be identical
+sha256sum test.txt downloaded.txt  # Should match
+
+# 5. Memory check (CRITICAL)
+curl http://localhost:8080/metrics | jq '.metrics.memory.used'
+# Should be < 100MB even for large files
+
+# 6. Large file test (500MB)
+dd if=/dev/zero of=test500mb.bin bs=1M count=500
+curl -X POST http://localhost:8080/api/upload -F "file=@test500mb.bin"
+curl http://localhost:8080/metrics | jq '.metrics.memory.used'
+# Should still be < 100MB (proves chunking works)
+
+# 7. Concurrent test (optional, proves scalability)
+# Upload 10 files concurrently, memory should be ~10MB
+for i in {1..10}; do
+  curl -X POST http://localhost:8080/api/upload \
+    -F "file=@test.txt" -F "description=Concurrent test $i" &
+done
+wait
+curl http://localhost:8080/metrics | jq '.metrics.memory.used'
+```
+
+**Expected results:**
+- ✅ All tests pass
+- ✅ Files download correctly (diff shows no differences)
+- ✅ Memory usage < 100MB regardless of file size
+- ✅ Memory scales with concurrent requests, NOT file sizes
+
+---
 
 ### How to Test
 

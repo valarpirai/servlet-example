@@ -154,8 +154,16 @@ public class ScriptExecutor {
 
             String modulePath = (String) args[0];
 
-            // Search in lib, vendor directories
-            String[] searchPaths = {"scripts/lib/" + modulePath, "scripts/vendor/" + modulePath};
+            // Build search paths
+            // If path already starts with lib/ or vendor/, use scripts/ prefix only
+            // Otherwise, try both scripts/lib/ and scripts/vendor/
+            String[] searchPaths;
+            if (modulePath.startsWith("lib/") || modulePath.startsWith("vendor/")) {
+              searchPaths = new String[] {"scripts/" + modulePath};
+            } else {
+              searchPaths =
+                  new String[] {"scripts/lib/" + modulePath, "scripts/vendor/" + modulePath};
+            }
 
             for (String searchPath : searchPaths) {
               String fullPath = searchPath.endsWith(".js") ? searchPath : searchPath + ".js";
@@ -181,6 +189,12 @@ public class ScriptExecutor {
       return null;
     }
 
+    // Handle JavaScript primitives first
+    if (obj instanceof Number || obj instanceof String || obj instanceof Boolean) {
+      return obj;
+    }
+
+    // Handle JavaScript arrays
     if (obj instanceof org.mozilla.javascript.NativeArray) {
       org.mozilla.javascript.NativeArray array = (org.mozilla.javascript.NativeArray) obj;
       Object[] result = new Object[(int) array.getLength()];
@@ -190,6 +204,7 @@ public class ScriptExecutor {
       return result;
     }
 
+    // Handle JavaScript objects
     if (obj instanceof org.mozilla.javascript.NativeObject) {
       org.mozilla.javascript.NativeObject nativeObj = (org.mozilla.javascript.NativeObject) obj;
       Map<String, Object> result = new HashMap<>();
@@ -199,7 +214,20 @@ public class ScriptExecutor {
       return result;
     }
 
+    // Handle NativeJavaObject (wrapper around Java objects created from JavaScript)
+    if (obj instanceof org.mozilla.javascript.NativeJavaObject) {
+      // Unwrap the Java object
+      return ((org.mozilla.javascript.NativeJavaObject) obj).unwrap();
+    }
+
+    // Handle generic Scriptable objects (but not NativeJavaObject which we handled above)
     if (obj instanceof org.mozilla.javascript.Scriptable) {
+      // Check if it's a wrapper around a Java object
+      if (obj instanceof org.mozilla.javascript.Wrapper) {
+        return ((org.mozilla.javascript.Wrapper) obj).unwrap();
+      }
+
+      // Otherwise convert to Map
       org.mozilla.javascript.Scriptable scriptable = (org.mozilla.javascript.Scriptable) obj;
       Map<String, Object> result = new HashMap<>();
       Object[] ids = scriptable.getIds();
@@ -212,11 +240,8 @@ public class ScriptExecutor {
       return result;
     }
 
-    if (obj instanceof Number || obj instanceof String || obj instanceof Boolean) {
-      return obj;
-    }
-
-    return obj.toString();
+    // For everything else (already a Java object), return as-is
+    return obj;
   }
 
   /** Functional interface for setting up scope before script execution. */

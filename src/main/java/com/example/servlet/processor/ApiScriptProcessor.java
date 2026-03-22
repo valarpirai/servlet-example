@@ -142,6 +142,10 @@ public class ApiScriptProcessor {
       Context cx = Context.enter();
       try {
         func.call(cx, scope, scope, new Object[] {requestObj, responseObj});
+      } catch (org.mozilla.javascript.RhinoException e) {
+        // JavaScript error thrown in httpHandler - return 400
+        return createErrorResponse(
+            400, "Script Error", "JavaScript execution failed: " + e.getMessage(), e);
       } finally {
         Context.exit();
       }

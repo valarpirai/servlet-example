@@ -13,6 +13,25 @@
 
 All security controls validated with automated tests. See "Tested Security Controls" section below.
 
+## ✅ Pre-flight Checklist
+
+**Before modifying script security:**
+- [ ] Read `ScriptProcessor.java:39-147` (ClassShutter implementation)
+- [ ] Understand whitelist/blacklist in ClassShutter
+- [ ] Run `mvn test -Dtest=ScriptProcessorSecurityTest` (26/26 should pass)
+- [ ] Understand: ALL 26 security tests MUST pass
+
+**After modifying script security:**
+- [ ] All 26 security tests pass: `mvn test -Dtest=ScriptProcessorSecurityTest`
+- [ ] No new classes added to whitelist without security review
+- [ ] Timeout/memory limits still enforced
+- [ ] Manual test: Try malicious script (e.g., `java.lang.System.exit()`) → should be blocked
+- [ ] Document any whitelist changes in this file
+
+**Critical**: Never weaken security controls. If tests fail, fix the code, don't change tests.
+
+---
+
 ## Overview
 
 The ScriptProcessor uses Mozilla Rhino with a custom ClassShutter to provide a sandboxed JavaScript execution environment. This document details the security mechanisms, tested protections, and known limitations.
@@ -250,6 +269,68 @@ script:
 - Review all uploaded JavaScript modules
 - Modules can import other modules - check dependencies
 - No automatic code signing yet
+
+## 🧪 Validation Commands
+
+**After changing script security:**
+
+```bash
+# 1. Run all 26 security tests (CRITICAL)
+mvn test -Dtest=ScriptProcessorSecurityTest
+# ALL 26 tests MUST pass
+
+# 2. Test timeout enforcement
+curl -X POST http://localhost:8080/api/script \
+  -H "Content-Type: application/javascript" \
+  -d '{"script":"while(true){}"}' \
+  | jq
+# Should return timeout error after 5 seconds
+
+# 3. Test memory limit enforcement
+curl -X POST http://localhost:8080/api/script \
+  -H "Content-Type: application/javascript" \
+  -d '{"script":"var a=[]; while(true) a.push(new java.util.ArrayList())"}' \
+  | jq
+# Should return memory limit error
+
+# 4. Test blocked classes (System.exit)
+curl -X POST http://localhost:8080/api/script \
+  -H "Content-Type: application/javascript" \
+  -d '{"script":"java.lang.System.exit(0);"}' \
+  | jq
+# Should return error (blocked by ClassShutter)
+
+# 5. Test file system block
+curl -X POST http://localhost:8080/api/script \
+  -H "Content-Type: application/javascript" \
+  -d '{"script":"new java.io.File(\"/etc/passwd\");"}' \
+  | jq
+# Should return error (blocked)
+
+# 6. Test allowed classes (ArrayList)
+curl -X POST http://localhost:8080/api/script \
+  -H "Content-Type: application/javascript" \
+  -d '{"script":"var list = new java.util.ArrayList(); list.add(\"test\"); list.get(0);"}' \
+  | jq
+# Should return "test" (allowed)
+
+# 7. Run full test suite
+mvn test
+# All tests should pass
+
+# 8. Check configuration
+cat src/main/resources/application.yml | grep -A 4 "script:"
+# Verify timeout/memory limits are set
+```
+
+**Expected results:**
+- ✅ All 26 security tests pass
+- ✅ Malicious scripts are blocked (System, File, Network, etc.)
+- ✅ Timeout enforced (infinite loops caught)
+- ✅ Memory limits enforced (OOM prevented)
+- ✅ Safe classes allowed (ArrayList, HashMap, Date, etc.)
+
+---
 
 ### For Development
 

@@ -4,6 +4,83 @@
 
 Quick reference for development workflows, tools, and best practices.
 
+## ✅ Definition of Done
+
+Use this checklist to verify your changes are complete before committing.
+
+### For Any Change
+
+- [ ] **Code compiles**: `mvn clean package` succeeds
+- [ ] **Tests pass**: `mvn test` succeeds (or relevant subset)
+- [ ] **Code formatted**: `mvn spotless:check` passes (or run `mvn spotless:apply`)
+- [ ] **No compilation warnings**: Check `mvn compile` output
+- [ ] **Manual test passed**: If user-facing, test with curl/browser
+- [ ] **Documentation updated**: If behavior changed, update relevant .md files
+- [ ] **No debug code**: No `System.out.println`, commented code, or TODO without JIRA
+
+### For Critical Areas
+
+**If modifying `storage/` (file storage):**
+- [ ] All above +
+- [ ] Uses streaming (no `byte[]` for file content, no `Files.readAllBytes`)
+- [ ] Uses `JsonUtil` NOT `new Gson()` for metadata
+- [ ] Storage tests pass: `mvn test -Dtest=*Storage*Test`
+- [ ] Memory test: Upload 100MB file, verify `curl localhost:8080/metrics` shows < 10MB heap
+- [ ] Integration test: Upload and download file, verify with `diff` or `sha256sum`
+
+**If modifying `route/` or `routes.yml` (routing):**
+- [ ] All above +
+- [ ] YAML syntax valid (no tabs, proper indentation)
+- [ ] Processor/Handler registered in `RouteDispatcher`
+- [ ] Route order correct (specific routes before wildcards)
+- [ ] Route tests pass: `mvn test -Dtest=Route*Test`
+- [ ] Manual test: `curl http://localhost:8080/your-route` returns expected response
+
+**If modifying `processor/ScriptProcessor.java` (security):**
+- [ ] All above +
+- [ ] All 26 security tests pass: `mvn test -Dtest=ScriptProcessorSecurityTest`
+- [ ] No classes added to whitelist without security review
+- [ ] Timeout and memory limits still enforced
+- [ ] Manual test: Try `java.lang.System.exit()` → should be blocked
+- [ ] Documentation updated: Add to docs/SCRIPT-SECURITY.md if whitelist changed
+
+**If modifying `datasource/` (database support):**
+- [ ] All above +
+- [ ] Strategy implements all interface methods
+- [ ] Strategy registered in `DataSourceRegistry` constructor
+- [ ] DataSource tests pass: `mvn test -Dtest=DataSource*Test`
+- [ ] Manual test: Connect to database via data-browser UI
+
+### Ready to Commit?
+
+**Final checks:**
+```bash
+# 1. Full test suite
+mvn clean test
+
+# 2. Package successfully
+mvn clean package
+
+# 3. Spotless check
+mvn spotless:check
+
+# 4. Git status clean (no unintended files)
+git status
+
+# 5. Manual smoke test (if applicable)
+mvn -PappRun
+curl http://localhost:8080/health  # Should return {"status":"healthy"}
+```
+
+**All green?** ✅ Commit with descriptive message following [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` for new features
+- `fix:` for bug fixes
+- `refactor:` for code improvements
+- `docs:` for documentation
+- `test:` for test changes
+
+---
+
 ## Development Workflows
 
 ### TDD Loop (Test-Driven Development)

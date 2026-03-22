@@ -2,7 +2,22 @@
 
 **Last updated**: 2026-03-22 | **Status**: ✅ Fully Integrated
 
-**TL;DR**: Edit `routes.yml` → Add processor/handler case → Done. No RouterServlet changes needed.
+## 📋 TL;DR (for Claude Code)
+
+**What**: YAML-based routing system (all 21 routes in `routes.yml`)
+**How to add route**: Edit `routes.yml` → Register in `RouteDispatcher` → Test
+**Common error**: Forgot to register → 404 response
+**Test command**: `mvn test -Dtest=Route*Test`
+**Critical**: Route order matters (specific routes before wildcards)
+**Key files**: `routes.yml`, `RouteRegistry.java`, `RouteDispatcher.java`
+
+**Quick add endpoint**:
+1. Add route to `routes.yml` (copy existing pattern)
+2. Add case in `RouteDispatcher.getProcessorInstance()` or `getHandlerInstance()`
+3. Run `mvn test -Dtest=Route*Test`
+4. Done! No RouterServlet changes needed.
+
+---
 
 ## Overview
 
@@ -273,6 +288,53 @@ switch (processorName) {
 }
 ```
 
+## 🧪 Validation Commands
+
+**After changing routes:**
+
+```bash
+# 1. Validate YAML syntax
+yamllint src/main/resources/routes.yml  # Or use online YAML validator
+
+# 2. Unit tests
+mvn test -Dtest=RouteRegistryTest      # Pattern matching
+mvn test -Dtest=RouteDispatcherTest    # Handler dispatch
+
+# 3. Full test suite
+mvn test                               # All 72 tests
+
+# 4. Manual test - Start server
+mvn -PappRun
+
+# 5. Test your new route
+curl -v http://localhost:8080/api/your-new-route
+# Should return 200 OK, not 404
+
+# 6. Test route parameters (if using {id})
+curl http://localhost:8080/api/attachment/test-123/download
+# Should extract "test-123" as ID parameter
+
+# 7. Test HTTP methods
+curl -X GET http://localhost:8080/api/your-route     # If route is GET
+curl -X POST http://localhost:8080/api/your-route    # If route is POST
+
+# 8. Check logs for route matching
+tail -f logs/application.log | grep "your-route"
+
+# 9. Verify health endpoint still works
+curl http://localhost:8080/health
+# Should return {"status":"healthy"}
+```
+
+**Expected results:**
+- ✅ YAML syntax valid
+- ✅ All tests pass (21/21 routes work)
+- ✅ New route returns expected status code
+- ✅ Path parameters extracted correctly
+- ✅ Logs show successful route matching
+
+---
+
 ## Testing
 
 Run route registry tests:
@@ -324,6 +386,24 @@ protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     // ... existing code
 }
 ```
+
+## ✅ Pre-flight Checklist
+
+**Before modifying routes:**
+- [ ] Read `routes.yml` to understand existing patterns
+- [ ] Run `mvn test -Dtest=Route*Test` (should pass)
+- [ ] Check `git status` (no uncommitted route changes)
+- [ ] Verify server not running on port 8080 (if testing locally)
+
+**After modifying routes:**
+- [ ] YAML syntax is valid (no tabs, proper indentation)
+- [ ] Processor/Handler registered in `RouteDispatcher`
+- [ ] Route order correct (specific routes before wildcards)
+- [ ] Tests pass: `mvn test -Dtest=Route*Test`
+- [ ] Manual test: `curl http://localhost:8080/your-new-route`
+- [ ] Code formatted: `mvn spotless:apply`
+
+---
 
 ## Adding New Routes
 
