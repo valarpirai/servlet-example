@@ -349,6 +349,8 @@ public class RouteRegistry {
   /** Map handler name from routes.yml to fully qualified class name. */
   private String getHandlerClassName(String handlerName) {
     switch (handlerName) {
+      case "ApiHandler":
+        return "com.example.servlet.handler.ApiHandler";
       case "AttachmentHandler":
         return "com.example.servlet.handler.AttachmentHandler";
       case "DataBrowserHandler":

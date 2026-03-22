@@ -4,7 +4,9 @@ import com.example.servlet.model.Module;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.module.ModuleDependencyResolver;
 import com.example.servlet.module.ModuleManager;
+import com.example.servlet.script.ScriptExecutor;
 import com.example.servlet.security.ScriptSecurityManager;
+import com.example.servlet.util.JsonConverter;
 import com.example.servlet.util.JsonUtil;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,6 +24,7 @@ import org.mozilla.javascript.ScriptableObject;
 public class ScriptProcessor implements IRequestProcessor {
 
   private static final String CONTENT_TYPE = "application/javascript";
+  private final ScriptExecutor scriptExecutor = new ScriptExecutor();
 
   @Override
   public boolean supports(String contentType) {
@@ -64,7 +67,7 @@ public class ScriptProcessor implements IRequestProcessor {
             .entrySet()
             .forEach(
                 entry -> {
-                  params.put(entry.getKey(), convertJsonElement(entry.getValue()));
+                  params.put(entry.getKey(), JsonConverter.convertJsonElement(entry.getValue()));
                 });
       }
 
@@ -243,7 +246,7 @@ public class ScriptProcessor implements IRequestProcessor {
       Object result = executeWithLimits(context, scope, preparedScript, startTime, memoryBefore);
 
       // Convert result to Java object
-      return convertRhinoObject(result);
+      return scriptExecutor.convertToJavaObject(result);
 
     } catch (Error e) {
       // Re-throw timeout and memory limit errors to be handled by process()
@@ -362,55 +365,6 @@ public class ScriptProcessor implements IRequestProcessor {
             + "};";
 
     context.evaluateString(scope, consoleLog, "consoleLog", 1, null);
-  }
-
-  /** Convert Rhino JavaScript object to Java object */
-  private Object convertRhinoObject(Object obj) {
-    if (obj == null || obj == org.mozilla.javascript.Undefined.instance) {
-      return null;
-    }
-
-    if (obj instanceof org.mozilla.javascript.NativeArray) {
-      org.mozilla.javascript.NativeArray array = (org.mozilla.javascript.NativeArray) obj;
-      Object[] result = new Object[(int) array.getLength()];
-      for (int i = 0; i < array.getLength(); i++) {
-        result[i] = convertRhinoObject(array.get(i));
-      }
-      return result;
-    }
-
-    if (obj instanceof org.mozilla.javascript.NativeObject) {
-      org.mozilla.javascript.NativeObject nativeObj = (org.mozilla.javascript.NativeObject) obj;
-      Map<String, Object> result = new HashMap<>();
-      for (Object key : nativeObj.keySet()) {
-        result.put(key.toString(), convertRhinoObject(nativeObj.get(key)));
-      }
-      return result;
-    }
-
-    if (obj instanceof Number || obj instanceof String || obj instanceof Boolean) {
-      return obj;
-    }
-
-    return obj.toString();
-  }
-
-  /** Convert Gson JsonElement to Java object */
-  private Object convertJsonElement(com.google.gson.JsonElement element) {
-    if (element.isJsonPrimitive()) {
-      if (element.getAsJsonPrimitive().isNumber()) {
-        return element.getAsNumber();
-      } else if (element.getAsJsonPrimitive().isBoolean()) {
-        return element.getAsBoolean();
-      } else {
-        return element.getAsString();
-      }
-    } else if (element.isJsonArray()) {
-      return element.getAsJsonArray().toString();
-    } else if (element.isJsonObject()) {
-      return element.getAsJsonObject().toString();
-    }
-    return element.toString();
   }
 
   /** Read request body */

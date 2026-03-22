@@ -1,19 +1,13 @@
 package com.example.servlet.processor;
 
-import com.example.servlet.security.ScriptSecurityManager;
+import com.example.servlet.script.ScriptExecutor;
+import com.example.servlet.util.JsonConverter;
 import com.example.servlet.util.JsonUtil;
-import com.example.servlet.util.PropertiesUtil;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
 
 /**
  * Processor for scripted REST API endpoints. Loads JavaScript files from scripts/api/ directory and
@@ -22,13 +16,9 @@ import org.mozilla.javascript.ScriptableObject;
  */
 public class ApiScriptProcessor {
 
-  private static final String SCRIPTS_BASE_DIR = "scripts";
-  private static final String API_DIR = SCRIPTS_BASE_DIR + "/api";
-  private static final String LIB_DIR = SCRIPTS_BASE_DIR + "/lib";
-  private static final String VENDOR_DIR = SCRIPTS_BASE_DIR + "/vendor";
+  private static final String API_DIR = "scripts/api";
 
-  // Cache for loaded scripts (module path -> script content)
-  private final Map<String, String> scriptCache = new HashMap<>();
+  private final ScriptExecutor scriptExecutor = new ScriptExecutor();
 
   /**
    * Process an API request with the given endpoint script.
@@ -52,7 +42,7 @@ public class ApiScriptProcessor {
     try {
       // Load the endpoint script
       String scriptPath = API_DIR + "/" + endpointName + ".js";
-      String scriptContent = loadScript(scriptPath);
+      String scriptContent = scriptExecutor.loadScript(scriptPath);
 
       if (scriptContent == null) {
         return createErrorResponse(
@@ -68,33 +58,6 @@ public class ApiScriptProcessor {
     }
   }
 
-  /**
-   * Load a script file from the file system.
-   *
-   * @param scriptPath Relative path from project root (e.g., "scripts/api/users.js")
-   * @return Script content or null if not found
-   */
-  private String loadScript(String scriptPath) throws IOException {
-    // Check cache first
-    if (scriptCache.containsKey(scriptPath)) {
-      return scriptCache.get(scriptPath);
-    }
-
-    Path path = Paths.get(scriptPath);
-    if (!Files.exists(path)) {
-      return null;
-    }
-
-    String content = Files.readString(path);
-
-    // Cache the script (in production, consider cache invalidation strategy)
-    if (!PropertiesUtil.isDevEnvironment()) {
-      scriptCache.put(scriptPath, content);
-    }
-
-    return content;
-  }
-
   /** Execute the JavaScript handler with request/response objects. */
   private Map<String, Object> executeScript(
       String script,
@@ -104,277 +67,115 @@ public class ApiScriptProcessor {
       Map<String, String> headers,
       JsonObject body) {
 
-    // Track memory usage before execution
-    Runtime runtime = Runtime.getRuntime();
-    long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
-    long startTime = System.currentTimeMillis();
+    // Prepare request data - convert to JSON and back to ensure proper JavaScript object
+    Map<String, Object> requestData = new HashMap<>();
+    requestData.put("method", method);
+    requestData.put("path", path);
+    requestData.put("queryParams", queryParams);
+    requestData.put("headers", headers);
+    requestData.put("body", JsonConverter.convertJsonToMap(body));
 
-    // Use shared security manager
-    ScriptSecurityManager.SecureContextFactory factory =
-        ScriptSecurityManager.createSecureContextFactory(startTime, memoryBefore);
+    // Convert request data to JSON string for proper JavaScript object creation
+    String requestJson = JsonUtil.toJson(requestData);
+    // Escape single quotes and newlines for JavaScript string literal
+    String escapedRequestJson =
+        requestJson
+            .replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r");
 
-    Context cx = factory.enterContext();
-
-    try {
-      cx.setOptimizationLevel(ScriptSecurityManager.getOptimizationLevel());
-      cx.setInstructionObserverThreshold(ScriptSecurityManager.getInstructionThreshold());
-
-      Scriptable scope = cx.initStandardObjects();
-
-      // Add require() function
-      addRequireFunction(scope, cx);
-
-      // Add request object as pure JavaScript
-      Map<String, Object> requestData = new HashMap<>();
-      requestData.put("method", method);
-      requestData.put("path", path);
-      requestData.put("queryParams", queryParams);
-      requestData.put("headers", headers);
-      requestData.put("body", convertJsonToJavaScript(body));
-
-      ScriptableObject.putProperty(scope, "request", Context.javaToJS(requestData, scope));
-
-      // Create response object in JavaScript (not Java)
-      String responseInit =
-          """
-          var response = {
-            status: 200,
-            headers: {},
-            body: '',
-            setStatus: function(s) { this.status = s; },
-            setHeader: function(k, v) { this.headers[k] = v; },
-            setBody: function(b) {
-              if (typeof b === 'string') {
-                this.body = b;
-              } else {
-                this.body = JSON.stringify(b);
-              }
-            }
-          };
-          """;
-      cx.evaluateString(scope, responseInit, "responseInit", 1, null);
-
-      // Execute the script
-      cx.evaluateString(scope, script, "apiScript", 1, null);
-
-      // Check if httpHandler function exists and call it
-      Object httpHandler = scope.get("httpHandler", scope);
-      if (httpHandler instanceof org.mozilla.javascript.Function) {
-        org.mozilla.javascript.Function func = (org.mozilla.javascript.Function) httpHandler;
-        Object requestObj = scope.get("request", scope);
-        Object responseObj = scope.get("response", scope);
-        func.call(cx, scope, scope, new Object[] {requestObj, responseObj});
-      }
-
-      // Extract response data from JavaScript object
-      Object responseObj = scope.get("response", scope);
-      Map<String, Object> response = new HashMap<>();
-
-      if (responseObj instanceof Scriptable) {
-        Scriptable responseScriptable = (Scriptable) responseObj;
-
-        // Convert status to integer
-        Object statusObj = responseScriptable.get("status", responseScriptable);
-        int status = 200;
-        if (statusObj instanceof Number) {
-          status = ((Number) statusObj).intValue();
-        }
-
-        response.put("status", status);
-        response.put(
-            "headers", convertToJavaObject(responseScriptable.get("headers", responseScriptable)));
-        response.put(
-            "body", convertToJavaObject(responseScriptable.get("body", responseScriptable)));
-      } else {
-        response.put("status", 200);
-        response.put("headers", new HashMap<String, String>());
-        response.put("body", "");
-      }
-
-      return response;
-
-    } catch (org.mozilla.javascript.RhinoException e) {
-      return createErrorResponse(
-          400, "Script Error", "JavaScript execution failed: " + e.getMessage(), e);
-    } catch (Error e) {
-      if (e.getMessage() != null && e.getMessage().contains("timeout exceeded")) {
-        return createErrorResponse(408, "Request Timeout", e.getMessage(), e);
-      } else if (e.getMessage() != null && e.getMessage().contains("memory limit exceeded")) {
-        return createErrorResponse(413, "Payload Too Large", e.getMessage(), e);
-      }
-      return createErrorResponse(
-          500, "Internal Server Error", "Script execution error: " + e.getMessage(), e);
-    } catch (Exception e) {
-      return createErrorResponse(
-          500, "Internal Server Error", "Error executing script: " + e.getMessage(), e);
-    } finally {
-      Context.exit();
-    }
-  }
-
-  /** Add require() function to the scope for loading modules. */
-  private void addRequireFunction(Scriptable scope, Context cx) {
-    // Create a require function that loads scripts from lib and vendor directories
-    String requireFunction =
-        """
-        var __loadedModules = {};
-
-        function require(modulePath) {
-          // Normalize path
-          var normalizedPath = modulePath;
-
-          // If path starts with ../ or ./, resolve relative to current directory
-          if (modulePath.startsWith('../')) {
-            normalizedPath = modulePath.substring(3);
-          } else if (modulePath.startsWith('./')) {
-            normalizedPath = modulePath.substring(2);
-          }
-
-          // Check if already loaded
-          if (__loadedModules[normalizedPath]) {
-            return __loadedModules[normalizedPath];
-          }
-
-          // Try to load from lib or vendor
-          var content = __loadScriptFile(normalizedPath);
-          if (!content) {
-            throw new Error('Module not found: ' + modulePath);
-          }
-
-          // Create module wrapper
-          var module = { exports: {} };
-          var exports = module.exports;
-
-          // Execute module code
-          eval(content);
-
-          // Cache the module
-          __loadedModules[normalizedPath] = module.exports;
-
-          return module.exports;
-        }
-        """;
-
-    cx.evaluateString(scope, requireFunction, "require", 1, null);
-
-    // Add Java function to actually load script files
-    ScriptableObject.putProperty(
-        scope,
-        "__loadScriptFile",
-        new org.mozilla.javascript.BaseFunction() {
-          @Override
-          public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-            if (args.length < 1 || !(args[0] instanceof String)) {
-              return null;
+    // Create request and response initialization script with JSON utilities
+    String initScript =
+        String.format(
+                """
+            // JSON utilities
+            if (typeof JSON === 'undefined') {
+              var JSON = {
+                stringify: function(obj) { return String(obj); },
+                parse: function(str) { return eval('(' + str + ')'); }
+              };
             }
 
-            String modulePath = (String) args[0];
+            // Create request object from JSON
+            var request = JSON.parse('%s');
 
-            // Try lib directory first, then vendor
-            String[] searchPaths = {LIB_DIR + "/" + modulePath, VENDOR_DIR + "/" + modulePath};
-
-            for (String searchPath : searchPaths) {
-              // Add .js extension if not present
-              String fullPath = searchPath.endsWith(".js") ? searchPath : searchPath + ".js";
-
-              try {
-                String content = loadScript(fullPath);
-                if (content != null) {
-                  return content;
+            // Create response object
+            var response = {""",
+                escapedRequestJson)
+            + """
+              status: 200,
+              headers: {},
+              body: '',
+              setStatus: function(s) { this.status = s; },
+              setHeader: function(k, v) { this.headers[k] = v; },
+              setBody: function(b) {
+                if (typeof b === 'string') {
+                  this.body = b;
+                } else {
+                  this.body = JSON.stringify(b);
                 }
-              } catch (IOException e) {
-                // Continue to next search path
               }
-            }
+            };
+            """;
 
-            return null;
-          }
-        });
-  }
+    // Combined script: init + user script
+    String fullScript = initScript + "\n" + script;
 
-  /** Convert Gson JsonObject to JavaScript-friendly Map. */
-  private Map<String, Object> convertJsonToJavaScript(JsonObject json) {
-    if (json == null) {
-      return null;
+    // Execute with ScriptExecutor (request object is now created in script)
+    ScriptExecutor.ScriptExecutionResult result = scriptExecutor.execute(fullScript, null);
+
+    // Handle execution result
+    if (!result.isSuccess()) {
+      return createErrorResponse(
+          result.getStatusCode(), result.getError(), result.getMessage(), result.getThrowable());
     }
 
-    Map<String, Object> result = new HashMap<>();
-    for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
-      result.put(entry.getKey(), convertJsonElement(entry.getValue()));
-    }
-    return result;
-  }
+    // Call httpHandler if it exists
+    Scriptable scope = result.getScope();
+    Object httpHandler = scope.get("httpHandler", scope);
+    if (httpHandler instanceof org.mozilla.javascript.Function) {
+      org.mozilla.javascript.Function func = (org.mozilla.javascript.Function) httpHandler;
+      Object requestObj = scope.get("request", scope);
+      Object responseObj = scope.get("response", scope);
 
-  /** Convert JavaScript object to Java object. */
-  private Object convertToJavaObject(Object obj) {
-    if (obj == null || obj == org.mozilla.javascript.Undefined.instance) {
-      return null;
-    }
-
-    if (obj instanceof org.mozilla.javascript.NativeArray) {
-      org.mozilla.javascript.NativeArray array = (org.mozilla.javascript.NativeArray) obj;
-      Object[] result = new Object[(int) array.getLength()];
-      for (int i = 0; i < array.getLength(); i++) {
-        result[i] = convertToJavaObject(array.get(i));
+      Context cx = Context.enter();
+      try {
+        func.call(cx, scope, scope, new Object[] {requestObj, responseObj});
+      } finally {
+        Context.exit();
       }
-      return result;
     }
 
-    if (obj instanceof org.mozilla.javascript.NativeObject) {
-      org.mozilla.javascript.NativeObject nativeObj = (org.mozilla.javascript.NativeObject) obj;
-      Map<String, Object> result = new HashMap<>();
-      for (Object key : nativeObj.keySet()) {
-        result.put(key.toString(), convertToJavaObject(nativeObj.get(key)));
+    // Extract response data
+    Object responseObj = scope.get("response", scope);
+    Map<String, Object> response = new HashMap<>();
+
+    if (responseObj instanceof Scriptable) {
+      Scriptable responseScriptable = (Scriptable) responseObj;
+
+      // Convert status to integer
+      Object statusObj = responseScriptable.get("status", responseScriptable);
+      int status = 200;
+      if (statusObj instanceof Number) {
+        status = ((Number) statusObj).intValue();
       }
-      return result;
+
+      response.put("status", status);
+      response.put(
+          "headers",
+          scriptExecutor.convertToJavaObject(
+              responseScriptable.get("headers", responseScriptable)));
+      response.put(
+          "body",
+          scriptExecutor.convertToJavaObject(responseScriptable.get("body", responseScriptable)));
+    } else {
+      response.put("status", 200);
+      response.put("headers", new HashMap<String, String>());
+      response.put("body", "");
     }
 
-    if (obj instanceof org.mozilla.javascript.Scriptable) {
-      // Generic Scriptable handling
-      org.mozilla.javascript.Scriptable scriptable = (org.mozilla.javascript.Scriptable) obj;
-      Map<String, Object> result = new HashMap<>();
-      Object[] ids = scriptable.getIds();
-      for (Object id : ids) {
-        if (id instanceof String) {
-          String key = (String) id;
-          result.put(key, convertToJavaObject(scriptable.get(key, scriptable)));
-        }
-      }
-      return result;
-    }
-
-    if (obj instanceof Number || obj instanceof String || obj instanceof Boolean) {
-      return obj;
-    }
-
-    return obj.toString();
-  }
-
-  /** Convert JsonElement to Java object. */
-  private Object convertJsonElement(JsonElement element) {
-    if (element == null || element.isJsonNull()) {
-      return null;
-    }
-    if (element.isJsonPrimitive()) {
-      var primitive = element.getAsJsonPrimitive();
-      if (primitive.isNumber()) {
-        return primitive.getAsNumber();
-      } else if (primitive.isBoolean()) {
-        return primitive.getAsBoolean();
-      } else {
-        return primitive.getAsString();
-      }
-    } else if (element.isJsonArray()) {
-      var array = element.getAsJsonArray();
-      Object[] result = new Object[array.size()];
-      for (int i = 0; i < array.size(); i++) {
-        result[i] = convertJsonElement(array.get(i));
-      }
-      return result;
-    } else if (element.isJsonObject()) {
-      return convertJsonToJavaScript(element.getAsJsonObject());
-    }
-    return null;
+    return response;
   }
 
   /** Create an error response map. */
@@ -384,21 +185,9 @@ public class ApiScriptProcessor {
     response.put("status", status);
     response.put("headers", new HashMap<String, String>());
 
-    Map<String, Object> errorBody = new HashMap<>();
-    errorBody.put("error", error);
-    errorBody.put("message", message);
-
-    // Include stack trace in dev mode
-    if (PropertiesUtil.isDevEnvironment() && throwable != null) {
-      StringBuilder stackTrace = new StringBuilder();
-      stackTrace.append(throwable.toString()).append("\n");
-      for (StackTraceElement element : throwable.getStackTrace()) {
-        stackTrace.append("  at ").append(element.toString()).append("\n");
-      }
-      errorBody.put("stackTrace", stackTrace.toString());
-    }
-
-    response.put("body", JsonUtil.toJson(errorBody));
+    ScriptExecutor.ScriptExecutionResult errorResult =
+        ScriptExecutor.ScriptExecutionResult.error(status, error, message, throwable);
+    response.put("body", errorResult.toErrorJson());
 
     return response;
   }
