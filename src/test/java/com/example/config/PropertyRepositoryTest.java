@@ -91,8 +91,8 @@ class PropertyRepositoryTest {
     Optional<AppProperty> result = repo.findById(5L);
 
     assertTrue(result.isPresent());
-    assertEquals("my.prop", result.get().getName());
-    assertEquals("hello", result.get().getValue());
+    assertEquals("my.prop", result.get().name());
+    assertEquals("hello", result.get().value());
   }
 
   @Test
@@ -115,8 +115,8 @@ class PropertyRepositoryTest {
 
     AppProperty created = repo.create("new.prop", "newVal", "STRING", "desc", "admin");
 
-    assertEquals(10L, created.getId());
-    assertEquals("new.prop", created.getName());
+    assertEquals(10L, created.id());
+    assertEquals("new.prop", created.name());
     verify(ps).setString(1, "new.prop");
     verify(ps).setString(2, "newVal");
   }
@@ -143,7 +143,7 @@ class PropertyRepositoryTest {
     Optional<AppProperty> result = repo.update(3L, "newValue", "updated desc", "admin");
 
     assertTrue(result.isPresent());
-    assertEquals("newValue", result.get().getValue());
+    assertEquals("newValue", result.get().value());
   }
 
   @Test

@@ -13,33 +13,33 @@ class AppPropertyTest {
   }
 
   @Test
-  void gettersReturnConstructorValues() {
+  void accessorsReturnConstructorValues() {
     Instant now = Instant.now();
     AppProperty p =
         new AppProperty(
             7L, "server.port", "9090", "INTEGER", "Port", true, now, now, "admin", "admin");
 
-    assertEquals(7L, p.getId());
-    assertEquals("server.port", p.getName());
-    assertEquals("9090", p.getValue());
-    assertEquals("INTEGER", p.getType());
-    assertEquals("Port", p.getDescription());
-    assertTrue(p.isActive());
-    assertEquals(now, p.getCreatedAt());
-    assertEquals(now, p.getUpdatedAt());
-    assertEquals("admin", p.getCreatedBy());
-    assertEquals("admin", p.getUpdatedBy());
+    assertEquals(7L, p.id());
+    assertEquals("server.port", p.name());
+    assertEquals("9090", p.value());
+    assertEquals("INTEGER", p.type());
+    assertEquals("Port", p.description());
+    assertTrue(p.active());
+    assertEquals(now, p.createdAt());
+    assertEquals(now, p.updatedAt());
+    assertEquals("admin", p.createdBy());
+    assertEquals("admin", p.updatedBy());
   }
 
   @Test
   void nullValueAllowed() {
     AppProperty p = build(1L, "empty.prop", null, true);
-    assertNull(p.getValue());
+    assertNull(p.value());
   }
 
   @Test
   void inactivePropertyReflectsFlag() {
     AppProperty p = build(2L, "disabled.prop", "x", false);
-    assertFalse(p.isActive());
+    assertFalse(p.active());
   }
 }

@@ -185,16 +185,16 @@ public class PropertiesHandler {
 
   private Map<String, Object> toMap(AppProperty p) {
     Map<String, Object> m = new LinkedHashMap<>();
-    m.put("id", p.getId());
-    m.put("name", p.getName());
-    m.put("value", p.getValue());
-    m.put("type", p.getType());
-    m.put("description", p.getDescription());
-    m.put("active", p.isActive());
-    m.put("createdAt", p.getCreatedAt() != null ? p.getCreatedAt().toString() : null);
-    m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : null);
-    m.put("createdBy", p.getCreatedBy());
-    m.put("updatedBy", p.getUpdatedBy());
+    m.put("id", p.id());
+    m.put("name", p.name());
+    m.put("value", p.value());
+    m.put("type", p.type());
+    m.put("description", p.description());
+    m.put("active", p.active());
+    m.put("createdAt", p.createdAt() != null ? p.createdAt().toString() : null);
+    m.put("updatedAt", p.updatedAt() != null ? p.updatedAt().toString() : null);
+    m.put("createdBy", p.createdBy());
+    m.put("updatedBy", p.updatedBy());
     return m;
   }
 
