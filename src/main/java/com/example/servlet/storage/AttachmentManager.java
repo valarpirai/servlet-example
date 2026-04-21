@@ -1,5 +1,7 @@
 package com.example.servlet.storage;
 
+import com.example.config.DbConfig;
+import com.example.config.DbPropertiesLoader;
 import com.example.servlet.model.Attachment;
 import com.example.servlet.util.PropertiesUtil;
 import java.io.IOException;
@@ -148,7 +150,13 @@ public class AttachmentManager {
       case "s3":
         throw new UnsupportedOperationException("S3 storage not yet implemented");
       case "database":
-        throw new UnsupportedOperationException("Database storage not yet implemented");
+        DbConfig dbConfig = DbPropertiesLoader.getDbConfig();
+        if (dbConfig == null) {
+          throw new IllegalStateException(
+              "storage.type=database but DB connection is not initialised");
+        }
+        int chunkSize = PropertiesUtil.getInt("storage.chunkSize", 1048576);
+        return new DatabaseAttachmentStorage(dbConfig, chunkSize);
       default:
         logger.warn("Unknown storage type: {}, falling back to filesystem", storageType);
         return new LocalFileSystemStorage();
