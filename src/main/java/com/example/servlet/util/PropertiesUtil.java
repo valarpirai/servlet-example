@@ -1,21 +1,37 @@
 package com.example.servlet.util;
 
+import com.example.config.PropertyRepository;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 public class PropertiesUtil {
 
-  // Note: Logger initialization is deferred to avoid circular dependency
-  // PropertiesUtil is used by LoggingConfig, so we can't use logger during static initialization
   private static Logger logger;
   private static final String CONFIG_FILE = "application.yml";
-  private static Map<String, Object> properties;
+  private static Map<String, Object> yamlProperties;
+
+  // LRU cache: key → Optional.of(value) for hits, Optional.empty() for DB misses.
+  // Capacity 500; backed by access-ordered LinkedHashMap for LRU eviction.
+  private static final Map<String, Optional<String>> lruCache =
+      Collections.synchronizedMap(
+          new LinkedHashMap<String, Optional<String>>(16, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Optional<String>> eldest) {
+              return size() > 500;
+            }
+          });
+
+  // Set by DbPropertiesLoader once the DB connection is ready.
+  private static volatile PropertyRepository propertyRepository;
 
   static {
-    loadProperties();
+    loadYaml();
   }
 
   private static Logger getLogger() {
@@ -25,61 +41,45 @@ public class PropertiesUtil {
     return logger;
   }
 
-  /**
-   * Load properties from YAML file Note: Uses System.err during initialization as logging is not
-   * yet configured
-   */
-  private static void loadProperties() {
-    try (InputStream inputStream =
-        PropertiesUtil.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
-      if (inputStream == null) {
-        // Use System.err during static initialization (before logging is configured)
-        System.err.println("Warning: " + CONFIG_FILE + " not found. Using default values.");
-        properties = Map.of();
+  private static void loadYaml() {
+    try (InputStream in = PropertiesUtil.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
+      if (in == null) {
+        System.err.println("Warning: " + CONFIG_FILE + " not found. Using defaults.");
+        yamlProperties = Map.of();
         return;
       }
-
       Yaml yaml = new Yaml();
-      properties = yaml.load(inputStream);
-
-      if (properties == null) {
-        properties = Map.of();
+      yamlProperties = yaml.load(in);
+      if (yamlProperties == null) {
+        yamlProperties = Map.of();
       }
     } catch (Exception e) {
-      // Use System.err during static initialization (before logging is configured)
-      System.err.println("Error loading properties file: " + e.getMessage());
-      properties = Map.of();
+      System.err.println("Error loading " + CONFIG_FILE + ": " + e.getMessage());
+      yamlProperties = Map.of();
     }
   }
 
   /**
-   * Get a property value as String
-   *
-   * @param key The property key in dot notation (e.g., "server.port")
-   * @param defaultValue The default value if property not found
-   * @return The property value or default value
+   * Register the DB-backed property repository. Clears the LRU cache so subsequent reads go to the
+   * DB. Pass null to detach (used in tests).
    */
+  public static void setPropertyRepository(PropertyRepository repo) {
+    propertyRepository = repo;
+    lruCache.clear();
+  }
+
+  // ---- Public typed accessors ----
+
   public static String getString(String key, String defaultValue) {
     Object value = getProperty(key);
     return value != null ? String.valueOf(value) : defaultValue;
   }
 
-  /**
-   * Get a property value as Integer
-   *
-   * @param key The property key in dot notation (e.g., "server.port")
-   * @param defaultValue The default value if property not found
-   * @return The property value or default value
-   */
   public static int getInt(String key, int defaultValue) {
     Object value = getProperty(key);
-    if (value == null) {
-      return defaultValue;
-    }
+    if (value == null) return defaultValue;
     try {
-      if (value instanceof Number) {
-        return ((Number) value).intValue();
-      }
+      if (value instanceof Number) return ((Number) value).intValue();
       return Integer.parseInt(String.valueOf(value));
     } catch (NumberFormatException e) {
       getLogger().warn("Invalid integer value for key '{}': {}", key, value);
@@ -87,22 +87,11 @@ public class PropertiesUtil {
     }
   }
 
-  /**
-   * Get a property value as Long
-   *
-   * @param key The property key in dot notation (e.g., "upload.maxFileSize")
-   * @param defaultValue The default value if property not found
-   * @return The property value or default value
-   */
   public static long getLong(String key, long defaultValue) {
     Object value = getProperty(key);
-    if (value == null) {
-      return defaultValue;
-    }
+    if (value == null) return defaultValue;
     try {
-      if (value instanceof Number) {
-        return ((Number) value).longValue();
-      }
+      if (value instanceof Number) return ((Number) value).longValue();
       return Long.parseLong(String.valueOf(value));
     } catch (NumberFormatException e) {
       getLogger().warn("Invalid long value for key '{}': {}", key, value);
@@ -110,40 +99,18 @@ public class PropertiesUtil {
     }
   }
 
-  /**
-   * Get a property value as Boolean
-   *
-   * @param key The property key in dot notation (e.g., "feature.enabled")
-   * @param defaultValue The default value if property not found
-   * @return The property value or default value
-   */
   public static boolean getBoolean(String key, boolean defaultValue) {
     Object value = getProperty(key);
-    if (value == null) {
-      return defaultValue;
-    }
-    if (value instanceof Boolean) {
-      return (Boolean) value;
-    }
+    if (value == null) return defaultValue;
+    if (value instanceof Boolean) return (Boolean) value;
     return Boolean.parseBoolean(String.valueOf(value));
   }
 
-  /**
-   * Get a property value as Double
-   *
-   * @param key The property key in dot notation (e.g., "rate.limit")
-   * @param defaultValue The default value if property not found
-   * @return The property value or default value
-   */
   public static double getDouble(String key, double defaultValue) {
     Object value = getProperty(key);
-    if (value == null) {
-      return defaultValue;
-    }
+    if (value == null) return defaultValue;
     try {
-      if (value instanceof Number) {
-        return ((Number) value).doubleValue();
-      }
+      if (value instanceof Number) return ((Number) value).doubleValue();
       return Double.parseDouble(String.valueOf(value));
     } catch (NumberFormatException e) {
       getLogger().warn("Invalid double value for key '{}': {}", key, value);
@@ -151,129 +118,104 @@ public class PropertiesUtil {
     }
   }
 
-  /**
-   * Get a raw property value
-   *
-   * @param key The property key in dot notation (e.g., "server.port")
-   * @return The property value or null if not found
-   */
-  @SuppressWarnings("unchecked")
-  private static Object getProperty(String key) {
-    if (properties == null || key == null || key.trim().isEmpty()) {
-      return null;
-    }
-
-    String[] keys = key.split("\\.");
-    Map<String, Object> current = properties;
-
-    for (int i = 0; i < keys.length - 1; i++) {
-      Object value = current.get(keys[i]);
-      if (!(value instanceof Map)) {
-        return null;
-      }
-      current = (Map<String, Object>) value;
-    }
-
-    Object value = current.get(keys[keys.length - 1]);
-
-    // Handle placeholders like ${ENV_VAR:default_value} or ${ENV_VAR}
-    if (value instanceof String) {
-      String strValue = (String) value;
-      value = resolvePlaceholders(strValue);
-    }
-
-    return value;
-  }
-
-  /**
-   * Resolve placeholders in a string value Supports: ${ENV_VAR:default_value} and ${ENV_VAR}
-   *
-   * @param value The value with placeholders
-   * @return The resolved value
-   */
-  private static String resolvePlaceholders(String value) {
-    if (value == null || !value.contains("${")) {
-      return value;
-    }
-
-    String result = value;
-    int startIndex;
-    while ((startIndex = result.indexOf("${")) != -1) {
-      int endIndex = result.indexOf("}", startIndex);
-      if (endIndex == -1) {
-        break;
-      }
-
-      String placeholder = result.substring(startIndex + 2, endIndex);
-      String defaultValue = null;
-      String varName = placeholder;
-
-      // Check for default value syntax: VAR_NAME:default_value
-      int colonIndex = placeholder.indexOf(':');
-      if (colonIndex != -1) {
-        varName = placeholder.substring(0, colonIndex);
-        defaultValue = placeholder.substring(colonIndex + 1);
-      }
-
-      // Try environment variable first, then system property
-      String resolvedValue = System.getenv(varName);
-      if (resolvedValue == null) {
-        resolvedValue = System.getProperty(varName);
-      }
-      if (resolvedValue == null) {
-        resolvedValue = defaultValue;
-      }
-
-      // If still null, keep the original placeholder
-      if (resolvedValue == null) {
-        resolvedValue = "${" + placeholder + "}";
-      }
-
-      result = result.substring(0, startIndex) + resolvedValue + result.substring(endIndex + 1);
-    }
-
-    return result;
-  }
-
-  /**
-   * Check if a property exists
-   *
-   * @param key The property key in dot notation
-   * @return true if property exists, false otherwise
-   */
   public static boolean hasProperty(String key) {
     return getProperty(key) != null;
   }
 
-  /** Reload properties from file (useful for testing or hot-reload) */
+  /** Reload YAML and clear the LRU cache (next reads re-fetch from DB). */
   public static void reload() {
-    loadProperties();
+    loadYaml();
+    lruCache.clear();
   }
 
-  /**
-   * Get all properties as a map
-   *
-   * @return All properties
-   */
+  /** Returns the YAML properties map (now only contains db.* bootstrap keys). */
   public static Map<String, Object> getAllProperties() {
-    return properties;
+    return yamlProperties;
   }
 
-  /**
-   * Get the application environment (dev, prod, etc.)
-   *
-   * @return The environment name (defaults to "dev")
-   */
   public static String getEnvironment() {
     return getString("application.environment", "dev");
   }
 
-  /**
-   * Check if the application is running in development mode
-   *
-   * @return true if environment is "dev", false otherwise
-   */
   public static boolean isDevEnvironment() {
     return "dev".equalsIgnoreCase(getEnvironment());
+  }
+
+  // ---- Internal lookup: LRU cache → DB → YAML ----
+
+  private static Object getProperty(String key) {
+    if (key == null || key.trim().isEmpty()) return null;
+
+    // 1. LRU cache
+    Optional<String> cached = lruCache.get(key);
+    if (cached != null) {
+      // Cache hit: present = DB value found; empty = DB miss, fall through to YAML
+      if (cached.isPresent()) return cached.get();
+      return getYamlProperty(key);
+    }
+
+    // 2. DB lookup (lazy)
+    if (propertyRepository != null) {
+      try {
+        Optional<String> dbValue = propertyRepository.findValueByName(key);
+        lruCache.put(key, dbValue);
+        if (dbValue.isPresent()) return dbValue.get();
+        // DB miss – fall through to YAML
+      } catch (Exception e) {
+        getLogger().warn("DB lookup failed for key '{}', using YAML fallback", key, e);
+      }
+    }
+
+    // 3. YAML fallback (only db.* keys live here post-migration)
+    return getYamlProperty(key);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Object getYamlProperty(String key) {
+    if (yamlProperties == null) return null;
+
+    String[] parts = key.split("\\.");
+    Map<String, Object> current = yamlProperties;
+
+    for (int i = 0; i < parts.length - 1; i++) {
+      Object val = current.get(parts[i]);
+      if (!(val instanceof Map)) return null;
+      current = (Map<String, Object>) val;
+    }
+
+    Object value = current.get(parts[parts.length - 1]);
+    if (value instanceof String) {
+      value = resolvePlaceholders((String) value);
+    }
+    return value;
+  }
+
+  private static String resolvePlaceholders(String value) {
+    if (value == null || !value.contains("${")) return value;
+
+    String result = value;
+    int start;
+    while ((start = result.indexOf("${")) != -1) {
+      int end = result.indexOf("}", start);
+      if (end == -1) break;
+
+      String placeholder = result.substring(start + 2, end);
+      String varName = placeholder;
+      String defaultVal = null;
+
+      int colon = placeholder.indexOf(':');
+      if (colon != -1) {
+        varName = placeholder.substring(0, colon);
+        defaultVal = placeholder.substring(colon + 1);
+      }
+
+      String resolved = System.getenv(varName);
+      if (resolved == null) resolved = System.getProperty(varName);
+      if (resolved == null) resolved = defaultVal;
+      if (resolved == null) resolved = "${" + placeholder + "}";
+
+      result = result.substring(0, start) + resolved + result.substring(end + 1);
+    }
+    return result;
   }
 }

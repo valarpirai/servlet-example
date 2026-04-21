@@ -1,5 +1,6 @@
 package com.example;
 
+import com.example.config.DbPropertiesLoader;
 import com.example.servlet.RouterServlet;
 import com.example.servlet.util.CorrelationIdFilter;
 import com.example.servlet.util.LoggingConfig;
@@ -18,18 +19,18 @@ import org.slf4j.LoggerFactory;
 
 public class Main {
 
-  private static final int PORT = PropertiesUtil.getInt("server.port", 8080);
   private static final Logger logger;
 
-  // Static initializer to configure logging before logger creation
   static {
     LoggingConfig.initialize();
+    DbPropertiesLoader.initialize(); // wires LRU-backed PropertyRepository into PropertiesUtil
     logger = LoggerFactory.getLogger(Main.class);
   }
 
   public static void main(String[] args) {
+    int port = PropertiesUtil.getInt("server.port", 8080);
     Tomcat tomcat = new Tomcat();
-    tomcat.setPort(PORT);
+    tomcat.setPort(port);
     tomcat.getConnector();
 
     String contextPath = "";
@@ -72,22 +73,22 @@ public class Main {
 
       logger.info("=========================================");
       logger.info("Tomcat server started successfully!");
-      logger.info("Port: {}", PORT);
+      logger.info("Port: {}", port);
       logger.info("GET Endpoints:");
-      logger.info("  - http://localhost:{}/", PORT);
-      logger.info("  - http://localhost:{}/health", PORT);
-      logger.info("  - http://localhost:{}/metrics", PORT);
-      logger.info("  - http://localhost:{}/script-editor (JavaScript Code Editor)", PORT);
-      logger.info("  - http://localhost:{}/data-browser (Database Browser)", PORT);
+      logger.info("  - http://localhost:{}/", port);
+      logger.info("  - http://localhost:{}/health", port);
+      logger.info("  - http://localhost:{}/metrics", port);
+      logger.info("  - http://localhost:{}/script-editor (JavaScript Code Editor)", port);
+      logger.info("  - http://localhost:{}/data-browser (Database Browser)", port);
       logger.info("POST Endpoints:");
       logger.info(
           "  - http://localhost:{}/api/form   (Content-Type: application/x-www-form-urlencoded)",
-          PORT);
-      logger.info("  - http://localhost:{}/api/json   (Content-Type: application/json)", PORT);
-      logger.info("  - http://localhost:{}/api/upload (Content-Type: multipart/form-data)", PORT);
+          port);
+      logger.info("  - http://localhost:{}/api/json   (Content-Type: application/json)", port);
+      logger.info("  - http://localhost:{}/api/upload (Content-Type: multipart/form-data)", port);
       logger.info(
-          "  - http://localhost:{}/api/script (Content-Type: application/javascript)", PORT);
-      logger.info("  - http://localhost:{}/api/render (Content-Type: text/html)", PORT);
+          "  - http://localhost:{}/api/script (Content-Type: application/javascript)", port);
+      logger.info("  - http://localhost:{}/api/render (Content-Type: text/html)", port);
       logger.info("=========================================");
 
       tomcat.getServer().await();
@@ -100,10 +101,10 @@ public class Main {
               && cause.getMessage().contains("Address already in use"))) {
         logger.error("=========================================");
         logger.error("ERROR: Cannot start server");
-        logger.error("Port {} is already in use.", PORT);
+        logger.error("Port {} is already in use.", port);
         logger.error("To fix this:");
-        logger.error("  1. Stop the process using port {}", PORT);
-        logger.error("  2. Or use a different port: SERVER_PORT=9090 mvn -PappRun");
+        logger.error("  1. Stop the process using port {}", port);
+        logger.error("  2. Or use a different port: SERVER_port=9090 mvn -PappRun");
         logger.error("=========================================");
         System.exit(1);
       } else {
