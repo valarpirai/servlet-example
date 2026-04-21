@@ -355,6 +355,8 @@ public class RouteRegistry {
         return "com.example.servlet.handler.AttachmentHandler";
       case "DataBrowserHandler":
         return "com.example.servlet.handler.DataBrowserHandler";
+      case "PropertiesHandler":
+        return "com.example.servlet.handler.PropertiesHandler";
       default:
         return null;
     }

@@ -55,6 +55,71 @@ routes:
     contentType: application/json
     description: Delete attachment
 
+  # Properties API
+  - path: /api/properties/reload
+    method: POST
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleReload
+    contentType: application/json
+    description: Flush LRU cache and reload all properties from DB
+
+  - path: /api/properties/{id}/active
+    method: PATCH
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleToggleActive
+    pathParams:
+      - id
+    contentType: application/json
+    description: Enable or disable a property (toggle active flag)
+
+  - path: /api/properties/{id}
+    method: GET
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleGet
+    pathParams:
+      - id
+    contentType: application/json
+    description: Get a single property by id
+
+  - path: /api/properties/{id}
+    method: PUT
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleUpdate
+    pathParams:
+      - id
+    contentType: application/json
+    description: Update value and description of a property
+
+  - path: /api/properties/{id}
+    method: DELETE
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleDelete
+    pathParams:
+      - id
+    contentType: application/json
+    description: Hard-delete a property row
+
+  - path: /api/properties
+    method: GET
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleList
+    contentType: application/json
+    description: List all properties
+
+  - path: /api/properties
+    method: POST
+    type: handler
+    handler: PropertiesHandler
+    handlerMethod: handleCreate
+    contentType: application/json
+    description: Create a new property row
+
   # Module API
   - path: /api/modules/**
     method: [GET, POST, PUT, DELETE]

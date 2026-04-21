@@ -3,6 +3,7 @@ package com.example.servlet.route;
 import com.example.servlet.handler.ApiHandler;
 import com.example.servlet.handler.AttachmentHandler;
 import com.example.servlet.handler.DataBrowserHandler;
+import com.example.servlet.handler.PropertiesHandler;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.model.Route;
 import com.example.servlet.processor.FileUploadProcessor;
@@ -295,6 +296,8 @@ public class RouteDispatcher {
         return AttachmentHandler.getInstance();
       case "DataBrowserHandler":
         return DataBrowserHandler.getInstance();
+      case "PropertiesHandler":
+        return PropertiesHandler.getInstance();
       default:
         return null;
     }
