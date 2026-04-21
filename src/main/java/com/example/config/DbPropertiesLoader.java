@@ -1,10 +1,17 @@
 package com.example.config;
 
 import com.example.servlet.util.PropertiesUtil;
+import org.flywaydb.core.Flyway;
 
 /**
- * One-time initialiser that wires a PropertyRepository into PropertiesUtil. Called early in
- * Main.main() after LoggingConfig so that all subsequent PropertiesUtil reads are DB-backed.
+ * One-time initialiser that:
+ *
+ * <ol>
+ *   <li>Runs Flyway migrations (applies any pending {@code db/V*__*.sql} scripts)
+ *   <li>Wires a {@link PropertyRepository} into {@link PropertiesUtil} for DB-backed LRU lookups
+ * </ol>
+ *
+ * <p>Called early in {@code Main} static block, after {@code LoggingConfig}.
  */
 public class DbPropertiesLoader {
 
@@ -13,7 +20,6 @@ public class DbPropertiesLoader {
 
   private DbPropertiesLoader() {}
 
-  /** Connect to the DB and register the repository with PropertiesUtil. */
   public static void initialize() {
     DbConfig config = DbConfig.fromProperties();
     if (config == null) {
@@ -21,11 +27,16 @@ public class DbPropertiesLoader {
       return;
     }
     try {
-      config.getConnection().close(); // smoke-test
+      Flyway.configure()
+          .dataSource(config.getUrl(), config.getUsername(), config.getPassword())
+          .locations("classpath:db")
+          .load()
+          .migrate();
+
       database = new Database(config);
       repository = new PropertyRepository(database);
       PropertiesUtil.setPropertyRepository(repository);
-      System.out.println("[DbPropertiesLoader] Connected to DB – property LRU cache active");
+      System.out.println("[DbPropertiesLoader] DB ready – schema migrated, LRU cache active");
     } catch (Exception e) {
       System.err.println(
           "[DbPropertiesLoader] Cannot connect to DB, falling back to defaults: " + e.getMessage());
