@@ -98,6 +98,13 @@
             <version>42.7.9</version>
         </dependency>
 
+        <!-- jOOQ – type-safe SQL DSL -->
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq</artifactId>
+            <version>3.19.11</version>
+        </dependency>
+
         <!-- Mockito for mocking in tests -->
         <dependency>
             <groupId>org.mockito</groupId>

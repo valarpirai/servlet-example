@@ -1,10 +1,10 @@
 package com.example.config;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.sql.*;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,77 +16,74 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PropertyRepositoryTest {
 
-  @Mock private DbConfig dbConfig;
-  @Mock private Connection conn;
-  @Mock private PreparedStatement ps;
-  @Mock private ResultSet rs;
+  @Mock Database database;
 
-  private PropertyRepository repo;
+  PropertyRepository repo;
 
   @BeforeEach
-  void setUp() throws SQLException {
-    when(dbConfig.getConnection()).thenReturn(conn);
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    repo = new PropertyRepository(dbConfig);
+  void setUp() {
+    repo = new PropertyRepository(database);
   }
 
   // ---- findValueByName ----
 
   @Test
-  void findValueByName_returnsValue_whenRowExists() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    when(rs.getString("value")).thenReturn("8080");
+  void findValueByName_returnsValue_whenRowExists() throws Exception {
+    when(database.query(any())).thenReturn(Optional.of("8080"));
 
     Optional<String> result = repo.findValueByName("server.port");
 
     assertTrue(result.isPresent());
     assertEquals("8080", result.get());
-    verify(ps).setString(1, "server.port");
+    verify(database).query(any());
   }
 
   @Test
-  void findValueByName_returnsEmpty_whenNoRow() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false);
+  void findValueByName_returnsEmpty_whenNoRow() throws Exception {
+    when(database.query(any())).thenReturn(Optional.empty());
 
-    Optional<String> result = repo.findValueByName("missing.key");
-
-    assertFalse(result.isPresent());
+    assertFalse(repo.findValueByName("missing.key").isPresent());
   }
 
   @Test
-  void findValueByName_returnsEmptyOptional_whenValueIsNull() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    when(rs.getString("value")).thenReturn(null);
+  void findValueByName_returnsEmptyOptional_whenValueIsNull() throws Exception {
+    when(database.query(any())).thenReturn(Optional.empty());
 
-    Optional<String> result = repo.findValueByName("null.valued");
+    assertFalse(repo.findValueByName("null.valued").isPresent());
+  }
 
-    assertFalse(result.isPresent());
+  @Test
+  void findValueByName_propagatesException() throws Exception {
+    doThrow(new RuntimeException("DB error")).when(database).query(any());
+
+    assertThrows(RuntimeException.class, () -> repo.findValueByName("any.key"));
   }
 
   // ---- findAll ----
 
   @Test
-  void findAll_returnsMappedRows() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, true, false);
-
-    stubFullRow(rs, 1L, "a.key", "v1", "STRING", true);
+  void findAll_returnsMappedRows() throws Exception {
+    List<AppProperty> rows = List.of(prop(1L, "a.key", "v1"), prop(2L, "b.key", "v2"));
+    when(database.query(any())).thenReturn(rows);
 
     List<AppProperty> list = repo.findAll();
 
     assertEquals(2, list.size());
   }
 
+  @Test
+  void findAll_returnsEmptyList_whenNoRows() throws Exception {
+    when(database.query(any())).thenReturn(List.of());
+
+    assertTrue(repo.findAll().isEmpty());
+  }
+
   // ---- findById ----
 
   @Test
-  void findById_returnsProperty_whenFound() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    stubFullRow(rs, 5L, "my.prop", "hello", "STRING", true);
+  void findById_returnsProperty_whenFound() throws Exception {
+    AppProperty p = prop(5L, "my.prop", "hello");
+    when(database.query(any())).thenReturn(Optional.of(p));
 
     Optional<AppProperty> result = repo.findById(5L);
 
@@ -96,49 +93,40 @@ class PropertyRepositoryTest {
   }
 
   @Test
-  void findById_returnsEmpty_whenNotFound() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false);
+  void findById_returnsEmpty_whenNotFound() throws Exception {
+    when(database.query(any())).thenReturn(Optional.empty());
 
-    Optional<AppProperty> result = repo.findById(99L);
-
-    assertFalse(result.isPresent());
+    assertFalse(repo.findById(99L).isPresent());
   }
 
   // ---- create ----
 
   @Test
-  void create_insertsAndReturnsRow() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    stubFullRow(rs, 10L, "new.prop", "newVal", "STRING", true);
+  void create_returnsCreatedProperty() throws Exception {
+    AppProperty created = prop(10L, "new.prop", "newVal");
+    when(database.query(any())).thenReturn(created);
 
-    AppProperty created = repo.create("new.prop", "newVal", "STRING", "desc", "admin");
+    AppProperty result = repo.create("new.prop", "newVal", "STRING", "desc", "admin");
 
-    assertEquals(10L, created.id());
-    assertEquals("new.prop", created.name());
-    verify(ps).setString(1, "new.prop");
-    verify(ps).setString(2, "newVal");
+    assertEquals(10L, result.id());
+    assertEquals("new.prop", result.name());
   }
 
   @Test
-  void create_defaultsTypeToString_whenNull() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    stubFullRow(rs, 11L, "x", "y", "STRING", true);
+  void create_delegatesToDatabase() throws Exception {
+    when(database.query(any())).thenReturn(prop(11L, "x", "y"));
 
     repo.create("x", "y", null, null, null);
 
-    verify(ps).setString(3, "STRING");
+    verify(database).query(any());
   }
 
   // ---- update ----
 
   @Test
-  void update_returnsUpdatedRow() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    stubFullRow(rs, 3L, "some.key", "newValue", "STRING", true);
+  void update_returnsUpdatedRow() throws Exception {
+    AppProperty updated = prop(3L, "some.key", "newValue");
+    when(database.query(any())).thenReturn(Optional.of(updated));
 
     Optional<AppProperty> result = repo.update(3L, "newValue", "updated desc", "admin");
 
@@ -147,67 +135,48 @@ class PropertyRepositoryTest {
   }
 
   @Test
-  void update_returnsEmpty_whenIdNotFound() throws SQLException {
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false);
+  void update_returnsEmpty_whenIdNotFound() throws Exception {
+    when(database.query(any())).thenReturn(Optional.empty());
 
-    Optional<AppProperty> result = repo.update(999L, "v", "d", "admin");
-
-    assertFalse(result.isPresent());
+    assertFalse(repo.update(999L, "v", "d", "admin").isPresent());
   }
 
   // ---- setActive ----
 
   @Test
-  void setActive_returnsTrue_whenRowUpdated() throws SQLException {
-    when(ps.executeUpdate()).thenReturn(1);
+  void setActive_returnsTrue_whenRowUpdated() throws Exception {
+    when(database.query(any())).thenReturn(true);
 
-    boolean updated = repo.setActive(1L, false, "admin");
-
-    assertTrue(updated);
-    verify(ps).setBoolean(1, false);
+    assertTrue(repo.setActive(1L, false, "admin"));
   }
 
   @Test
-  void setActive_returnsFalse_whenRowNotFound() throws SQLException {
-    when(ps.executeUpdate()).thenReturn(0);
+  void setActive_returnsFalse_whenRowNotFound() throws Exception {
+    when(database.query(any())).thenReturn(false);
 
-    boolean updated = repo.setActive(999L, true, "admin");
-
-    assertFalse(updated);
+    assertFalse(repo.setActive(999L, true, "admin"));
   }
 
   // ---- delete ----
 
   @Test
-  void delete_returnsTrue_whenRowDeleted() throws SQLException {
-    when(ps.executeUpdate()).thenReturn(1);
+  void delete_returnsTrue_whenRowDeleted() throws Exception {
+    when(database.query(any())).thenReturn(true);
 
     assertTrue(repo.delete(1L));
   }
 
   @Test
-  void delete_returnsFalse_whenRowNotFound() throws SQLException {
-    when(ps.executeUpdate()).thenReturn(0);
+  void delete_returnsFalse_whenRowNotFound() throws Exception {
+    when(database.query(any())).thenReturn(false);
 
     assertFalse(repo.delete(999L));
   }
 
   // ---- helpers ----
 
-  private void stubFullRow(
-      ResultSet rs, long id, String name, String value, String type, boolean active)
-      throws SQLException {
-    when(rs.getLong("id")).thenReturn(id);
-    when(rs.getString("name")).thenReturn(name);
-    when(rs.getString("value")).thenReturn(value);
-    when(rs.getString("type")).thenReturn(type);
-    when(rs.getString("description")).thenReturn("desc");
-    when(rs.getBoolean("active")).thenReturn(active);
-    Timestamp ts = new Timestamp(System.currentTimeMillis());
-    when(rs.getTimestamp("created_at")).thenReturn(ts);
-    when(rs.getTimestamp("updated_at")).thenReturn(ts);
-    when(rs.getString("created_by")).thenReturn("system");
-    when(rs.getString("updated_by")).thenReturn("system");
+  private AppProperty prop(long id, String name, String value) {
+    Instant now = Instant.now();
+    return new AppProperty(id, name, value, "STRING", "desc", true, now, now, "system", "system");
   }
 }

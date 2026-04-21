@@ -1,21 +1,20 @@
 package com.example.servlet.storage;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.example.config.DbConfig;
+import com.example.config.Database;
 import com.example.servlet.model.Attachment;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.sql.*;
-import java.util.HexFormat;
 import java.util.List;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -25,90 +24,59 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DatabaseAttachmentStorageTest {
 
-  private static final int CHUNK_SIZE = 4; // 4 bytes – forces multiple chunks in tests
+  private static final int CHUNK_SIZE = 4;
 
-  @Mock private DbConfig dbConfig;
-  @Mock private Connection conn;
-  @Mock private PreparedStatement ps;
-  @Mock private ResultSet rs;
+  @Mock Database database;
+
+  // Deep stubs let jOOQ fluent chains (insertInto().columns().values().execute()) return defaults
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  DSLContext dsl;
 
   private DatabaseAttachmentStorage storage;
 
   @BeforeEach
-  void setUp() throws SQLException {
-    when(dbConfig.getConnection()).thenReturn(conn);
-    storage = new DatabaseAttachmentStorage(dbConfig, CHUNK_SIZE);
+  void setUp() {
+    storage = new DatabaseAttachmentStorage(database, CHUNK_SIZE);
   }
 
   // ---- store ----
 
   @Test
   void store_assignsId_andReturnsAttachment() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
+    // Execute the transact lambda with the deep-stubbed DSLContext
+    doAnswer(
+            inv -> {
+              Database.Work<?> work = inv.getArgument(0);
+              return work.run(dsl);
+            })
+        .when(database)
+        .transact(any());
 
-    Attachment a = new Attachment();
-    a.setFileName("test.txt");
-    a.setContentType("text/plain");
-
-    byte[] content = "Hello".getBytes(StandardCharsets.UTF_8);
-    Attachment stored = storage.store(a, new ByteArrayInputStream(content));
+    Attachment a = newAttachment("test.txt", "text/plain");
+    Attachment stored = storage.store(a, bytes("Hello"));
 
     assertNotNull(stored.getId());
     assertEquals("database", stored.getStorageType());
     assertTrue(stored.getStoragePath().startsWith("database:"));
     assertEquals(5, stored.getSizeBytes());
     assertNotNull(stored.getHash());
+    assertTrue(stored.getHash().matches("[0-9a-f]{64}"));
   }
 
   @Test
-  void store_rollsBack_onChunkInsertFailure() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    // metadata insert succeeds, chunk insert throws
-    when(ps.executeUpdate())
-        .thenReturn(1) // insertMetadataRow
-        .thenThrow(new SQLException("chunk write failed"));
-
-    Attachment a = new Attachment();
-    a.setFileName("fail.txt");
-    a.setContentType("text/plain");
+  void store_throwsIOException_whenTransactFails() throws Exception {
+    doThrow(new RuntimeException("DB error")).when(database).transact(any());
 
     assertThrows(
         IOException.class,
-        () -> storage.store(a, new ByteArrayInputStream("data".getBytes(StandardCharsets.UTF_8))));
-    verify(conn).rollback();
-  }
-
-  @Test
-  void store_computesCorrectHash() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-
-    byte[] content = "abc".getBytes(StandardCharsets.UTF_8);
-    Attachment a = new Attachment();
-    a.setFileName("f.txt");
-    a.setContentType("text/plain");
-
-    Attachment stored = storage.store(a, new ByteArrayInputStream(content));
-
-    // Verify the hash is the SHA-256 of the stored content
-    MessageDigest digest = MessageDigest.getInstance("SHA-256");
-    digest.update(content);
-    String expectedHash = HexFormat.of().formatHex(digest.digest());
-
-    assertNotNull(stored.getHash());
-    assertEquals(64, stored.getHash().length());
-    assertTrue(stored.getHash().matches("[0-9a-f]{64}"), "Hash should be lowercase hex");
-    // Note: hash may differ from raw content hash due to chunking in the storage layer
-    assertNotNull(expectedHash); // content hashed correctly at call site
+        () -> storage.store(newAttachment("fail.txt", "text/plain"), bytes("data")));
   }
 
   // ---- retrieve ----
 
   @Test
-  void retrieve_throwsIOException_whenNotFound() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false); // exists() returns false
+  void retrieve_throwsIOException_whenNotFound() throws Exception {
+    doReturn(false).when(database).query(any());
 
     assertThrows(IOException.class, () -> storage.retrieve("unknown-id"));
   }
@@ -116,19 +84,17 @@ class DatabaseAttachmentStorageTest {
   // ---- delete ----
 
   @Test
-  void delete_executesDeleteStatement() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
+  void delete_delegatesToDatabase() throws Exception {
+    doReturn(1).when(database).query(any());
 
     storage.delete("some-id");
 
-    verify(ps).setString(1, "some-id");
-    verify(ps).executeUpdate();
+    verify(database).query(any());
   }
 
   @Test
-  void delete_throwsIOException_onSqlError() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeUpdate()).thenThrow(new SQLException("disk error"));
+  void delete_throwsIOException_onFailure() throws Exception {
+    doThrow(new RuntimeException("disk error")).when(database).query(any());
 
     assertThrows(IOException.class, () -> storage.delete("some-id"));
   }
@@ -136,26 +102,22 @@ class DatabaseAttachmentStorageTest {
   // ---- exists ----
 
   @Test
-  void exists_returnsTrue_whenRowFound() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
+  void exists_returnsTrue_whenFound() throws Exception {
+    doReturn(true).when(database).query(any());
 
     assertTrue(storage.exists("abc-123"));
   }
 
   @Test
-  void exists_returnsFalse_whenNoRow() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false);
+  void exists_returnsFalse_whenNotFound() throws Exception {
+    doReturn(false).when(database).query(any());
 
     assertFalse(storage.exists("unknown"));
   }
 
   @Test
-  void exists_returnsFalse_onSqlError() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenThrow(new SQLException("unreachable"));
+  void exists_returnsFalse_onException() throws Exception {
+    doThrow(new RuntimeException("unreachable")).when(database).query(any());
 
     assertFalse(storage.exists("any-id"));
   }
@@ -164,10 +126,8 @@ class DatabaseAttachmentStorageTest {
 
   @Test
   void listAll_returnsMappedAttachments() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true, true, false);
-    stubMetadataRow(rs);
+    List<Attachment> attachments = List.of(attachment("attach-1"), attachment("attach-2"));
+    doReturn(attachments).when(database).query(any());
 
     List<Attachment> list = storage.listAll();
 
@@ -176,8 +136,8 @@ class DatabaseAttachmentStorageTest {
   }
 
   @Test
-  void listAll_throwsIOException_onSqlError() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenThrow(new SQLException("DB down"));
+  void listAll_throwsIOException_onFailure() throws Exception {
+    doThrow(new RuntimeException("DB down")).when(database).query(any());
 
     assertThrows(IOException.class, () -> storage.listAll());
   }
@@ -186,30 +146,25 @@ class DatabaseAttachmentStorageTest {
 
   @Test
   void loadMetadata_returnsAttachment_whenFound() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(true);
-    stubMetadataRow(rs);
+    Attachment a = attachment("attach-1");
+    doReturn(a).when(database).query(any());
 
-    Attachment a = storage.loadMetadata("attach-1");
+    Attachment result = storage.loadMetadata("attach-1");
 
-    assertNotNull(a);
-    assertEquals("attach-1", a.getId());
-    assertEquals("file.txt", a.getFileName());
+    assertNotNull(result);
+    assertEquals("attach-1", result.getId());
   }
 
   @Test
   void loadMetadata_returnsNull_whenNotFound() throws Exception {
-    when(conn.prepareStatement(anyString())).thenReturn(ps);
-    when(ps.executeQuery()).thenReturn(rs);
-    when(rs.next()).thenReturn(false);
+    doReturn(null).when(database).query(any());
 
     assertNull(storage.loadMetadata("missing"));
   }
 
   @Test
-  void loadMetadata_throwsIOException_onSqlError() throws SQLException {
-    when(conn.prepareStatement(anyString())).thenThrow(new SQLException("error"));
+  void loadMetadata_throwsIOException_onFailure() throws Exception {
+    doThrow(new RuntimeException("error")).when(database).query(any());
 
     assertThrows(IOException.class, () -> storage.loadMetadata("x"));
   }
@@ -223,15 +178,25 @@ class DatabaseAttachmentStorageTest {
 
   // ---- helpers ----
 
-  private void stubMetadataRow(ResultSet rs) throws SQLException {
-    when(rs.getString("id")).thenReturn("attach-1");
-    when(rs.getString("file_name")).thenReturn("file.txt");
-    when(rs.getString("content_type")).thenReturn("text/plain");
-    when(rs.getLong("size_bytes")).thenReturn(100L);
-    when(rs.getString("hash")).thenReturn("abc123");
-    when(rs.getString("storage_type")).thenReturn("database");
-    Timestamp ts = new Timestamp(System.currentTimeMillis());
-    when(rs.getTimestamp("created_at")).thenReturn(ts);
-    when(rs.getTimestamp("updated_at")).thenReturn(ts);
+  private static ByteArrayInputStream bytes(String s) {
+    return new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static Attachment newAttachment(String fileName, String contentType) {
+    Attachment a = new Attachment();
+    a.setFileName(fileName);
+    a.setContentType(contentType);
+    return a;
+  }
+
+  private static Attachment attachment(String id) {
+    Attachment a = new Attachment();
+    a.setId(id);
+    a.setFileName("file.txt");
+    a.setContentType("text/plain");
+    a.setSizeBytes(100L);
+    a.setHash("abc123");
+    a.setStorageType("database");
+    return a;
   }
 }

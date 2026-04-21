@@ -84,7 +84,7 @@ class PropertiesUtilTest {
   // ---- LRU cache + DB lookup ----
 
   @Test
-  void dbValue_returnedAndCached() throws SQLException {
+  void dbValue_returnedAndCached() throws Exception {
     when(repo.findValueByName("server.port")).thenReturn(Optional.of("9090"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -97,7 +97,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void dbMiss_fallsBackToDefault() throws SQLException {
+  void dbMiss_fallsBackToDefault() throws Exception {
     when(repo.findValueByName(anyString())).thenReturn(Optional.empty());
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -105,7 +105,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void dbError_fallsBackToDefault() throws SQLException {
+  void dbError_fallsBackToDefault() throws Exception {
     when(repo.findValueByName(anyString())).thenThrow(new SQLException("connection lost"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -113,7 +113,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void reload_clearsCache_soNextCallHitsDb() throws SQLException {
+  void reload_clearsCache_soNextCallHitsDb() throws Exception {
     when(repo.findValueByName("server.port")).thenReturn(Optional.of("9090"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -125,7 +125,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void setRepository_clearsExistingCache() throws SQLException {
+  void setRepository_clearsExistingCache() throws Exception {
     when(repo.findValueByName("server.port")).thenReturn(Optional.of("9090"));
     PropertiesUtil.setPropertyRepository(repo);
     PropertiesUtil.getString("server.port", "8080"); // cache entry created
@@ -143,7 +143,7 @@ class PropertiesUtilTest {
   // ---- type coercions from DB (all values are Strings from DB) ----
 
   @Test
-  void getInt_parsesStringFromDb() throws SQLException {
+  void getInt_parsesStringFromDb() throws Exception {
     when(repo.findValueByName("server.port")).thenReturn(Optional.of("8080"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -151,7 +151,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void getLong_parsesStringFromDb() throws SQLException {
+  void getLong_parsesStringFromDb() throws Exception {
     when(repo.findValueByName("upload.maxFileSize")).thenReturn(Optional.of("10485760"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -159,7 +159,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void getBoolean_parsesStringFromDb() throws SQLException {
+  void getBoolean_parsesStringFromDb() throws Exception {
     when(repo.findValueByName("logging.fileEnabled")).thenReturn(Optional.of("true"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -167,7 +167,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void getDouble_parsesStringFromDb() throws SQLException {
+  void getDouble_parsesStringFromDb() throws Exception {
     when(repo.findValueByName("some.rate")).thenReturn(Optional.of("1.5"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -175,7 +175,7 @@ class PropertiesUtilTest {
   }
 
   @Test
-  void getInt_returnsDefault_forInvalidDbString() throws SQLException {
+  void getInt_returnsDefault_forInvalidDbString() throws Exception {
     when(repo.findValueByName("bad.int")).thenReturn(Optional.of("notANumber"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -185,7 +185,7 @@ class PropertiesUtilTest {
   // ---- LRU capacity ----
 
   @Test
-  void lruCache_evictsOldestEntry_beyondCapacity() throws SQLException {
+  void lruCache_evictsOldestEntry_beyondCapacity() throws Exception {
     when(repo.findValueByName(anyString())).thenReturn(Optional.of("v"));
     PropertiesUtil.setPropertyRepository(repo);
 
@@ -203,7 +203,7 @@ class PropertiesUtilTest {
   // ---- environment / dev helpers ----
 
   @Test
-  void isDevEnvironment_trueByDefault() throws SQLException {
+  void isDevEnvironment_trueByDefault() throws Exception {
     when(repo.findValueByName("application.environment")).thenReturn(Optional.of("dev"));
     PropertiesUtil.setPropertyRepository(repo);
 

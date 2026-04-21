@@ -8,7 +8,7 @@ import com.example.servlet.util.PropertiesUtil;
  */
 public class DbPropertiesLoader {
 
-  private static DbConfig dbConfig;
+  private static Database database;
   private static PropertyRepository repository;
 
   private DbPropertiesLoader() {}
@@ -21,9 +21,9 @@ public class DbPropertiesLoader {
       return;
     }
     try {
-      config.getConnection().close(); // smoke-test the connection
-      dbConfig = config;
-      repository = new PropertyRepository(config);
+      config.getConnection().close(); // smoke-test
+      database = new Database(config);
+      repository = new PropertyRepository(database);
       PropertiesUtil.setPropertyRepository(repository);
       System.out.println("[DbPropertiesLoader] Connected to DB – property LRU cache active");
     } catch (Exception e) {
@@ -32,8 +32,8 @@ public class DbPropertiesLoader {
     }
   }
 
-  public static DbConfig getDbConfig() {
-    return dbConfig;
+  public static Database getDatabase() {
+    return database;
   }
 
   public static PropertyRepository getRepository() {
