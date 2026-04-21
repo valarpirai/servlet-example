@@ -91,6 +91,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- PostgreSQL JDBC driver -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.9</version>
+        </dependency>
+
         <!-- Mockito for mocking in tests -->
         <dependency>
             <groupId>org.mockito</groupId>
