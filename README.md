@@ -5,8 +5,11 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 ## Features
 
 - **Beautiful Home Page**: Visit `/` for an elegant HTML dashboard with links to all endpoints
-- **Declarative Routing**: All 21 routes configured in `routes.yml` - no hardcoded routing logic
-- **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads
+- **Declarative Routing**: All 27 routes configured in `routes.yml` - no hardcoded routing logic
+- **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads — stored on local filesystem or PostgreSQL
+- **DB-Backed Properties**: App configuration stored in PostgreSQL `app_properties` table with a three-level lookup: LRU cache → DB → YAML fallback
+- **Automatic DB Migrations**: Flyway runs pending `db/V*.sql` migrations on startup
+- **Properties REST API**: CRUD endpoints at `/api/properties/**` backed by jOOQ + PostgreSQL
 - **Server-Side JavaScript**: Execute JavaScript code using Rhino engine with console output and performance metrics
 - **JavaScript Modules**: Create reusable modules with ES6 imports and CommonJS exports
 - **Database Browser**: Connect to PostgreSQL, MySQL, or Snowflake and execute SQL queries
@@ -17,7 +20,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 - **Structured Logging**: Correlation IDs for distributed tracing and request tracking
 - **Health Monitoring**: `/health` and `/metrics` endpoints for application monitoring
 - **YAML Configuration**: Easy configuration via `application.yml` with environment variable overrides
-- **Production Ready**: Packaged as executable JAR with embedded Tomcat server (236-line servlet)
+- **Production Ready**: Packaged as executable JAR with embedded Tomcat server
 
 ## Prerequisites
 
@@ -30,27 +33,32 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 servlet-example/
 ├── pom.xml
 ├── modules/                 (JavaScript modules storage)
-├── attachments/             (Chunked file storage)
+├── attachments/             (Chunked file storage — local backend)
 ├── src/
 │   └── main/
 │       ├── java/
 │       │   └── com/
 │       │       └── example/
 │       │           ├── Main.java
-│       │           ├── datasource/      (Database connection strategies)
+│       │           ├── config/          (DB config, jOOQ wrapper, Flyway, properties)
+│       │           │   ├── DbConfig.java
+│       │           │   ├── Database.java         (jOOQ query/transact wrapper)
+│       │           │   ├── DbPropertiesLoader.java
+│       │           │   ├── PropertyRepository.java
+│       │           │   └── AppProperty.java      (Java record)
+│       │           ├── datasource/      (Database browser connection strategies)
 │       │           ├── extlib/          (Dynamic JDBC driver loading)
 │       │           └── servlet/
-│       │               ├── RouterServlet.java (236 lines - minimal)
+│       │               ├── RouterServlet.java
 │       │               ├── route/       (Declarative routing)
 │       │               │   ├── RouteRegistry.java
-│       │               │   ├── RouteDispatcher.java
-│       │               │   └── Route.java (Lombok model)
+│       │               │   └── RouteDispatcher.java
 │       │               ├── handler/     (Singleton handlers)
+│       │               │   ├── PropertiesHandler.java
 │       │               │   ├── AttachmentHandler.java
 │       │               │   └── DataBrowserHandler.java
 │       │               ├── processor/   (Request processors)
-│       │               │   ├── IRequestProcessor.java (interface)
-│       │               │   ├── ProcessorResponse.java (Lombok builder)
+│       │               │   ├── IRequestProcessor.java
 │       │               │   ├── FileUploadProcessor.java
 │       │               │   ├── ModuleProcessor.java
 │       │               │   ├── ScriptProcessor.java
@@ -58,24 +66,24 @@ servlet-example/
 │       │               ├── storage/     (Chunked file storage)
 │       │               │   ├── AttachmentManager.java
 │       │               │   ├── LocalFileSystemStorage.java
+│       │               │   ├── DatabaseAttachmentStorage.java
 │       │               │   └── ChunkedOutputStream.java
 │       │               ├── module/
 │       │               │   ├── ModuleManager.java
 │       │               │   └── ModuleDependencyResolver.java
-│       │               ├── model/       (Lombok models)
-│       │               │   ├── Attachment.java
-│       │               │   ├── Module.java
-│       │               │   ├── Route.java
-│       │               │   └── ProcessorResponse.java
 │       │               └── util/
 │       │                   ├── JsonUtil.java
 │       │                   ├── PropertiesUtil.java
 │       │                   └── TemplateEngine.java
 │       └── resources/
 │           ├── application.yml
-│           ├── routes.yml              (All 21 routes defined here)
+│           ├── routes.yml              (All 27 routes defined here)
+│           ├── db/                     (Flyway migrations)
+│           │   ├── V1__create_app_properties.sql
+│           │   ├── V2__seed_app_properties.sql
+│           │   └── V3__create_attachments.sql
 │           └── static/
-│               ├── index.html          (Beautiful home page)
+│               ├── index.html
 │               ├── script-editor.html
 │               └── data-browser.html
 ```
@@ -87,41 +95,36 @@ Configuration is managed through `src/main/resources/application.yml`:
 ```yaml
 # Server Configuration
 server:
-  port: ${SERVER_PORT:8080}  # Supports environment variable override
+  port: ${SERVER_PORT:8080}
 
-# File Upload Configuration
-upload:
-  maxFileSize: 10485760        # 10 MB
-  maxRequestSize: 52428800     # 50 MB
-  fileSizeThreshold: 1048576   # 1 MB
-  tempDirectory: ${java.io.tmpdir}
+# File Upload / Storage
+storage:
+  type: local          # local (default) or database
+  chunkSize: 1048576   # 1 MB chunks
 
-# Thread Pool Configuration
-threadPool:
-  maxThreads: 200
-  minSpareThreads: 10
-  acceptCount: 100
-  connectionTimeout: 20000
-
-# Module System Configuration
+# Module System
 modules:
-  directory: modules       # Module storage directory
-  maxFileSize: 1048576    # Max module file size (1 MB)
+  directory: modules
+  maxFileSize: 1048576
+
+# Script engine
+script:
+  timeout: 5000        # ms
+
+# PostgreSQL (optional — enables DB-backed properties and DB attachment storage)
+db:
+  url: jdbc:postgresql://localhost:5432/mydb
+  username: user
+  password: secret
 ```
+
+When `db.*` is present, on startup Flyway applies any pending migrations and the app switches to DB-backed property lookup (LRU cache → DB → YAML). Without `db.*`, the app runs in YAML-only mode with local file storage.
 
 ### Environment Variables
 
-Override configuration using environment variables:
-
 ```bash
-# Change server port
-SERVER_PORT=9090 java -jar target/servlet-example.jar
-
-# Change modules directory
-MODULES_DIR=/custom/modules/path java -jar target/servlet-example.jar
-
-# Multiple overrides
-SERVER_PORT=9090 MODULES_DIR=./my-modules mvn -PappRun
+SERVER_PORT=9090 mvn -PappRun        # Custom port
+MODULES_DIR=/custom/path mvn -PappRun
 ```
 
 ## Building and Running
@@ -294,6 +297,33 @@ curl -X DELETE http://localhost:8080/api/attachment/{attachmentId}
 ```
 
 Files are automatically split into chunks for efficient storage and streaming. SHA-256 hash is calculated for integrity verification.
+
+#### Properties API
+
+Manage application properties stored in PostgreSQL (requires `db.*` config):
+
+```bash
+# List all properties
+curl http://localhost:8080/api/properties
+
+# Get a single property
+curl http://localhost:8080/api/properties/1
+
+# Create a property
+curl -X POST http://localhost:8080/api/properties \
+  -H "Content-Type: application/json" \
+  -d '{"name":"my.key","value":"hello","type":"string","description":"demo"}'
+
+# Update a property
+curl -X PUT http://localhost:8080/api/properties/1 \
+  -H "Content-Type: application/json" \
+  -d '{"value":"world"}'
+
+# Delete a property
+curl -X DELETE http://localhost:8080/api/properties/1
+```
+
+Properties are cached in an LRU cache and looked up in order: cache → DB → YAML.
 
 #### JavaScript Execution
 - **URL**: `http://localhost:8080/api/script`
@@ -629,6 +659,10 @@ The embedded Tomcat server uses the following defaults (configurable in applicat
 - **Gson 2.10.1** (JSON processing)
 - **SnakeYAML 2.2** (YAML configuration)
 - **Mozilla Rhino 1.7.15** (JavaScript engine for server-side execution)
+- **jOOQ 3.19.11** (type-safe SQL DSL for PostgreSQL)
+- **Flyway 9.22.3** (database schema migrations)
+- **PostgreSQL JDBC 42.7.9** (database driver)
+- **Lombok 1.18.30** (boilerplate reduction)
 - **Java 17**
 - **Maven** (build tool with Shade plugin for executable JAR)
 

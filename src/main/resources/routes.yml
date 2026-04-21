@@ -17,6 +17,13 @@ routes:
     contentType: text/html
     description: Database browser UI
 
+  - path: /attachments
+    method: GET
+    type: static
+    resource: static/attachments.html
+    contentType: text/html
+    description: Attachments UI - upload and browse files
+
   # Attachment API (use OutputStream for downloads)
   - path: /api/attachments
     method: GET

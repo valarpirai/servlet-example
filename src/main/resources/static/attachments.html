@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attachments</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 28px 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 { font-size: 1.7rem; }
+        header p { opacity: 0.85; font-size: 0.9rem; margin-top: 4px; }
+        header a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.85rem; }
+        header a:hover { color: white; }
+
+        .main { padding: 32px 36px; }
+
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed #c4b5fd;
+            border-radius: 14px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #faf9ff;
+            margin-bottom: 28px;
+        }
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: #667eea;
+            background: #f0edff;
+        }
+        .upload-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .upload-zone p { color: #555; margin-bottom: 6px; }
+        .upload-zone .hint { font-size: 0.82rem; color: #999; }
+        #file-input { display: none; }
+
+        .btn {
+            padding: 9px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: opacity 0.15s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-sm { padding: 5px 12px; font-size: 0.8rem; border-radius: 6px; }
+        .btn-download { background: #e0f2fe; color: #0369a1; }
+        .btn-delete { background: #fee2e2; color: #dc2626; }
+
+        /* Progress */
+        #upload-status { margin-bottom: 20px; display: none; }
+        .progress-bar-bg {
+            background: #e5e7eb;
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 6px;
+            transition: width 0.2s;
+            width: 0%;
+        }
+        #upload-msg { font-size: 0.85rem; color: #555; }
+
+        /* File list */
+        .list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .list-header h2 { font-size: 1.1rem; color: #374151; }
+        #count-badge {
+            background: #f3f4f6;
+            color: #6b7280;
+            font-size: 0.78rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            text-align: left;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.1s; }
+        tbody tr:hover { background: #fafafa; }
+        tbody tr:last-child { border-bottom: none; }
+        td { padding: 12px 12px; vertical-align: middle; }
+
+        .file-name { font-weight: 500; color: #111827; font-size: 0.9rem; word-break: break-all; }
+        .file-meta { font-size: 0.78rem; color: #9ca3af; margin-top: 2px; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .storage-db { background: #ede9fe; color: #6d28d9; }
+        .storage-fs  { background: #dcfce7; color: #15803d; }
+
+        .actions { white-space: nowrap; display: flex; gap: 6px; }
+
+        #empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: #9ca3af;
+            display: none;
+        }
+        #empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error   { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <h1>Attachments</h1>
+            <p>Upload, browse and download files</p>
+        </div>
+        <a href="/">&#8592; Home</a>
+    </header>
+
+    <div class="main">
+        <div id="alert" class="alert"></div>
+
+        <!-- Upload zone -->
+        <div class="upload-zone" id="drop-zone">
+            <div class="icon">&#128194;</div>
+            <p>Drag &amp; drop files here, or <strong>click to browse</strong></p>
+            <p class="hint">Any file type &bull; Up to 500 MB</p>
+            <input type="file" id="file-input" multiple>
+        </div>
+
+        <!-- Progress -->
+        <div id="upload-status">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+            <span id="upload-msg">Uploading…</span>
+        </div>
+
+        <!-- File list -->
+        <div class="list-header">
+            <div>
+                <h2 style="display:inline">Files <span id="count-badge">0</span></h2>
+            </div>
+            <button class="btn btn-primary" onclick="loadAttachments()">&#8635; Refresh</button>
+        </div>
+
+        <div id="empty-state">
+            <div class="icon">&#128193;</div>
+            <p>No files yet. Upload something above.</p>
+        </div>
+
+        <table id="file-table">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Size</th>
+                    <th>Storage</th>
+                    <th>Uploaded</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="file-tbody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    // Click to open file picker
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => uploadFiles(fileInput.files));
+
+    // Drag and drop
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        uploadFiles(e.dataTransfer.files);
+    });
+
+    function formatBytes(n) {
+        if (n < 1024) return n + ' B';
+        if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+        if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+        return (n / 1073741824).toFixed(2) + ' GB';
+    }
+
+    function formatDate(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }
+
+    function showAlert(msg, type) {
+        const el = document.getElementById('alert');
+        el.textContent = msg;
+        el.className = 'alert alert-' + type;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    async function uploadFiles(files) {
+        if (!files || files.length === 0) return;
+        const statusEl = document.getElementById('upload-status');
+        const fillEl = document.getElementById('progress-fill');
+        const msgEl = document.getElementById('upload-msg');
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            statusEl.style.display = 'block';
+            msgEl.textContent = 'Uploading ' + file.name + '…';
+            fillEl.style.width = '10%';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const xhr = new XMLHttpRequest();
+                await new Promise((resolve, reject) => {
+                    xhr.upload.onprogress = e => {
+                        if (e.lengthComputable) {
+                            fillEl.style.width = Math.round((e.loaded / e.total) * 90) + '%';
+                        }
+                    };
+                    xhr.onload = () => {
+                        if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+                        else reject(new Error(xhr.responseText));
+                    };
+                    xhr.onerror = () => reject(new Error('Network error'));
+                    xhr.open('POST', '/api/upload');
+                    xhr.send(formData);
+                });
+
+                fillEl.style.width = '100%';
+                msgEl.textContent = file.name + ' uploaded.';
+                showAlert(file.name + ' uploaded successfully.', 'success');
+            } catch (err) {
+                let msg = 'Upload failed';
+                try { msg = JSON.parse(err.message).message || msg; } catch (_) {}
+                showAlert(msg, 'error');
+                msgEl.textContent = 'Upload failed: ' + file.name;
+            }
+
+            await new Promise(r => setTimeout(r, 600));
+        }
+
+        statusEl.style.display = 'none';
+        fillEl.style.width = '0%';
+        fileInput.value = '';
+        loadAttachments();
+    }
+
+    async function loadAttachments() {
+        try {
+            const res = await fetch('/api/attachments');
+            const json = await res.json();
+            const attachments = json.data.attachments || [];
+            renderTable(attachments);
+        } catch (e) {
+            showAlert('Failed to load attachments.', 'error');
+        }
+    }
+
+    function renderTable(attachments) {
+        const tbody = document.getElementById('file-tbody');
+        const emptyState = document.getElementById('empty-state');
+        const badge = document.getElementById('count-badge');
+
+        badge.textContent = attachments.length;
+
+        if (attachments.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        tbody.innerHTML = attachments.map(a => {
+            const storageClass = a.storageType === 'database' ? 'storage-db' : 'storage-fs';
+            const storageLabel = a.storageType === 'database' ? 'DB' : 'FS';
+            return `<tr>
+                <td>
+                    <div class="file-name">${escHtml(a.fileName)}</div>
+                    <div class="file-meta">${escHtml(a.contentType)}</div>
+                </td>
+                <td style="white-space:nowrap">${formatBytes(a.sizeBytes)}</td>
+                <td><span class="badge ${storageClass}">${storageLabel}</span></td>
+                <td style="white-space:nowrap; font-size:0.82rem; color:#6b7280">${formatDate(a.createdAt)}</td>
+                <td>
+                    <div class="actions">
+                        <a href="/api/attachment/${a.id}/download" class="btn btn-sm btn-download" download="${escHtml(a.fileName)}">&#8595; Download</a>
+                        <button class="btn btn-sm btn-delete" onclick="deleteAttachment('${a.id}', '${escHtml(a.fileName)}')">&#10005; Delete</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function deleteAttachment(id, name) {
+        if (!confirm('Delete "' + name + '"?')) return;
+        try {
+            const res = await fetch('/api/attachment/' + id, { method: 'DELETE' });
+            if (res.ok) {
+                showAlert(name + ' deleted.', 'success');
+                loadAttachments();
+            } else {
+                showAlert('Delete failed.', 'error');
+            }
+        } catch (e) {
+            showAlert('Delete failed.', 'error');
+        }
+    }
+
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadAttachments();
+</script>
+</body>
+</html>
