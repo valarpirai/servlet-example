@@ -8,11 +8,11 @@ import com.example.servlet.script.ScriptExecutor;
 import com.example.servlet.security.ScriptSecurityManager;
 import com.example.servlet.util.JsonConverter;
 import com.example.servlet.util.JsonUtil;
+import com.example.servlet.util.RequestHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +38,7 @@ public class ScriptProcessor implements IRequestProcessor {
       throws IOException, ServletException {
     try {
       // Read the script from request body
-      String requestBody = readRequestBody(request);
+      String requestBody = RequestHelper.readRequestBody(request);
 
       if (requestBody == null || requestBody.trim().isEmpty()) {
         return ProcessorResponse.builder()
@@ -365,17 +365,5 @@ public class ScriptProcessor implements IRequestProcessor {
             + "};";
 
     context.evaluateString(scope, consoleLog, "consoleLog", 1, null);
-  }
-
-  /** Read request body */
-  private String readRequestBody(HttpServletRequest request) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader reader = request.getReader()) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        sb.append(line);
-      }
-    }
-    return sb.toString();
   }
 }

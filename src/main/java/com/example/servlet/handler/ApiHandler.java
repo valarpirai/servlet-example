@@ -1,12 +1,12 @@
 package com.example.servlet.handler;
 
 import com.example.servlet.processor.ApiScriptProcessor;
+import com.example.servlet.util.RequestHelper;
 import com.example.servlet.util.ResponseHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -129,27 +129,16 @@ public class ApiHandler {
 
   /** Extract and parse JSON body from request. */
   private JsonObject extractBody(HttpServletRequest request) throws IOException {
-    // Only parse body for methods that typically have a body
     String method = request.getMethod();
     if (!method.equals("POST") && !method.equals("PUT") && !method.equals("PATCH")) {
       return new JsonObject();
     }
 
-    // Read body
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader reader = request.getReader()) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        sb.append(line);
-      }
-    }
-
-    String bodyString = sb.toString();
+    String bodyString = RequestHelper.readRequestBody(request);
     if (bodyString.isEmpty()) {
       return new JsonObject();
     }
 
-    // Parse JSON
     try {
       return JsonParser.parseString(bodyString).getAsJsonObject();
     } catch (Exception e) {

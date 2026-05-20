@@ -4,11 +4,11 @@ import com.example.servlet.model.Module;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.module.ModuleManager;
 import com.example.servlet.util.JsonUtil;
+import com.example.servlet.util.RequestHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -123,7 +123,7 @@ public class ModuleProcessor implements IRequestProcessor {
 
   private ProcessorResponse handlePost(String operation, HttpServletRequest request)
       throws IOException {
-    String requestBody = readRequestBody(request);
+    String requestBody = RequestHelper.readRequestBody(request);
 
     if (requestBody == null || requestBody.trim().isEmpty()) {
       return ProcessorResponse.builder()
@@ -172,7 +172,7 @@ public class ModuleProcessor implements IRequestProcessor {
 
   private ProcessorResponse handlePut(String operation, HttpServletRequest request)
       throws IOException {
-    String requestBody = readRequestBody(request);
+    String requestBody = RequestHelper.readRequestBody(request);
 
     if (requestBody == null || requestBody.trim().isEmpty()) {
       return ProcessorResponse.builder()
@@ -243,16 +243,5 @@ public class ModuleProcessor implements IRequestProcessor {
                   "Internal Server Error", "Failed to delete module: " + e.getMessage(), 500))
           .build();
     }
-  }
-
-  private String readRequestBody(HttpServletRequest request) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader reader = request.getReader()) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        sb.append(line);
-      }
-    }
-    return sb.toString();
   }
 }

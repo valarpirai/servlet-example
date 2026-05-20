@@ -5,6 +5,7 @@ import com.example.datasource.DataSourceStrategy;
 import com.example.extlib.ExtLibManager;
 import com.example.extlib.SessionManager;
 import com.example.servlet.util.JsonUtil;
+import com.example.servlet.util.RequestHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,15 +27,6 @@ public class DataBrowserHandler {
     return INSTANCE;
   }
 
-  private String readBody(HttpServletRequest req) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader r = req.getReader()) {
-      String line;
-      while ((line = r.readLine()) != null) sb.append(line).append('\n');
-    }
-    return sb.toString();
-  }
-
   private void writeJson(HttpServletResponse res, int status, String body) throws IOException {
     res.setStatus(status);
     res.setContentType("application/json");
@@ -47,7 +39,8 @@ public class DataBrowserHandler {
   public void handleDriverStatus(HttpServletRequest req, HttpServletResponse res)
       throws IOException {
     try {
-      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       String dbType = body.get("dbType").getAsString();
 
       if (!ExtLibManager.getInstance().isSupported(dbType)) {
@@ -68,7 +61,8 @@ public class DataBrowserHandler {
   /** POST /api/data-browser/download { "dbType": "postgresql" } */
   public void handleDownload(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
-      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       String dbType = body.get("dbType").getAsString();
 
       if (!ExtLibManager.getInstance().isSupported(dbType)) {
@@ -90,7 +84,8 @@ public class DataBrowserHandler {
   /** POST /api/data-browser/connect { dbType, url?, account?, user, password, ... } */
   public void handleConnect(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
-      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       if (!body.has("dbType") || !body.has("user") || !body.has("password")) {
         writeJson(
             res,
@@ -140,7 +135,8 @@ public class DataBrowserHandler {
   /** POST /api/data-browser/tables { "sessionId": "..." } */
   public void handleTables(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
-      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       String sessionId = body.get("sessionId").getAsString();
       String dbType = body.has("dbType") ? body.get("dbType").getAsString() : "";
       DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(dbType);
@@ -207,7 +203,8 @@ public class DataBrowserHandler {
   /** POST /api/data-browser/query { sessionId, sql, page (1-based) } */
   public void handleQuery(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
-      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       String sessionId = body.get("sessionId").getAsString();
       String sql = body.get("sql").getAsString();
       int page = body.has("page") ? body.get("page").getAsInt() : 1;
@@ -263,7 +260,8 @@ public class DataBrowserHandler {
   /** POST /api/data-browser/disconnect { "sessionId": "..." } */
   public void handleDisconnect(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
-      JsonObject body = JsonParser.parseString(readBody(req)).getAsJsonObject();
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       String sessionId = body.get("sessionId").getAsString();
       Connection conn = SessionManager.getInstance().getConnection(sessionId);
       if (conn == null) {
