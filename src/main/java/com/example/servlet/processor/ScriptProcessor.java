@@ -1,5 +1,6 @@
 package com.example.servlet.processor;
 
+import com.example.servlet.exception.ScriptExecutionException;
 import com.example.servlet.model.ProcessorResponse;
 import com.example.servlet.module.ModuleManager;
 import com.example.servlet.script.ScriptExecutor;
@@ -130,7 +131,7 @@ public class ScriptProcessor implements IRequestProcessor {
       try {
         preparedScript = moduleLoader.prepareWithModules(script);
       } catch (IOException e) {
-        throw new RuntimeException("Module loading failed: " + e.getMessage(), e);
+        throw new ScriptExecutionException("Module loading failed: " + e.getMessage(), e);
       }
 
       Object result = cx.evaluateString(scope, preparedScript, "userScript", 1, null);
@@ -142,7 +143,7 @@ public class ScriptProcessor implements IRequestProcessor {
               || e.getMessage().contains("memory limit exceeded"))) {
         throw e;
       }
-      throw new RuntimeException("Script execution error: " + e.getMessage(), e);
+      throw new ScriptExecutionException("Script execution error: " + e.getMessage(), e);
     } finally {
       Context.exit();
     }

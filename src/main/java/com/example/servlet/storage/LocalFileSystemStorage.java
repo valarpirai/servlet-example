@@ -1,5 +1,6 @@
 package com.example.servlet.storage;
 
+import com.example.servlet.exception.StorageException;
 import com.example.servlet.model.Attachment;
 import com.example.servlet.util.JsonUtil;
 import com.example.servlet.util.PropertiesUtil;
@@ -63,7 +64,7 @@ public class LocalFileSystemStorage implements AttachmentStorage {
     try {
       digest = MessageDigest.getInstance("SHA-256");
     } catch (NoSuchAlgorithmException e) {
-      throw new IOException("SHA-256 not available", e);
+      throw new StorageException("SHA-256 not available", e);
     }
 
     // Write chunks using ChunkedOutputStream
@@ -111,7 +112,7 @@ public class LocalFileSystemStorage implements AttachmentStorage {
     } catch (RuntimeException e) {
       // Cleanup on failure
       deleteDirectory(attachmentDir.toFile());
-      throw new IOException("Failed to store attachment", e.getCause());
+      throw new StorageException("Failed to store attachment", e.getCause());
     }
   }
 
@@ -120,7 +121,7 @@ public class LocalFileSystemStorage implements AttachmentStorage {
     Path attachmentDir = baseDirectory.resolve(attachmentId);
 
     if (!Files.exists(attachmentDir)) {
-      throw new IOException("Attachment not found: " + attachmentId);
+      throw new StorageException("Attachment not found: " + attachmentId);
     }
 
     // Return ChunkedInputStream that reads one chunk at a time
@@ -202,7 +203,7 @@ public class LocalFileSystemStorage implements AttachmentStorage {
       logger.info("Metadata saved successfully");
     } catch (Exception e) {
       logger.error("Failed to save metadata", e);
-      throw new IOException("Failed to save metadata: " + e.getMessage(), e);
+      throw new StorageException("Failed to save metadata: " + e.getMessage(), e);
     }
   }
 

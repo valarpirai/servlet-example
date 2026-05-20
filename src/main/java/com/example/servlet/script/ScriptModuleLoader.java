@@ -1,5 +1,6 @@
 package com.example.servlet.script;
 
+import com.example.servlet.exception.StorageException;
 import com.example.servlet.model.Module;
 import com.example.servlet.module.ModuleDependencyResolver;
 import com.example.servlet.module.ModuleManager;
@@ -30,7 +31,7 @@ public class ScriptModuleLoader {
     for (String modulePath : moduleOrder) {
       Module module = moduleManager.getModule(modulePath);
       if (module == null) {
-        throw new IOException("Module not found: " + modulePath);
+        throw new StorageException("Module not found: " + modulePath);
       }
       preamble.append("(function() {\n");
       preamble.append("  var module = { exports: {} };\n");
