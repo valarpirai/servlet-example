@@ -27,8 +27,29 @@ public class Main {
     logger = LoggerFactory.getLogger(Main.class);
   }
 
+  /** Priority: -Dserver.port → SERVER_PORT env var → app_properties table → default 8080. */
+  private static int resolvePort() {
+    String sysProp = System.getProperty("server.port");
+    if (sysProp != null && !sysProp.isBlank()) {
+      try {
+        return Integer.parseInt(sysProp.trim());
+      } catch (NumberFormatException e) {
+        logger.warn("Invalid -Dserver.port '{}', trying SERVER_PORT env var", sysProp);
+      }
+    }
+    String env = System.getenv("SERVER_PORT");
+    if (env != null && !env.isBlank()) {
+      try {
+        return Integer.parseInt(env.trim());
+      } catch (NumberFormatException e) {
+        logger.warn("Invalid SERVER_PORT env var '{}', falling back to app_properties", env);
+      }
+    }
+    return PropertiesUtil.getInt("server.port", 8080);
+  }
+
   public static void main(String[] args) {
-    int port = PropertiesUtil.getInt("server.port", 8080);
+    int port = resolvePort();
     Tomcat tomcat = new Tomcat();
     tomcat.setPort(port);
     tomcat.getConnector();
@@ -104,7 +125,8 @@ public class Main {
         logger.error("Port {} is already in use.", port);
         logger.error("To fix this:");
         logger.error("  1. Stop the process using port {}", port);
-        logger.error("  2. Or use a different port: SERVER_port=9090 mvn -PappRun");
+        logger.error("  2. Or use a different port: SERVER_PORT=9090 mvn -PappRun");
+        logger.error("     or: mvn -PappRun -Dserver.port=9090");
         logger.error("=========================================");
         System.exit(1);
       } else {
