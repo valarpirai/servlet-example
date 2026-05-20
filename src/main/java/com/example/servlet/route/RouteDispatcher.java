@@ -60,7 +60,8 @@ public class RouteDispatcher {
         return handleStatic(route, request, response);
 
       case "handler":
-        return handleHandler(route, pathParams, request, response);
+        setPathParamsAsAttributes(request, pathParams);
+        return handleHandler(route, request, response);
 
       case "processor":
         return handleProcessor(route, request, response);
@@ -157,85 +158,49 @@ public class RouteDispatcher {
     return false;
   }
 
-  /** Handle custom handler invocation via reflection. */
+  /** Expose path parameters as request attributes so handler methods can read them uniformly. */
+  private void setPathParamsAsAttributes(
+      HttpServletRequest request, Map<String, String> pathParams) {
+    pathParams.forEach((name, value) -> request.setAttribute("pathParam." + name, value));
+  }
+
+  /**
+   * Handle custom handler invocation. All handler methods must have the signature
+   * (HttpServletRequest, HttpServletResponse) — path params are available via
+   * request.getAttribute("pathParam.{name}").
+   */
   private boolean handleHandler(
-      Route route,
-      Map<String, String> pathParams,
-      HttpServletRequest request,
-      HttpServletResponse response)
-      throws IOException {
+      Route route, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
     String handlerName = route.getHandler();
     String methodName = route.getHandlerMethod();
 
     try {
-      // Get handler instance (singleton pattern)
       Object handler = getHandlerInstance(handlerName);
       if (handler == null) {
         logger.error("Handler not found: {}", handlerName);
         return false;
       }
 
-      // Set content type if specified
       if (route.getContentType() != null) {
         response.setContentType(route.getContentType());
         response.setCharacterEncoding("UTF-8");
       }
 
-      // Invoke handler method
-      if (pathParams.isEmpty()) {
-        // No path parameters: handler(request, response) or handler(response)
-        Method method = findMethod(handler.getClass(), methodName, HttpServletResponse.class);
-        if (method == null) {
-          method =
-              findMethod(
-                  handler.getClass(),
-                  methodName,
-                  HttpServletRequest.class,
-                  HttpServletResponse.class);
-        }
+      Method method =
+          findMethod(
+              handler.getClass(), methodName, HttpServletRequest.class, HttpServletResponse.class);
 
-        if (method != null) {
-          if (method.getParameterCount() == 1) {
-            method.invoke(handler, response);
-          } else {
-            method.invoke(handler, request, response);
-          }
-          return true;
-        }
-      } else {
-        // Has path parameters: handler(request, response, param1, param2, ...)
-        String[] paramValues = pathParams.values().toArray(new String[0]);
-
-        if (paramValues.length == 1) {
-          // Common case: handler(request, response, id)
-          Method method =
-              findMethod(
-                  handler.getClass(),
-                  methodName,
-                  HttpServletRequest.class,
-                  HttpServletResponse.class,
-                  String.class);
-
-          if (method == null) {
-            // Try: handler(response, id)
-            method =
-                findMethod(handler.getClass(), methodName, HttpServletResponse.class, String.class);
-          }
-
-          if (method != null) {
-            if (method.getParameterCount() == 2) {
-              method.invoke(handler, response, paramValues[0]);
-            } else {
-              method.invoke(handler, request, response, paramValues[0]);
-            }
-            return true;
-          }
-        }
+      if (method == null) {
+        logger.error(
+            "Handler method not found: {}.{}(HttpServletRequest, HttpServletResponse)",
+            handlerName,
+            methodName);
+        return false;
       }
 
-      logger.error("Handler method not found: {}.{}", handlerName, methodName);
-      return false;
+      method.invoke(handler, request, response);
+      return true;
 
     } catch (Exception e) {
       logger.error("Error invoking handler: {}.{}", handlerName, methodName, e);

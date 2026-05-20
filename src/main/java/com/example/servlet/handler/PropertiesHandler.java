@@ -49,8 +49,9 @@ public class PropertiesHandler {
   }
 
   // GET /api/properties/{id}
-  public void handleGet(HttpServletRequest request, HttpServletResponse response, String id)
+  public void handleGet(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
+    String id = (String) request.getAttribute("pathParam.id");
     PropertyRepository repo = DbPropertiesLoader.getRepository();
     if (repo == null) {
       sendError(response, 503, "Database not configured");
@@ -97,8 +98,9 @@ public class PropertiesHandler {
   }
 
   // PUT /api/properties/{id}
-  public void handleUpdate(HttpServletRequest request, HttpServletResponse response, String id)
+  public void handleUpdate(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
+    String id = (String) request.getAttribute("pathParam.id");
     PropertyRepository repo = DbPropertiesLoader.getRepository();
     if (repo == null) {
       sendError(response, 503, "Database not configured");
@@ -123,8 +125,9 @@ public class PropertiesHandler {
   }
 
   // PATCH /api/properties/{id}/active
-  public void handleToggleActive(
-      HttpServletRequest request, HttpServletResponse response, String id) throws IOException {
+  public void handleToggleActive(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    String id = (String) request.getAttribute("pathParam.id");
     PropertyRepository repo = DbPropertiesLoader.getRepository();
     if (repo == null) {
       sendError(response, 503, "Database not configured");
@@ -153,8 +156,9 @@ public class PropertiesHandler {
   }
 
   // DELETE /api/properties/{id}
-  public void handleDelete(HttpServletRequest request, HttpServletResponse response, String id)
+  public void handleDelete(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
+    String id = (String) request.getAttribute("pathParam.id");
     PropertyRepository repo = DbPropertiesLoader.getRepository();
     if (repo == null) {
       sendError(response, 503, "Database not configured");

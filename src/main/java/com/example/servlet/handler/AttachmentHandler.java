@@ -30,10 +30,9 @@ public class AttachmentHandler {
   }
 
   /** Handle attachment download. Streams file in chunks - never loads entire file into memory. */
-  public void handleDownload(
-      HttpServletRequest request, HttpServletResponse response, String attachmentId)
+  public void handleDownload(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
-
+    String attachmentId = (String) request.getAttribute("pathParam.id");
     if (!attachmentManager.exists(attachmentId)) {
       ResponseHelper.sendNotFound(response, "Attachment not found");
       return;
@@ -78,8 +77,9 @@ public class AttachmentHandler {
   }
 
   /** Handle attachment metadata retrieval. */
-  public void handleMetadata(HttpServletResponse response, String attachmentId) throws IOException {
-
+  public void handleMetadata(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    String attachmentId = (String) request.getAttribute("pathParam.id");
     Attachment attachment = attachmentManager.getMetadata(attachmentId);
 
     if (attachment == null) {
@@ -91,7 +91,8 @@ public class AttachmentHandler {
   }
 
   /** Handle list all attachments. */
-  public void handleList(HttpServletResponse response) throws IOException {
+  public void handleList(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
     java.util.List<Attachment> attachments = attachmentManager.listAll();
 
     java.util.Map<String, Object> data = new java.util.HashMap<>();
@@ -102,8 +103,9 @@ public class AttachmentHandler {
   }
 
   /** Handle attachment deletion. */
-  public void handleDelete(HttpServletResponse response, String attachmentId) throws IOException {
-
+  public void handleDelete(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    String attachmentId = (String) request.getAttribute("pathParam.id");
     if (!attachmentManager.exists(attachmentId)) {
       ResponseHelper.sendNotFound(response, "Attachment not found");
       return;

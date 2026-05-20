@@ -85,8 +85,9 @@ class PropertiesHandlerTest {
   @Test
   void handleGet_returns200_whenFound() throws Exception {
     when(repo.findById(5L)).thenReturn(Optional.of(prop(5L, "my.key", "val")));
+    when(request.getAttribute("pathParam.id")).thenReturn("5");
 
-    handler.handleGet(request, response, "5");
+    handler.handleGet(request, response);
 
     verify(response).setStatus(200);
     assertTrue(responseBody.toString().contains("my.key"));
@@ -95,8 +96,9 @@ class PropertiesHandlerTest {
   @Test
   void handleGet_returns404_whenNotFound() throws Exception {
     when(repo.findById(99L)).thenReturn(Optional.empty());
+    when(request.getAttribute("pathParam.id")).thenReturn("99");
 
-    handler.handleGet(request, response, "99");
+    handler.handleGet(request, response);
 
     verify(response).setStatus(404);
   }
@@ -104,8 +106,9 @@ class PropertiesHandlerTest {
   @Test
   void handleGet_returns503_whenNoRepo() throws Exception {
     loaderMock.when(DbPropertiesLoader::getRepository).thenReturn(null);
+    when(request.getAttribute("pathParam.id")).thenReturn("1");
 
-    handler.handleGet(request, response, "1");
+    handler.handleGet(request, response);
 
     verify(response).setStatus(503);
   }
@@ -144,7 +147,8 @@ class PropertiesHandlerTest {
     when(repo.update(3L, "9090", "updated", "api"))
         .thenReturn(Optional.of(prop(3L, "server.port", "9090")));
 
-    handler.handleUpdate(request, response, "3");
+    when(request.getAttribute("pathParam.id")).thenReturn("3");
+    handler.handleUpdate(request, response);
 
     verify(response).setStatus(200);
   }
@@ -154,7 +158,8 @@ class PropertiesHandlerTest {
     when(request.getReader()).thenReturn(reader("{\"value\":\"x\"}"));
     when(repo.update(anyLong(), any(), any(), any())).thenReturn(Optional.empty());
 
-    handler.handleUpdate(request, response, "99");
+    when(request.getAttribute("pathParam.id")).thenReturn("99");
+    handler.handleUpdate(request, response);
 
     verify(response).setStatus(404);
   }
@@ -166,7 +171,8 @@ class PropertiesHandlerTest {
     when(request.getReader()).thenReturn(reader("{\"active\":false}"));
     when(repo.setActive(2L, false, "api")).thenReturn(true);
 
-    handler.handleToggleActive(request, response, "2");
+    when(request.getAttribute("pathParam.id")).thenReturn("2");
+    handler.handleToggleActive(request, response);
 
     verify(response).setStatus(200);
     assertTrue(responseBody.toString().contains("\"active\""));
@@ -177,7 +183,8 @@ class PropertiesHandlerTest {
     when(request.getReader()).thenReturn(reader("{\"active\":true}"));
     when(repo.setActive(anyLong(), anyBoolean(), any())).thenReturn(false);
 
-    handler.handleToggleActive(request, response, "99");
+    when(request.getAttribute("pathParam.id")).thenReturn("99");
+    handler.handleToggleActive(request, response);
 
     verify(response).setStatus(404);
   }
@@ -186,7 +193,8 @@ class PropertiesHandlerTest {
   void handleToggleActive_returns400_whenActiveMissing() throws Exception {
     when(request.getReader()).thenReturn(reader("{}"));
 
-    handler.handleToggleActive(request, response, "1");
+    when(request.getAttribute("pathParam.id")).thenReturn("1");
+    handler.handleToggleActive(request, response);
 
     verify(response).setStatus(400);
   }
@@ -197,7 +205,8 @@ class PropertiesHandlerTest {
   void handleDelete_returns200_whenDeleted() throws Exception {
     when(repo.delete(4L)).thenReturn(true);
 
-    handler.handleDelete(request, response, "4");
+    when(request.getAttribute("pathParam.id")).thenReturn("4");
+    handler.handleDelete(request, response);
 
     verify(response).setStatus(200);
     assertTrue(responseBody.toString().contains("\"deleted\""));
@@ -207,7 +216,8 @@ class PropertiesHandlerTest {
   void handleDelete_returns404_whenNotFound() throws Exception {
     when(repo.delete(anyLong())).thenReturn(false);
 
-    handler.handleDelete(request, response, "99");
+    when(request.getAttribute("pathParam.id")).thenReturn("99");
+    handler.handleDelete(request, response);
 
     verify(response).setStatus(404);
   }

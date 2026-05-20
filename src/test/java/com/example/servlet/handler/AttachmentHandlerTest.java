@@ -92,7 +92,8 @@ class AttachmentHandlerTest {
 
     when(response.getOutputStream()).thenReturn(servletOutputStream);
 
-    handler.handleDownload(request, response, stored.getId());
+    when(request.getAttribute("pathParam.id")).thenReturn(stored.getId());
+    handler.handleDownload(request, response);
 
     verify(response).setContentType("text/plain");
     verify(response).setHeader("Content-Disposition", "attachment; filename=\"test.txt\"");
@@ -104,7 +105,8 @@ class AttachmentHandlerTest {
 
   @Test
   void testHandleDownloadNotFound() throws IOException {
-    handler.handleDownload(request, response, "nonexistent-id");
+    when(request.getAttribute("pathParam.id")).thenReturn("nonexistent-id");
+    handler.handleDownload(request, response);
 
     verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
     verify(response).setContentType("application/json");
@@ -123,7 +125,8 @@ class AttachmentHandlerTest {
     Attachment stored =
         attachmentManager.store(attachment, new ByteArrayInputStream("test".getBytes()));
 
-    handler.handleMetadata(response, stored.getId());
+    when(request.getAttribute("pathParam.id")).thenReturn(stored.getId());
+    handler.handleMetadata(request, response);
 
     verify(response).setStatus(HttpServletResponse.SC_OK);
     verify(response).setContentType("application/json");
@@ -135,7 +138,8 @@ class AttachmentHandlerTest {
 
   @Test
   void testHandleMetadataNotFound() throws IOException {
-    handler.handleMetadata(response, "nonexistent-id");
+    when(request.getAttribute("pathParam.id")).thenReturn("nonexistent-id");
+    handler.handleMetadata(request, response);
 
     verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
     verify(response).setContentType("application/json");
@@ -158,7 +162,7 @@ class AttachmentHandlerTest {
     attachmentManager.store(att1, new ByteArrayInputStream("content1".getBytes()));
     attachmentManager.store(att2, new ByteArrayInputStream("content2".getBytes()));
 
-    handler.handleList(response);
+    handler.handleList(request, response);
 
     verify(response).setStatus(HttpServletResponse.SC_OK);
     verify(response).setContentType("application/json");
@@ -180,7 +184,8 @@ class AttachmentHandlerTest {
         attachmentManager.store(attachment, new ByteArrayInputStream("test".getBytes()));
     String id = stored.getId();
 
-    handler.handleDelete(response, id);
+    when(request.getAttribute("pathParam.id")).thenReturn(id);
+    handler.handleDelete(request, response);
 
     verify(response).setStatus(HttpServletResponse.SC_OK);
     verify(response).setContentType("application/json");
@@ -195,7 +200,8 @@ class AttachmentHandlerTest {
 
   @Test
   void testHandleDeleteNotFound() throws IOException {
-    handler.handleDelete(response, "nonexistent-id");
+    when(request.getAttribute("pathParam.id")).thenReturn("nonexistent-id");
+    handler.handleDelete(request, response);
 
     verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
     verify(response).setContentType("application/json");
@@ -233,7 +239,8 @@ class AttachmentHandlerTest {
 
     when(response.getOutputStream()).thenReturn(servletOutputStream);
 
-    handler.handleDownload(request, response, stored.getId());
+    when(request.getAttribute("pathParam.id")).thenReturn(stored.getId());
+    handler.handleDownload(request, response);
 
     verify(response).setContentType("application/octet-stream");
   }
