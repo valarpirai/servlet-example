@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 public class Main {
 
+  private static final int DEFAULT_PORT = 8080;
   private static final Logger logger;
 
   static {
@@ -27,7 +28,7 @@ public class Main {
     logger = LoggerFactory.getLogger(Main.class);
   }
 
-  /** Priority: -Dserver.port → SERVER_PORT env var → app_properties table → default 8080. */
+  /** Priority: -Dserver.port → SERVER_PORT env var → app_properties table → DEFAULT_PORT. */
   private static int resolvePort() {
     String sysProp = System.getProperty("server.port");
     if (sysProp != null && !sysProp.isBlank()) {
@@ -45,7 +46,7 @@ public class Main {
         logger.warn("Invalid SERVER_PORT env var '{}', falling back to app_properties", env);
       }
     }
-    return PropertiesUtil.getInt("server.port", 8080);
+    return PropertiesUtil.getInt("server.port", DEFAULT_PORT);
   }
 
   public static void main(String[] args) {
