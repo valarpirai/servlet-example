@@ -1,12 +1,13 @@
 # Data Browser
 
-**Last updated**: 2026-03-22
+**Last updated**: 2026-08-05
 
 A web-based database browser at `/data-browser`. Connect to PostgreSQL, MySQL, or Snowflake — JDBC drivers are downloaded on demand, no server restart required.
 
 **Key files**:
 - `datasource/DataSourceStrategy.java` - Strategy interface
-- `datasource/DataSourceRegistry.java` - Strategy registry (singleton)
+- `datasource/DataSourceRegistry.java` - Strategy registry (singleton, discovers via `ServiceLoader`)
+- `resources/META-INF/services/com.example.datasource.DataSourceStrategy` - Strategy discovery file, one FQCN per line
 - `datasource/PostgreSqlStrategy.java` - PostgreSQL implementation
 - `datasource/MySqlStrategy.java` - MySQL implementation
 - `datasource/SnowflakeStrategy.java` - Snowflake implementation
@@ -37,7 +38,7 @@ Snowflake-specific fields: **Account**, Warehouse, Database, Schema, Role (optio
 
 ### DataSource Strategy Pattern
 
-All per-database behaviour is encapsulated in a `DataSourceStrategy` implementation. The `DataSourceRegistry` singleton holds all registered strategies.
+All per-database behaviour is encapsulated in a `DataSourceStrategy` implementation. The `DataSourceRegistry` singleton discovers strategies via `ServiceLoader` from `META-INF/services/com.example.datasource.DataSourceStrategy` — no code change needed to register a new one.
 
 ```
 com.example.datasource/
@@ -58,11 +59,30 @@ Each strategy provides:
 
 ### Adding a New Database
 
-1. Create `src/main/java/com/example/datasource/YourDbStrategy.java` implementing `DataSourceStrategy`
-2. Register it in `DataSourceRegistry` constructor: `register(new YourDbStrategy())`
-3. Add connection fields to `DB_FIELDS` in `data-browser.html`
+1. Create `src/main/java/com/example/datasource/YourDbStrategy.java` implementing `DataSourceStrategy` (needs a public no-arg constructor)
+2. Add its fully-qualified name as a new line in `src/main/resources/META-INF/services/com.example.datasource.DataSourceStrategy`
+3. Add a row to the driver table in [How Driver Loading Works](#how-driver-loading-works) below, matching the JAR/version returned by `getJarPath()`
+4. Add connection fields to `DB_FIELDS` in `data-browser.html`
+5. Add `YourDbStrategyTest` alongside the existing strategy tests
 
-No changes needed in `ExtLibManager` or `DataBrowserHandler`.
+No changes needed in `DataSourceRegistry`, `ExtLibManager`, or `DataBrowserHandler`. Manual registration via `DataSourceRegistry.register(...)` still works and takes precedence for test doubles or runtime overrides.
+
+**Gotchas:**
+- If a class listed in the services file is missing, lacks a public no-arg constructor, or doesn't implement `DataSourceStrategy`, `ServiceLoader` throws `ServiceConfigurationError` when `DataSourceRegistry` first initializes (app startup / first use) — not at compile time. Double-check the FQCN before committing.
+- If two discovered strategies return the same `getDbType()`, the last one registered silently wins (`Map.put` semantics) — there's no duplicate-key check. "Last" is decided by `ServiceLoader` iteration order, i.e. the order of lines in the services file.
+
+### Discovery: manual registration vs `ServiceLoader`
+
+Two ways to wire a `DataSourceStrategy` into the registry:
+
+| | Manual registration | `ServiceLoader` (current) |
+|---|---|---|
+| How | `DataSourceRegistry` constructor calls `register(new XStrategy())` for each type | Registry calls `ServiceLoader.load(DataSourceStrategy.class)`; strategies list themselves in `META-INF/services/com.example.datasource.DataSourceStrategy` |
+| Adding a strategy | Edit `DataSourceRegistry.java` + implement the interface | Implement the interface + add one line to the services file — registry untouched |
+| Coupling | Registry imports every strategy class directly | Registry has no compile-time reference to any strategy |
+| Discoverability | Easy to `Cmd+click` from registry to implementation | Requires knowing to check the services file |
+
+We chose `ServiceLoader` because it removes the one place every new database previously had to touch (`DataSourceRegistry`), which matters as more strategies get added — new database support becomes purely additive (new class + one service-file line), with no risk of merge conflicts in a shared registry file. The tradeoff — a service file that's less obvious than a constructor call — is minor at this scale and is mitigated by keeping `register()` public, so tests and runtime code can still register or override a strategy directly without touching the services file.
 
 ### How Driver Loading Works
 

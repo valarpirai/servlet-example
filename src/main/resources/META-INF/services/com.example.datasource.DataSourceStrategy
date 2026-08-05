@@ -1,0 +1,3 @@
+com.example.datasource.PostgreSqlStrategy
+com.example.datasource.MySqlStrategy
+com.example.datasource.SnowflakeStrategy

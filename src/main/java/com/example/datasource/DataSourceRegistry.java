@@ -3,10 +3,13 @@ package com.example.datasource;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.ServiceLoader;
 
 /**
- * Singleton registry of {@link DataSourceStrategy} implementations. Pre-registers PostgreSQL,
- * MySQL, and Snowflake; new strategies can be added via {@link #register}.
+ * Singleton registry of {@link DataSourceStrategy} implementations. Strategies are discovered via
+ * {@link ServiceLoader} from {@code META-INF/services/com.example.datasource.DataSourceStrategy};
+ * new strategies can be added there without touching this class. Manual registration via {@link
+ * #register} is also supported and takes precedence over discovered strategies of the same type.
  */
 public class DataSourceRegistry {
 
@@ -15,9 +18,7 @@ public class DataSourceRegistry {
   private final Map<String, DataSourceStrategy> strategies = new LinkedHashMap<>();
 
   private DataSourceRegistry() {
-    register(new PostgreSqlStrategy());
-    register(new MySqlStrategy());
-    register(new SnowflakeStrategy());
+    ServiceLoader.load(DataSourceStrategy.class).forEach(this::register);
   }
 
   public static DataSourceRegistry getInstance() {

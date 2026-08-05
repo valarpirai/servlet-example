@@ -25,7 +25,7 @@ Dev setup | docs/DEVELOPMENT.md | pom.xml
 **Adding functionality?**
 - New HTTP endpoint? → Add to `routes.yml` → Register in `RouteDispatcher` → See docs/ROUTE-REGISTRY.md
 - JavaScript API? → Create `scripts/api/{name}.js` → See docs/API-SCRIPTING.md
-- Database type? → Create `{DB}Strategy.java` → Register in `DataSourceRegistry` → See docs/data-browser.md
+- Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser.md
 - File storage feature? → Modify `storage/` → Use streaming APIs → See docs/MEMORY-GUARANTEE.md
 - Logging feature? → Use `StructuredLogger` → See docs/STRUCTURED-LOGGING.md
 
