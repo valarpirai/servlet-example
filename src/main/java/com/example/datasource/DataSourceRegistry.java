@@ -18,7 +18,11 @@ public class DataSourceRegistry {
   private final Map<String, DataSourceStrategy> strategies = new LinkedHashMap<>();
 
   private DataSourceRegistry() {
-    ServiceLoader.load(DataSourceStrategy.class).forEach(this::register);
+    // Load with this class's own classloader, not the thread context classloader: under the
+    // embedded Tomcat request threads, the context classloader is a WebappClassLoader that
+    // doesn't see target/classes' META-INF/services entries, causing silent empty discovery.
+    ServiceLoader.load(DataSourceStrategy.class, DataSourceRegistry.class.getClassLoader())
+        .forEach(this::register);
   }
 
   public static DataSourceRegistry getInstance() {
