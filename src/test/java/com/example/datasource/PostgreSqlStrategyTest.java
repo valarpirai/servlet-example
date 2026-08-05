@@ -51,4 +51,43 @@ class PostgreSqlStrategyTest {
         Set.of("information_schema", "pg_catalog", "pg_toast", "pg_temp_1", "pg_toast_temp_1"),
         strategy.getSystemSchemas());
   }
+
+  @Test
+  void getDisplayName_returnsPostgreSQL() {
+    assertEquals("PostgreSQL", strategy.getDisplayName());
+  }
+
+  @Test
+  void supportsCatalogSwitch_returnsFalse() {
+    assertFalse(strategy.supportsCatalogSwitch());
+  }
+
+  @Test
+  void buildUrlForDatabase_replacesPathSegment() {
+    String url =
+        strategy.buildUrlForDatabase(
+            Map.of("url", "jdbc:postgresql://localhost:5432/olddb"), "newdb");
+    assertEquals("jdbc:postgresql://localhost:5432/newdb", url);
+  }
+
+  @Test
+  void buildUrlForDatabase_preservesQueryString() {
+    String url =
+        strategy.buildUrlForDatabase(
+            Map.of("url", "jdbc:postgresql://localhost:5432/olddb?ssl=true"), "newdb");
+    assertEquals("jdbc:postgresql://localhost:5432/newdb?ssl=true", url);
+  }
+
+  @Test
+  void buildUrlForDatabase_noPathSegment_appendsDatabase() {
+    String url =
+        strategy.buildUrlForDatabase(Map.of("url", "jdbc:postgresql://localhost:5432"), "newdb");
+    assertEquals("jdbc:postgresql://localhost:5432/newdb", url);
+  }
+
+  @Test
+  void buildUrlForDatabase_missingUrl_throwsIllegalArgument() {
+    assertThrows(
+        IllegalArgumentException.class, () -> strategy.buildUrlForDatabase(Map.of(), "newdb"));
+  }
 }

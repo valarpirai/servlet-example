@@ -35,6 +35,15 @@ public class DataBrowserHandler {
     res.getWriter().flush();
   }
 
+  /** GET /api/data-browser/db-types */
+  public void handleDbTypes(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    List<Map<String, String>> dbTypes = new ArrayList<>();
+    for (DataSourceStrategy strategy : DataSourceRegistry.getInstance().all()) {
+      dbTypes.add(Map.of("dbType", strategy.getDbType(), "displayName", strategy.getDisplayName()));
+    }
+    writeJson(res, 200, JsonUtil.successResponse(Map.of("dbTypes", dbTypes)));
+  }
+
   /** POST /api/data-browser/driver-status { "dbType": "postgresql" } */
   public void handleDriverStatus(HttpServletRequest req, HttpServletResponse res)
       throws IOException {
@@ -121,7 +130,8 @@ public class DataBrowserHandler {
 
       String url = strategy.buildUrl(props);
       Connection conn = ExtLibManager.getInstance().connect(dbType, url, user, password, props);
-      String sessionId = SessionManager.getInstance().createSession(conn);
+      String sessionId =
+          SessionManager.getInstance().createSession(dbType, user, password, props, conn);
 
       Map<String, Object> data = Map.of("sessionId", sessionId, "status", "connected");
       writeJson(res, 200, JsonUtil.successResponse(data));
@@ -129,6 +139,83 @@ public class DataBrowserHandler {
     } catch (Exception e) {
       logger.error("Connection failed", e);
       writeJson(res, 400, JsonUtil.errorResponse("Connection Failed", e.getMessage(), 400));
+    }
+  }
+
+  /** POST /api/data-browser/databases { "sessionId": "..." } */
+  public void handleDatabases(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    try {
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
+      String sessionId = body.get("sessionId").getAsString();
+
+      Connection conn = SessionManager.getInstance().getConnection(sessionId);
+      if (conn == null) {
+        writeJson(
+            res,
+            401,
+            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
+        return;
+      }
+
+      List<String> databases = new ArrayList<>();
+      try (ResultSet rs = conn.getMetaData().getCatalogs()) {
+        while (rs.next()) databases.add(rs.getString("TABLE_CAT"));
+      }
+
+      String current = conn.getCatalog();
+      Map<String, Object> data = new LinkedHashMap<>();
+      data.put("databases", databases);
+      data.put("current", current == null ? "" : current);
+      writeJson(res, 200, JsonUtil.successResponse(data));
+
+    } catch (Exception e) {
+      logger.error("Failed to list databases", e);
+      writeJson(res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
+    }
+  }
+
+  /** POST /api/data-browser/select-database { "sessionId": "...", "database": "..." } */
+  public void handleSelectDatabase(HttpServletRequest req, HttpServletResponse res)
+      throws IOException {
+    try {
+      JsonObject body =
+          JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
+      String sessionId = body.get("sessionId").getAsString();
+      String database = body.get("database").getAsString();
+
+      SessionManager.Session session = SessionManager.getInstance().getSession(sessionId);
+      if (session == null) {
+        writeJson(
+            res,
+            401,
+            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
+        return;
+      }
+
+      DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(session.dbType());
+      if (strategy == null) {
+        writeJson(
+            res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType for session", 400));
+        return;
+      }
+
+      if (strategy.supportsCatalogSwitch()) {
+        session.connection().setCatalog(database);
+      } else {
+        String newUrl = strategy.buildUrlForDatabase(session.props(), database);
+        Connection newConn =
+            ExtLibManager.getInstance()
+                .connect(
+                    session.dbType(), newUrl, session.user(), session.password(), session.props());
+        SessionManager.getInstance().replaceConnection(sessionId, newConn);
+      }
+
+      writeJson(res, 200, JsonUtil.successResponse(Map.of("database", database)));
+
+    } catch (Exception e) {
+      logger.error("Failed to switch database", e);
+      writeJson(res, 400, JsonUtil.errorResponse("Switch Failed", e.getMessage(), 400));
     }
   }
 

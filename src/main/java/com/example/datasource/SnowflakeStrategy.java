@@ -12,6 +12,11 @@ public class SnowflakeStrategy implements DataSourceStrategy {
   }
 
   @Override
+  public String getDisplayName() {
+    return "Snowflake";
+  }
+
+  @Override
   public String getJarPath() {
     return "net/snowflake/snowflake-jdbc/3.15.0/snowflake-jdbc-3.15.0.jar";
   }

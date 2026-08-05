@@ -11,10 +11,11 @@ A web-based database browser at `/data-browser`. Connect to PostgreSQL, MySQL, o
 - `datasource/PostgreSqlStrategy.java` - PostgreSQL implementation
 - `datasource/MySqlStrategy.java` - MySQL implementation
 - `datasource/SnowflakeStrategy.java` - Snowflake implementation
-- `handler/DataBrowserHandler.java` - Session management, query execution
+- `handler/DataBrowserHandler.java` - Session management, query execution, database switching
+- `extlib/SessionManager.java` - Per-session connection + connect-time credentials, needed to reconnect on database switch
 - `src/main/resources/static/data-browser.html` - UI
 
-**Tests**: `DataSourceRegistryTest`, `PostgreSqlStrategyTest`, `MySqlStrategyTest`, `SnowflakeStrategyTest`
+**Tests**: `DataSourceRegistryTest`, `PostgreSqlStrategyTest`, `MySqlStrategyTest`, `SnowflakeStrategyTest`, `SessionManagerTest`, `DataBrowserHandlerTest`
 
 ## Quick Start
 
@@ -51,19 +52,23 @@ com.example.datasource/
 
 Each strategy provides:
 - `getDbType()` — short key (`"postgresql"`, `"mysql"`, `"snowflake"`)
+- `getDisplayName()` — human-readable name shown in the UI's database-type dropdown, e.g. `"PostgreSQL"`
 - `getJarPath()` — Maven Central path for the JDBC JAR
 - `getDriverClass()` — fully-qualified driver class name
 - `buildUrl(Map<String,String> props)` — assembles JDBC URL from user input
 - `buildConnectionProperties(user, password, props)` — builds `java.util.Properties` (adds Snowflake extras: warehouse, db, schema, role)
 - `getSystemSchemas()` — schemas hidden from the table browser
+- `supportsCatalogSwitch()` — default `true`; whether the active database can change on an existing connection via `Connection.setCatalog(...)`. PostgreSQL overrides this to `false`
+- `buildUrlForDatabase(originalProps, database)` — only called when `supportsCatalogSwitch()` is `false`; rebuilds the connection URL for a different database. PostgreSQL overrides this to swap the database path segment; the default implementation throws `UnsupportedOperationException`
 
 ### Adding a New Database
 
 1. Create `src/main/java/com/example/datasource/YourDbStrategy.java` implementing `DataSourceStrategy` (needs a public no-arg constructor)
 2. Add its fully-qualified name as a new line in `src/main/resources/META-INF/services/com.example.datasource.DataSourceStrategy`
 3. Add a row to the driver table in [How Driver Loading Works](#how-driver-loading-works) below, matching the JAR/version returned by `getJarPath()`
-4. Add connection fields to `DB_FIELDS` in `data-browser.html`
-5. Add `YourDbStrategyTest` alongside the existing strategy tests
+4. Add connection fields to `DB_FIELDS` in `data-browser.html` — the database-*type* dropdown itself needs no HTML edit; it's populated at runtime from `/api/data-browser/db-types`
+5. If the driver doesn't support `Connection.setCatalog(...)` (PostgreSQL-style, one database per connection), override `supportsCatalogSwitch()` to return `false` and implement `buildUrlForDatabase(...)`; otherwise the default (`true`) is correct and no override is needed
+6. Add `YourDbStrategyTest` alongside the existing strategy tests
 
 No changes needed in `DataSourceRegistry`, `ExtLibManager`, or `DataBrowserHandler`. Manual registration via `DataSourceRegistry.register(...)` still works and takes precedence for test doubles or runtime overrides.
 
@@ -94,15 +99,32 @@ Drivers are downloaded from Maven Central to `extlib/` on first use and reused o
 | MySQL | `mysql-connector-j` | 8.4.0 |
 | Snowflake | `snowflake-jdbc` | 3.15.0 |
 
+### Database Type Dropdown
+
+The **Database Type** dropdown (PostgreSQL/MySQL/Snowflake) is populated at page load from `GET /api/data-browser/db-types`, which lists every `DataSourceRegistry`-discovered strategy's `getDbType()`/`getDisplayName()`. Adding a database via [Adding a New Database](#adding-a-new-database) makes it appear in this dropdown automatically — no HTML change needed.
+
+### Switching Databases
+
+After connecting, a second **Database** dropdown appears, populated from `POST /api/data-browser/databases` (`Connection.getMetaData().getCatalogs()` — the actual databases visible on that server, not just the one you connected to). Picking a different entry calls `POST /api/data-browser/select-database`, and the table browser refreshes to the new database.
+
+The two supported drivers behave differently under the hood:
+- **MySQL / Snowflake**: the active database is switched in place via `Connection.setCatalog(database)` — no reconnect.
+- **PostgreSQL**: a connection is bound to one database for its lifetime, so there is no in-connection way to switch. `handleSelectDatabase` instead reconnects transparently: it rebuilds the JDBC URL by swapping the database path segment (`PostgreSqlStrategy.buildUrlForDatabase`), opens a new connection with the same credentials, and replaces the session's connection (`SessionManager.replaceConnection`) — the old connection is closed and the `sessionId` stays the same.
+
+This is why `SessionManager.Session` stores the original `dbType`/`user`/`password`/connect-time `props` alongside the connection, not just the `Connection` object: PostgreSQL's reconnect needs them to rebuild a new connection later, potentially long after the initial `connect` call.
+
 ## API Endpoints
 
 All endpoints accept and return `application/json`.
 
 | Method | Path | Description |
 |---|---|---|
+| `GET` | `/api/data-browser/db-types` | List registered database types for the connection-form dropdown |
 | `POST` | `/api/data-browser/driver-status` | Check if driver JAR is downloaded |
 | `POST` | `/api/data-browser/download` | Download + load JDBC driver |
 | `POST` | `/api/data-browser/connect` | Open connection, returns `sessionId` |
+| `POST` | `/api/data-browser/databases` | List actual databases on the connected server |
+| `POST` | `/api/data-browser/select-database` | Switch the session's active database |
 | `POST` | `/api/data-browser/tables` | List schemas and tables |
 | `POST` | `/api/data-browser/query` | Execute SQL, paginated (100 rows/page) |
 | `POST` | `/api/data-browser/disconnect` | Close connection |
@@ -127,6 +149,26 @@ curl -X POST http://localhost:8080/api/data-browser/connect \
 
 Response: `{"status":"success","data":{"sessionId":"<uuid>","status":"connected"}}`
 
+### Example: List databases
+
+```bash
+curl -X POST http://localhost:8080/api/data-browser/databases \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId":"<uuid>"}'
+```
+
+Response: `{"status":"success","data":{"databases":["appdb","otherdb"],"current":"appdb"}}`
+
+### Example: Switch database
+
+```bash
+curl -X POST http://localhost:8080/api/data-browser/select-database \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId":"<uuid>","database":"otherdb"}'
+```
+
+Response: `{"status":"success","data":{"database":"otherdb"}}`
+
 ### Example: Query
 
 ```bash
@@ -137,14 +179,16 @@ curl -X POST http://localhost:8080/api/data-browser/query \
 
 ## Testing
 
-Unit tests cover the datasource strategy layer and core utilities (51 tests, JUnit 5 + Mockito):
+Unit tests cover the datasource strategy layer, session handling, and the new endpoints (JUnit 5 + Mockito):
 
 | Test Class | Coverage |
 |---|---|
-| `DataSourceRegistryTest` | Singleton lookup, case-insensitive get, unknown types |
-| `PostgreSqlStrategyTest` | URL pass-through, validation, system schemas |
-| `MySqlStrategyTest` | URL pass-through, validation, system schemas |
-| `SnowflakeStrategyTest` | URL assembly, optional fields, blank-field skipping |
+| `DataSourceRegistryTest` | Singleton lookup, case-insensitive get, unknown types, `ServiceLoader` discovery independent of thread context classloader |
+| `PostgreSqlStrategyTest` | URL pass-through, validation, system schemas, display name, `buildUrlForDatabase` URL rewriting |
+| `MySqlStrategyTest` | URL pass-through, validation, system schemas, display name, catalog-switch support |
+| `SnowflakeStrategyTest` | URL assembly, optional fields, blank-field skipping, display name, catalog-switch support |
+| `SessionManagerTest` | Session creation/lookup, connection replacement (and old-connection closing), removal |
+| `DataBrowserHandlerTest` | `db-types`, `databases`, `select-database` — success, session-expired, unknown-dbType paths (PostgreSQL's reconnect branch is not covered; see class Javadoc) |
 | `TemplateEngineTest` | Variable substitution, XSS escaping, for loops, dot notation |
 | `JsonUtilTest` | Response shapes, JSON roundtrip, `isValidJson` |
 

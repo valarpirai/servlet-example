@@ -100,17 +100,18 @@
   <aside>
     <div class="sidebar-section">
       <label>Database Type</label>
-      <select id="db-type" onchange="onDbTypeChange()">
-        <option value="postgresql">PostgreSQL</option>
-        <option value="mysql">MySQL</option>
-        <option value="snowflake">Snowflake</option>
-      </select>
+      <select id="db-type" onchange="onDbTypeChange()"></select>
 
       <div id="dynamic-fields"></div>
 
       <button id="download-btn" onclick="downloadDriver()" style="display:none">↓ Download Driver</button>
       <button id="connect-btn" onclick="connect()" style="display:none">Connect</button>
       <div id="driver-status" class="driver-status"></div>
+
+      <div id="database-picker" style="display:none">
+        <label>Database</label>
+        <select id="db-name" onchange="onDatabaseChange()"></select>
+      </div>
     </div>
   </aside>
 
@@ -184,14 +185,30 @@ const DB_FIELDS = {
 };
 
 // Init
-function init() {
+async function init() {
+  await loadDbTypes();
   const savedType = localStorage.getItem('db_type');
   if (savedType) document.getElementById('db-type').value = savedType;
   onDbTypeChange(true);
 }
 
+async function loadDbTypes() {
+  const select = document.getElementById('db-type');
+  try {
+    const res = await fetch('/api/data-browser/db-types');
+    const json = await res.json();
+    const dbTypes = (json.data && json.data.dbTypes) || [];
+    select.innerHTML = dbTypes.map(d =>
+      '<option value="' + escHtml(d.dbType) + '">' + escHtml(d.displayName) + '</option>'
+    ).join('');
+  } catch (err) {
+    select.innerHTML = '<option value="">Failed to load database types</option>';
+  }
+}
+
 function onDbTypeChange(restoreValues) {
   const type = document.getElementById('db-type').value;
+  document.getElementById('database-picker').style.display = 'none';
   const fields = DB_FIELDS[type] || [];
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = fields.map(f => {
@@ -282,6 +299,7 @@ async function connect() {
     const connRes = await api('/api/data-browser/connect', body);
     sessionId = connRes.data.sessionId;
     setStatus('connected', 'connected');
+    await loadDatabases();
     await loadTables();
   } catch (err) {
     setStatus('error', 'error');
@@ -289,6 +307,34 @@ async function connect() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Connect';
+  }
+}
+
+// Databases (actual databases on the connected server, not the db-type dropdown)
+async function loadDatabases() {
+  const picker = document.getElementById('database-picker');
+  const select = document.getElementById('db-name');
+  try {
+    const res = await api('/api/data-browser/databases', { sessionId });
+    const databases = res.data.databases || [];
+    select.innerHTML = databases.map(d =>
+      '<option value="' + escHtml(d) + '">' + escHtml(d) + '</option>'
+    ).join('');
+    if (res.data.current) select.value = res.data.current;
+    picker.style.display = databases.length > 0 ? 'block' : 'none';
+  } catch (err) {
+    picker.style.display = 'none';
+  }
+}
+
+async function onDatabaseChange() {
+  const database = document.getElementById('db-name').value;
+  const tree = document.getElementById('schema-tree');
+  try {
+    await api('/api/data-browser/select-database', { sessionId, database });
+    await loadTables();
+  } catch (err) {
+    tree.innerHTML = '<div style="padding:12px;color:#f38ba8">' + escHtml(err.message) + '</div>';
   }
 }
 

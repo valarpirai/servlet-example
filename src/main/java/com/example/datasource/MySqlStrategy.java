@@ -12,6 +12,11 @@ public class MySqlStrategy implements DataSourceStrategy {
   }
 
   @Override
+  public String getDisplayName() {
+    return "MySQL";
+  }
+
+  @Override
   public String getJarPath() {
     return "com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar";
   }

@@ -189,6 +189,14 @@ routes:
     description: Beautiful home page with links to all endpoints
 
   # Data Browser API
+  - path: /api/data-browser/db-types
+    method: GET
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleDbTypes
+    contentType: application/json
+    description: List available database types for the connection dropdown
+
   - path: /api/data-browser/driver-status
     method: POST
     type: handler
@@ -212,6 +220,22 @@ routes:
     handlerMethod: handleConnect
     contentType: application/json
     description: Connect to database
+
+  - path: /api/data-browser/databases
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleDatabases
+    contentType: application/json
+    description: List actual databases available on the connected server
+
+  - path: /api/data-browser/select-database
+    method: POST
+    type: handler
+    handler: DataBrowserHandler
+    handlerMethod: handleSelectDatabase
+    contentType: application/json
+    description: Switch the session's active database
 
   - path: /api/data-browser/tables
     method: POST

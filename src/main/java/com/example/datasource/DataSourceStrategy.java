@@ -15,6 +15,9 @@ public interface DataSourceStrategy {
   /** Short lowercase key used in API requests: "mysql", "postgresql", "snowflake". */
   String getDbType();
 
+  /** Human-readable name shown in the UI's database-type dropdown, e.g. "PostgreSQL". */
+  String getDisplayName();
+
   /** Maven Central relative JAR path, e.g. "org/postgresql/postgresql/42.7.3/...jar". */
   String getJarPath();
 
@@ -40,4 +43,24 @@ public interface DataSourceStrategy {
    * case-insensitively.
    */
   Set<String> getSystemSchemas();
+
+  /**
+   * True if the active database can be changed on an existing connection via {@link
+   * java.sql.Connection#setCatalog}. False if the driver binds a connection to one database for its
+   * lifetime, meaning a database switch requires reconnecting (see {@link #buildUrlForDatabase}).
+   * True for all strategies by default.
+   */
+  default boolean supportsCatalogSwitch() {
+    return true;
+  }
+
+  /**
+   * Rebuilds the connection URL for a different database, given the original connect-time
+   * properties (as passed to {@link #buildUrl}). Only called when {@link #supportsCatalogSwitch()}
+   * is false.
+   */
+  default String buildUrlForDatabase(Map<String, String> originalProps, String database) {
+    throw new UnsupportedOperationException(
+        getDbType() + " supports in-connection catalog switching; buildUrlForDatabase is unused");
+  }
 }

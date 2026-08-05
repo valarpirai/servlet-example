@@ -80,4 +80,14 @@ class SnowflakeStrategyTest {
   void getSystemSchemas_isExactlyInformationSchema() {
     assertEquals(Set.of("information_schema"), strategy.getSystemSchemas());
   }
+
+  @Test
+  void getDisplayName_returnsSnowflake() {
+    assertEquals("Snowflake", strategy.getDisplayName());
+  }
+
+  @Test
+  void supportsCatalogSwitch_returnsTrue() {
+    assertTrue(strategy.supportsCatalogSwitch());
+  }
 }

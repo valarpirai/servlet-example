@@ -51,4 +51,14 @@ class MySqlStrategyTest {
         Set.of("information_schema", "performance_schema", "sys", "mysql"),
         strategy.getSystemSchemas());
   }
+
+  @Test
+  void getDisplayName_returnsMySQL() {
+    assertEquals("MySQL", strategy.getDisplayName());
+  }
+
+  @Test
+  void supportsCatalogSwitch_returnsTrue() {
+    assertTrue(strategy.supportsCatalogSwitch());
+  }
 }
