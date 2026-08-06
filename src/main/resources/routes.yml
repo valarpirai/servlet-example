@@ -260,3 +260,36 @@ routes:
     handlerMethod: handleDisconnect
     contentType: application/json
     description: Disconnect from database
+
+  # Mongo Browser API (non-JDBC, reflection-driven)
+  - path: /api/data-browser/mongo/connect
+    method: POST
+    type: handler
+    handler: MongoHandler
+    handlerMethod: handleConnect
+    contentType: application/json
+    description: Connect to MongoDB via connection string
+
+  - path: /api/data-browser/mongo/collections
+    method: POST
+    type: handler
+    handler: MongoHandler
+    handlerMethod: handleCollections
+    contentType: application/json
+    description: List collections in a Mongo database
+
+  - path: /api/data-browser/mongo/find
+    method: POST
+    type: handler
+    handler: MongoHandler
+    handlerMethod: handleFind
+    contentType: application/json
+    description: Run a find query against a Mongo collection
+
+  - path: /api/data-browser/mongo/disconnect
+    method: POST
+    type: handler
+    handler: MongoHandler
+    handlerMethod: handleDisconnect
+    contentType: application/json
+    description: Disconnect from MongoDB

@@ -160,6 +160,8 @@ let currentTableHasMore = false;
 let currentSqlPage = 1;
 let currentSqlHasMore = false;
 let lastSql = null;
+let currentMongoDatabase = null;
+let currentMongoCollection = null;
 
 // DB field definitions
 const DB_FIELDS = {
@@ -184,6 +186,11 @@ const DB_FIELDS = {
   ]
 };
 
+// MongoDB is a separate non-JDBC path: connection-string-only, no DataSourceStrategy.
+const MONGO_FIELDS = [
+  { id: 'connectionString', label: 'Connection String', placeholder: 'mongodb://user:pass@host:27017', required: true }
+];
+
 // Init
 async function init() {
   await loadDbTypes();
@@ -200,16 +207,17 @@ async function loadDbTypes() {
     const dbTypes = (json.data && json.data.dbTypes) || [];
     select.innerHTML = dbTypes.map(d =>
       '<option value="' + escHtml(d.dbType) + '">' + escHtml(d.displayName) + '</option>'
-    ).join('');
+    ).join('') + '<option value="mongodb">MongoDB</option>';
   } catch (err) {
-    select.innerHTML = '<option value="">Failed to load database types</option>';
+    select.innerHTML = '<option value="">Failed to load database types</option><option value="mongodb">MongoDB</option>';
   }
 }
 
 function onDbTypeChange(restoreValues) {
   const type = document.getElementById('db-type').value;
+  const isMongo = type === 'mongodb';
   document.getElementById('database-picker').style.display = 'none';
-  const fields = DB_FIELDS[type] || [];
+  const fields = isMongo ? MONGO_FIELDS : (DB_FIELDS[type] || []);
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = fields.map(f => {
     const labelClass = f.required ? '' : 'optional-label';
@@ -217,7 +225,7 @@ function onDbTypeChange(restoreValues) {
       '<input id="field-' + f.id + '" type="' + (f.type || 'text') + '" placeholder="' + (f.placeholder || '') + '" autocomplete="off" />';
   }).join('');
 
-  if (restoreValues) {
+  if (restoreValues && !isMongo) {
     fields.forEach(f => {
       const key = f.id === 'url' ? 'db_url' : f.id === 'user' ? 'db_user' : 'db_' + f.id;
       const val = localStorage.getItem(key);
@@ -228,7 +236,27 @@ function onDbTypeChange(restoreValues) {
     });
   }
 
-  checkDriverStatus();
+  updateModeLabels(isMongo);
+
+  if (isMongo) {
+    document.getElementById('download-btn').style.display = 'none';
+    document.getElementById('connect-btn').style.display = 'block';
+    setDriverStatus('', '');
+  } else {
+    checkDriverStatus();
+  }
+}
+
+// Switches sidebar/tab/editor labels between the JDBC table-browser flow and the
+// Mongo collection-browser flow (a separate non-JDBC path, not a DataSourceStrategy).
+function updateModeLabels(isMongo) {
+  const tabs = document.querySelectorAll('.tab');
+  tabs[0].textContent = isMongo ? 'Collection Browser' : 'Table Browser';
+  tabs[1].textContent = isMongo ? 'Find Query' : 'SQL Editor';
+  document.getElementById('sql-input').placeholder = isMongo
+    ? '{ "field": "value" }  (empty = match all)'
+    : 'SELECT * FROM your_table LIMIT 100';
+  document.getElementById('run-btn').textContent = isMongo ? '▶ Find' : '▶ Run';
 }
 
 async function checkDriverStatus() {
@@ -275,6 +303,7 @@ async function downloadDriver() {
 // Connect
 async function connect() {
   const type = document.getElementById('db-type').value;
+  if (type === 'mongodb') return connectMongo();
   const btn = document.getElementById('connect-btn');
   btn.disabled = true;
   btn.textContent = 'Connecting\u2026';
@@ -310,24 +339,53 @@ async function connect() {
   }
 }
 
+// Mongo connect (separate non-JDBC path: connection-string only, no driver-status/download step —
+// MongoHandler downloads the driver into extlib/ transparently on first connect)
+async function connectMongo() {
+  const btn = document.getElementById('connect-btn');
+  const connStrEl = document.getElementById('field-connectionString');
+  const connectionString = connStrEl ? connStrEl.value : '';
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+  setStatus('connecting…', '');
+  try {
+    const res = await api('/api/data-browser/mongo/connect', { connectionString });
+    sessionId = res.data.sessionId;
+    setStatus('connected', 'connected');
+    const databases = res.data.databases || [];
+    fillDatabaseSelect(databases, databases[0]);
+    if (databases.length > 0) await onMongoDatabaseChange();
+  } catch (err) {
+    setStatus('error', 'error');
+    setDriverStatus('✗ ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Connect';
+  }
+}
+
 // Databases (actual databases on the connected server, not the db-type dropdown)
-async function loadDatabases() {
+function fillDatabaseSelect(databases, current) {
   const picker = document.getElementById('database-picker');
   const select = document.getElementById('db-name');
+  select.innerHTML = databases.map(d =>
+    '<option value="' + escHtml(d) + '">' + escHtml(d) + '</option>'
+  ).join('');
+  if (current) select.value = current;
+  picker.style.display = databases.length > 0 ? 'block' : 'none';
+}
+
+async function loadDatabases() {
   try {
     const res = await api('/api/data-browser/databases', { sessionId });
-    const databases = res.data.databases || [];
-    select.innerHTML = databases.map(d =>
-      '<option value="' + escHtml(d) + '">' + escHtml(d) + '</option>'
-    ).join('');
-    if (res.data.current) select.value = res.data.current;
-    picker.style.display = databases.length > 0 ? 'block' : 'none';
+    fillDatabaseSelect(res.data.databases || [], res.data.current);
   } catch (err) {
-    picker.style.display = 'none';
+    document.getElementById('database-picker').style.display = 'none';
   }
 }
 
 async function onDatabaseChange() {
+  if (document.getElementById('db-type').value === 'mongodb') return onMongoDatabaseChange();
   const database = document.getElementById('db-name').value;
   const tree = document.getElementById('schema-tree');
   try {
@@ -335,6 +393,51 @@ async function onDatabaseChange() {
     await loadTables();
   } catch (err) {
     tree.innerHTML = '<div style="padding:12px;color:#f38ba8">' + escHtml(err.message) + '</div>';
+  }
+}
+
+// Mongo collections (replaces the schema/table tree for the Mongo mode)
+async function onMongoDatabaseChange() {
+  currentMongoDatabase = document.getElementById('db-name').value;
+  currentMongoCollection = null;
+  await loadMongoCollections();
+}
+
+async function loadMongoCollections() {
+  const tree = document.getElementById('schema-tree');
+  tree.innerHTML = '<div style="padding:12px;color:#a6adc8">Loading…</div>';
+  try {
+    const res = await api('/api/data-browser/mongo/collections', { sessionId, database: currentMongoDatabase });
+    const collections = res.data.collections || [];
+    if (collections.length === 0) {
+      tree.innerHTML = '<div style="padding:12px;color:#585b70">No collections found</div>';
+      return;
+    }
+    tree.innerHTML = collections.map(c =>
+      '<div class="table-name" data-collection="' + escHtml(c) + '" onclick="selectMongoCollection(event)">' + escHtml(c) + '</div>'
+    ).join('');
+  } catch (err) {
+    tree.innerHTML = '<div style="padding:12px;color:#f38ba8">' + escHtml(err.message) + '</div>';
+  }
+}
+
+function selectMongoCollection(event) {
+  const el = event.currentTarget;
+  document.querySelectorAll('.table-name').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentMongoCollection = el.dataset.collection;
+  fetchMongoCollectionData();
+}
+
+async function fetchMongoCollectionData() {
+  renderGridLoading('table-grid-container');
+  try {
+    const res = await api('/api/data-browser/mongo/find', {
+      sessionId, database: currentMongoDatabase, collection: currentMongoCollection, filter: ''
+    });
+    renderMongoGrid('table-grid-container', res.data.documents);
+  } catch (err) {
+    document.getElementById('table-grid-container').innerHTML = '<div class="empty-state" style="color:#f38ba8">' + escHtml(err.message) + '</div>';
   }
 }
 
@@ -400,12 +503,45 @@ function tablePage(delta) {
 
 // SQL Editor
 async function runQuery() {
+  if (document.getElementById('db-type').value === 'mongodb') return runMongoFind();
   const sql = document.getElementById('sql-input').value.trim();
   if (!sql) return;
   if (!sessionId) { alert('Not connected'); return; }
   lastSql = sql;
   currentSqlPage = 1;
   await fetchSqlData();
+}
+
+// Mongo find (replaces the SQL editor for the Mongo mode)
+async function runMongoFind() {
+  if (!sessionId) { alert('Not connected'); return; }
+  if (!currentMongoCollection) { alert('Select a collection first'); return; }
+  const filter = document.getElementById('sql-input').value.trim();
+  renderGridLoading('sql-grid-container');
+  try {
+    const res = await api('/api/data-browser/mongo/find', {
+      sessionId, database: currentMongoDatabase, collection: currentMongoCollection, filter
+    });
+    renderMongoGrid('sql-grid-container', res.data.documents);
+  } catch (err) {
+    document.getElementById('sql-grid-container').innerHTML = '<div class="empty-state" style="color:#f38ba8">' + escHtml(err.message) + '</div>';
+  }
+}
+
+// Renders Mongo find results as one row per document (documents have no fixed column set).
+function renderMongoGrid(containerId, documents) {
+  const container = document.getElementById(containerId);
+  if (!documents || documents.length === 0) {
+    container.innerHTML = '<div class="empty-state">No documents</div>';
+    return;
+  }
+  const rows = documents.map(doc => {
+    const id = doc._id !== undefined ? JSON.stringify(doc._id) : '';
+    const json = JSON.stringify(doc, null, 2);
+    return '<tr><td>' + escHtml(id) + '</td>' +
+      '<td style="white-space:pre-wrap;max-width:none;"><pre style="margin:0;font-family:inherit;">' + escHtml(json) + '</pre></td></tr>';
+  }).join('');
+  container.innerHTML = '<table><thead><tr><th>_id</th><th>Document</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
 async function fetchSqlData() {

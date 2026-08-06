@@ -1,8 +1,8 @@
 # Data Browser
 
-**Last updated**: 2026-08-05
+**Last updated**: 2026-08-06
 
-A web-based database browser at `/data-browser`. Connect to PostgreSQL, MySQL, or Snowflake — JDBC drivers are downloaded on demand, no server restart required.
+A web-based database browser at `/data-browser`. Connect to PostgreSQL, MySQL, or Snowflake via JDBC (drivers downloaded on demand, no server restart required), or to plain MongoDB via a separate non-JDBC mode (see [MongoDB Browser Mode](#mongodb-browser-mode)).
 
 **Key files**:
 - `datasource/DataSourceStrategy.java` - Strategy interface
@@ -13,9 +13,13 @@ A web-based database browser at `/data-browser`. Connect to PostgreSQL, MySQL, o
 - `datasource/SnowflakeStrategy.java` - Snowflake implementation
 - `handler/DataBrowserHandler.java` - Session management, query execution, database switching
 - `extlib/SessionManager.java` - Per-session connection + connect-time credentials, needed to reconnect on database switch
-- `src/main/resources/static/data-browser.html` - UI
+- `mongo/MongoExtLibManager.java` - Downloads the MongoDB driver jars to `extlib/` and loads them into a `URLClassLoader`
+- `mongo/MongoReflectionClient.java` - Drives the loaded driver purely via reflection (no compile-time `com.mongodb.*`/`org.bson.*` dependency)
+- `mongo/MongoSessionManager.java` - Per-session Mongo client handle
+- `handler/MongoHandler.java` - Mongo connect/collections/find/disconnect endpoints
+- `src/main/resources/static/data-browser.html` - UI (JDBC table-browser flow + Mongo collection-browser flow)
 
-**Tests**: `DataSourceRegistryTest`, `PostgreSqlStrategyTest`, `MySqlStrategyTest`, `SnowflakeStrategyTest`, `SessionManagerTest`, `DataBrowserHandlerTest`
+**Tests**: `DataSourceRegistryTest`, `PostgreSqlStrategyTest`, `MySqlStrategyTest`, `SnowflakeStrategyTest`, `SessionManagerTest`, `DataBrowserHandlerTest`, `MongoSessionManagerTest`, `MongoHandlerTest`
 
 ## Quick Start
 
@@ -99,6 +103,65 @@ Drivers are downloaded from Maven Central to `extlib/` on first use and reused o
 | MySQL | `mysql-connector-j` | 8.4.0 |
 | Snowflake | `snowflake-jdbc` | 3.15.0 |
 
+## MongoDB Browser Mode
+
+Plain/self-hosted MongoDB doesn't fit the JDBC-based `DataSourceStrategy` architecture above — there is no JDBC driver, no `Connection`/`ResultSet`, and no tabular schema. Instead of forcing it into that shape, MongoDB support is a **separate, parallel path**: its own package (`com.example.mongo`), its own session manager, its own handler, and its own UI mode ("Collection Browser" + "Find Query" instead of "Table Browser" + "SQL Editor"). Selecting **MongoDB** in the Database Type dropdown switches the whole sidebar/tab UI into this mode; it is not a `DataSourceStrategy` and does not appear in `/api/data-browser/db-types`.
+
+### Why reflection instead of `DriverShim`
+
+JDBC drivers are loaded dynamically (downloaded to `extlib/`, loaded into a `URLClassLoader`) and still usable by our code because `java.sql.Driver`/`Connection`/`ResultSet` are **JDK-standard types**, loaded once by the platform classloader — a class loaded from a `URLClassLoader` that implements `java.sql.Driver` can be cast to `Driver` from anywhere, which is exactly what `DriverShim` relies on.
+
+MongoDB's client API (`com.mongodb.client.MongoClient`, `MongoDatabase`, `MongoCollection`, ...) has no such JDK-standard equivalent to shim against. A class loaded from our `URLClassLoader` cannot be cast to `com.mongodb.client.MongoClient` by code compiled against a *different* copy of that class (or, in our case, code that doesn't reference it at compile time at all). So there is no way to get a usable typed reference the way `DriverShim` does for JDBC.
+
+Instead, `MongoReflectionClient` drives every driver call through `java.lang.reflect.Method`:
+
+```
+com.example.mongo/
+├── MongoExtLibManager.java     # Downloads bson/mongodb-driver-core/mongodb-driver-sync to extlib/, builds a shared URLClassLoader
+├── MongoReflectionClient.java  # Class.forName(..., loader) + Method.invoke(...) for every driver call
+└── MongoSessionManager.java    # Session storage: client + reflection wrapper as raw Objects
+```
+
+`MongoReflectionClient` covers: `connect(connectionString)` (`MongoClients.create`), `listDatabaseNames`, `getDatabase`, `listCollectionNames`, `getCollection`, `find(collection, filterJson, limit)` (parses the filter via `Document.parse`, converts results via `Document.toJson()`), and `close`.
+
+One simplification is possible: `MongoIterable.iterator()` returns a `MongoCursor<T>`, which implements **`java.util.Iterator`** — a JDK-standard interface. So once a `MongoIterable` is obtained reflectively, its cursor *can* be cast directly to `Iterator<?>` and driven normally (`hasNext()`/`next()`) without further reflection — the same JDK-interface trick that makes `DriverShim` work, just for iteration rather than the whole client.
+
+No Maven dependency on `org.mongodb:*` exists in `pom.xml` — the driver jars are pulled from Maven Central into `extlib/` on first connect, exactly like the JDBC drivers, just without a `DriverShim`-style typed wrapper.
+
+### Mongo API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/data-browser/mongo/connect` | Connect via connection string; downloads/loads the driver on first use; returns `sessionId` + database names |
+| `POST` | `/api/data-browser/mongo/collections` | List collection names in a database |
+| `POST` | `/api/data-browser/mongo/find` | Run a find with an optional JSON filter (blank = match all), returns matching documents |
+| `POST` | `/api/data-browser/mongo/disconnect` | Close the Mongo client and remove the session |
+
+### Example: Connect
+
+```bash
+curl -X POST http://localhost:8080/api/data-browser/mongo/connect \
+  -H "Content-Type: application/json" \
+  -d '{"connectionString":"mongodb://user:pass@localhost:27017"}'
+```
+
+Response: `{"status":"success","data":{"sessionId":"<uuid>","status":"connected","databases":["mydb","admin"]}}`
+
+### Example: Find
+
+```bash
+curl -X POST http://localhost:8080/api/data-browser/mongo/find \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId":"<uuid>","database":"mydb","collection":"users","filter":"{\"active\":true}","limit":50}'
+```
+
+Response: `{"status":"success","data":{"documents":[{"_id":{"$oid":"..."},"name":"alice","active":true}]}}`
+
+**Gotchas:**
+- `MongoHandler.handleConnect` is not covered by automated tests — it calls the real `MongoExtLibManager` singleton, which downloads the driver jar over the network on first use. `MongoHandlerTest` covers `collections`/`find`/`disconnect` with a mocked `MongoReflectionClient` instead.
+- Documents are rendered as one grid row each (no fixed column set, unlike SQL results) — `_id` plus pretty-printed JSON of the whole document.
+- `find`'s JSON filter uses MongoDB's Extended JSON conventions (e.g. `{"_id": {"$oid": "..."}}`), since it's parsed with `Document.parse(...)`.
+
 ### Database Type Dropdown
 
 The **Database Type** dropdown (PostgreSQL/MySQL/Snowflake) is populated at page load from `GET /api/data-browser/db-types`, which lists every `DataSourceRegistry`-discovered strategy's `getDbType()`/`getDisplayName()`. Adding a database via [Adding a New Database](#adding-a-new-database) makes it appear in this dropdown automatically — no HTML change needed.
@@ -115,7 +178,7 @@ This is why `SessionManager.Session` stores the original `dbType`/`user`/`passwo
 
 ## API Endpoints
 
-All endpoints accept and return `application/json`.
+All endpoints accept and return `application/json`. These are the JDBC-backed endpoints; see [Mongo API Endpoints](#mongo-api-endpoints) for the MongoDB mode.
 
 | Method | Path | Description |
 |---|---|---|
@@ -189,6 +252,8 @@ Unit tests cover the datasource strategy layer, session handling, and the new en
 | `SnowflakeStrategyTest` | URL assembly, optional fields, blank-field skipping, display name, catalog-switch support |
 | `SessionManagerTest` | Session creation/lookup, connection replacement (and old-connection closing), removal |
 | `DataBrowserHandlerTest` | `db-types`, `databases`, `select-database` — success, session-expired, unknown-dbType paths (PostgreSQL's reconnect branch is not covered; see class Javadoc) |
+| `MongoSessionManagerTest` | Session creation/lookup, `close()` called on removal (via mocked `MongoReflectionClient`) |
+| `MongoHandlerTest` | `collections`, `find`, `disconnect` — success and session-expired paths, using a mocked `MongoReflectionClient` (`connect` is not covered; see class Javadoc) |
 | `TemplateEngineTest` | Variable substitution, XSS escaping, for loops, dot notation |
 | `JsonUtilTest` | Response shapes, JSON roundtrip, `isValidJson` |
 
@@ -211,3 +276,4 @@ mvn test
 - **Table Browser tab** — expandable schema/table tree; click a table to query its rows
 - **SQL Editor tab** — freeform SQL with `Cmd+Enter` / `Ctrl+Enter` shortcut to run
 - **Results grid** — paginated (Prev / Next), handles nulls and binary columns (Base64)
+- **MongoDB mode** — selecting "MongoDB" in the Database Type dropdown swaps in a connection-string field, relabels the tabs to "Collection Browser" / "Find Query", and renders results as one JSON document per row instead of a SQL grid
