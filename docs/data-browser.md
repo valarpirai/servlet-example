@@ -103,6 +103,20 @@ Drivers are downloaded from Maven Central to `extlib/` on first use and reused o
 | MySQL | `mysql-connector-j` | 8.4.0 |
 | Snowflake | `snowflake-jdbc` | 3.15.0 |
 
+### Database Type Dropdown
+
+The **Database Type** dropdown (PostgreSQL/MySQL/Snowflake) is populated at page load from `GET /api/data-browser/db-types`, which lists every `DataSourceRegistry`-discovered strategy's `getDbType()`/`getDisplayName()`. Adding a database via [Adding a New Database](#adding-a-new-database) makes it appear in this dropdown automatically — no HTML change needed.
+
+### Switching Databases
+
+After connecting, a second **Database** dropdown appears, populated from `POST /api/data-browser/databases` (`Connection.getMetaData().getCatalogs()` — the actual databases visible on that server, not just the one you connected to). Picking a different entry calls `POST /api/data-browser/select-database`, and the table browser refreshes to the new database.
+
+The two supported drivers behave differently under the hood:
+- **MySQL / Snowflake**: the active database is switched in place via `Connection.setCatalog(database)` — no reconnect.
+- **PostgreSQL**: a connection is bound to one database for its lifetime, so there is no in-connection way to switch. `handleSelectDatabase` instead reconnects transparently: it rebuilds the JDBC URL by swapping the database path segment (`PostgreSqlStrategy.buildUrlForDatabase`), opens a new connection with the same credentials, and replaces the session's connection (`SessionManager.replaceConnection`) — the old connection is closed and the `sessionId` stays the same.
+
+This is why `SessionManager.Session` stores the original `dbType`/`user`/`password`/connect-time `props` alongside the connection, not just the `Connection` object: PostgreSQL's reconnect needs them to rebuild a new connection later, potentially long after the initial `connect` call.
+
 ## MongoDB Browser Mode
 
 Plain/self-hosted MongoDB doesn't fit the JDBC-based `DataSourceStrategy` architecture above — there is no JDBC driver, no `Connection`/`ResultSet`, and no tabular schema. Instead of forcing it into that shape, MongoDB support is a **separate, parallel path**: its own package (`com.example.mongo`), its own session manager, its own handler, and its own UI mode ("Collection Browser" + "Find Query" instead of "Table Browser" + "SQL Editor"). Selecting **MongoDB** in the Database Type dropdown switches the whole sidebar/tab UI into this mode; it is not a `DataSourceStrategy` and does not appear in `/api/data-browser/db-types`.
@@ -162,19 +176,55 @@ Response: `{"status":"success","data":{"documents":[{"_id":{"$oid":"..."},"name"
 - Documents are rendered as one grid row each (no fixed column set, unlike SQL results) — `_id` plus pretty-printed JSON of the whole document.
 - `find`'s JSON filter uses MongoDB's Extended JSON conventions (e.g. `{"_id": {"$oid": "..."}}`), since it's parsed with `Document.parse(...)`.
 
-### Database Type Dropdown
+## Adding a New Data Source Type
 
-The **Database Type** dropdown (PostgreSQL/MySQL/Snowflake) is populated at page load from `GET /api/data-browser/db-types`, which lists every `DataSourceRegistry`-discovered strategy's `getDbType()`/`getDisplayName()`. Adding a database via [Adding a New Database](#adding-a-new-database) makes it appear in this dropdown automatically — no HTML change needed.
+This project now has two working patterns for connecting to something new (JDBC via `DataSourceStrategy`, and reflection-loaded via the Mongo mode), which is enough to generalize into a decision tree. Working through **AWS S3** as a worked example is useful precisely because it doesn't cleanly fit either existing pattern — S3 has no JDBC driver, but unlike MongoDB it also has no proprietary binary wire protocol requiring a vendor client at all.
 
-### Switching Databases
+### Step 1: Does it have a JDBC driver?
 
-After connecting, a second **Database** dropdown appears, populated from `POST /api/data-browser/databases` (`Connection.getMetaData().getCatalogs()` — the actual databases visible on that server, not just the one you connected to). Picking a different entry calls `POST /api/data-browser/select-database`, and the table browser refreshes to the new database.
+If yes, it's not a new pattern — follow [Adding a New Database](#adding-a-new-database): implement `DataSourceStrategy`, add one line to the services file, done. This covers most relational and relational-ish databases (Postgres, MySQL, Snowflake, and most others with a JDBC driver on Maven Central).
 
-The two supported drivers behave differently under the hood:
-- **MySQL / Snowflake**: the active database is switched in place via `Connection.setCatalog(database)` — no reconnect.
-- **PostgreSQL**: a connection is bound to one database for its lifetime, so there is no in-connection way to switch. `handleSelectDatabase` instead reconnects transparently: it rebuilds the JDBC URL by swapping the database path segment (`PostgreSqlStrategy.buildUrlForDatabase`), opens a new connection with the same credentials, and replaces the session's connection (`SessionManager.replaceConnection`) — the old connection is closed and the `sessionId` stays the same.
+S3 has no JDBC driver (there are third-party SQL-over-S3 shims, but plain object storage isn't relational), so this doesn't apply.
 
-This is why `SessionManager.Session` stores the original `dbType`/`user`/`password`/connect-time `props` alongside the connection, not just the `Connection` object: PostgreSQL's reconnect needs them to rebuild a new connection later, potentially long after the initial `connect` call.
+### Step 2: Is the wire protocol accessible over plain HTTP?
+
+This is the question that actually matters for S3, and the reason it's a *better* example than MongoDB rather than just "another one like it."
+
+- **MongoDB speaks a proprietary binary protocol.** There is no way to talk to it without either the official driver or reimplementing that protocol by hand — not realistic. That forces the choice made in [MongoDB Browser Mode](#mongodb-browser-mode): dynamically load the real driver and drive it via reflection, or accept a compile-time dependency.
+- **S3 is a REST API over plain HTTPS**, authenticated with a request-signing scheme (SigV4) built from HMAC-SHA256. Both `java.net.http.HttpClient` and `javax.crypto.Mac` are JDK-standard — nothing needs to be loaded dynamically or reflected into at all. A `S3Strategy`-equivalent could sign and send requests directly, with zero new dependencies of any kind (not even a `DriverShim`-style download).
+
+So before reaching for the Mongo-style reflection wrapper, check whether the target's protocol is simple enough (REST/JSON/HTTP) to talk to directly with `HttpClient`. Reflection-loading is a fallback for genuinely proprietary client protocols, not a default.
+
+### Step 3: If it does need a real client library, choose compile-time vs. reflection-loaded
+
+Only relevant if step 2 says "no, it needs a real client" (true for Mongo, not true for S3):
+
+| | Compile-time dependency | Reflection-loaded (Mongo model) |
+|---|---|---|
+| `pom.xml` | New `<dependency>` | None |
+| Startup cost | Always on classpath | Downloaded to `extlib/` on first use |
+| Code | Call the client API directly, fully typed | `Class.forName` + `Method.invoke` for every call |
+| Matches existing JDBC UX | No — driver is bundled, not "downloaded on demand" | Yes |
+
+This project's established convention (JDBC + Mongo) favors reflection-loaded, matching the "download on demand, no restart" UX users already see for JDBC drivers. Pick compile-time only when the library is small, stable, and the reflection overhead isn't worth it for the call surface involved.
+
+### Worked sketch: adding S3 (not implemented — illustrative only)
+
+Given S3 fits neither `DataSourceStrategy` (no JDBC) nor the Mongo pattern (no vendor client needed), it would be its own mode, mirroring Mongo's shape:
+
+```
+com.example.s3/
+├── S3Client.java          # Signs + sends requests via java.net.http.HttpClient — no dependency, no reflection
+└── S3SessionManager.java  # Per-session: access key, secret key, region, endpoint
+```
+
+- **Auth**: access key ID + secret access key (+ optional session token), not a connection string — closer to the JDBC user/password fields than to Mongo's single connection string.
+- **"Databases" → buckets**: `GET /` (list buckets) replaces `listDatabaseNames`.
+- **"Collections"/"Tables" → objects**: `GET /{bucket}?list-type=2&prefix=...` (list objects, optionally by prefix) replaces `listCollectionNames`/table listing.
+- **"Query"/"Find" → object download or metadata**: `GET /{bucket}/{key}` for content, `HEAD /{bucket}/{key}` for metadata — there's no query language, so this replaces both `find` and `query` with a simpler get-by-key / list-by-prefix model.
+- **UI**: a third Database Type entry ("AWS S3") swapping in access-key/secret-key/region fields, and yet another tab-label pair (e.g. "Bucket Browser" instead of "Collection Browser").
+
+The one genuinely new problem S3 introduces that neither JDBC nor Mongo has: request signing. SigV4 needs the request method, canonical headers, and payload hash combined via HMAC-SHA256 — all doable with `javax.crypto.Mac` and `java.security.MessageDigest`, both JDK-standard, so still no new dependency.
 
 ## API Endpoints
 
