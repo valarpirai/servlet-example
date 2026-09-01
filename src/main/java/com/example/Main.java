@@ -2,9 +2,9 @@ package com.example;
 
 import com.example.config.DbPropertiesLoader;
 import com.example.servlet.RouterServlet;
-import com.example.servlet.util.CorrelationIdFilter;
-import com.example.servlet.util.LoggingConfig;
-import com.example.servlet.util.PropertiesUtil;
+import com.example.util.CorrelationIdFilter;
+import com.example.util.LoggingConfig;
+import com.example.util.PropertiesUtil;
 import jakarta.servlet.MultipartConfigElement;
 import java.io.File;
 import java.net.BindException;

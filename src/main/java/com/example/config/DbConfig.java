@@ -1,6 +1,6 @@
 package com.example.config;
 
-import com.example.servlet.util.PropertiesUtil;
+import com.example.util.PropertiesUtil;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;

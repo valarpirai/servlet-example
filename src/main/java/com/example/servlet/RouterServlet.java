@@ -1,8 +1,8 @@
 package com.example.servlet;
 
-import com.example.servlet.route.RouteDispatcher;
-import com.example.servlet.route.RouteRegistry;
-import com.example.servlet.util.StructuredLogger;
+import com.example.route.RouteDispatcher;
+import com.example.route.RouteRegistry;
+import com.example.util.StructuredLogger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
