@@ -17,8 +17,8 @@ Confirm the jar landed in `data/extlib/`. See
 
 ## Session expired
 
-Sessions close after 30 minutes of inactivity. Reconnect. The browser holds
-credentials in `localStorage` and re-establishes a session on reload.
+Reconnect. Session lifetime and credential handling are described in
+[data browser](../data-browser/data-browser.md).
 
 ## Unknown database type
 
@@ -65,10 +65,8 @@ See [database switching](../data-browser/database-switching.md).
 `MongoHandler.handleConnect` downloads three driver jars on first use, so it
 needs network access. It is also the one Mongo endpoint with no automated test.
 
-Filters use MongoDB Extended JSON, since they are parsed with `Document.parse`.
-An id lookup is `{"_id": {"$oid": "..."}}`.
-
-See [MongoDB mode](../data-browser/mongodb-mode.md).
+If a find returns nothing unexpectedly, check the filter syntax against
+[MongoDB mode](../data-browser/mongodb-mode.md).
 
 ## Related
 

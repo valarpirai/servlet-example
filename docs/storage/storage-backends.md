@@ -47,8 +47,8 @@ data/attachments/
     └── metadata.json
 ```
 
-The metadata JSON carries `Instant` fields, so it must be written and read with
-`JsonUtil`. A bare `new Gson()` produces unusable timestamps.
+The metadata JSON carries `Instant` fields, so it must go through `JsonUtil` —
+see [JSON and serialization](../troubleshooting/json-and-serialization.md).
 
 ## Choosing
 

@@ -16,15 +16,13 @@ com.example.mongo/
 
 ## Why reflection instead of a shim
 
-`DriverShim` works because `java.sql.Driver` is a JDK type that every classloader
-shares. A dynamically loaded class implementing it can be cast to `Driver`
-anywhere. See [driver loading](./driver-loading.md).
+The shim trick for JDBC depends on `java.sql.Driver` being a JDK type, explained
+in [driver loading](./driver-loading.md).
 
-MongoDB's API has no JDK equivalent. `com.mongodb.client.MongoClient` is a
-vendor type, so a class loaded from our `URLClassLoader` cannot be cast to it by
-code that never referenced it at compile time. No typed reference is obtainable.
-
-So `MongoReflectionClient` drives every call through `java.lang.reflect.Method`.
+MongoDB has no JDK equivalent. `com.mongodb.client.MongoClient` is a vendor
+type, so nothing can be cast to it by code that never referenced it at compile
+time. No typed reference is obtainable, so `MongoReflectionClient` drives every
+call through `java.lang.reflect.Method`.
 The project carries no `org.mongodb` Maven dependency at all. Driver jars —
 `bson`, `mongodb-driver-core`, `mongodb-driver-sync`, version 5.2.1 — are
 downloaded into `data/extlib/` on first connect, in dependency order.
@@ -37,11 +35,10 @@ downloaded into `data/extlib/` on first connect, in dependency order.
 `find` parses its filter with `Document.parse` and converts results with
 `Document.toJson`.
 
-One shortcut is available and worth knowing. `MongoIterable.iterator()` returns a
-`MongoCursor`, which implements `java.util.Iterator` — a JDK type. Once an
-iterable is obtained reflectively, its cursor can be cast to `Iterator<?>` and
-driven with plain `hasNext()` and `next()`. The same JDK-interface trick as
-`DriverShim`, applied to iteration instead of the whole client.
+One shortcut is worth knowing. `MongoIterable.iterator()` returns a
+`MongoCursor`, which implements `java.util.Iterator`. So once an iterable is
+obtained reflectively, its cursor can be cast and driven with plain `hasNext()`
+and `next()`, shrinking the reflective surface.
 
 ## Endpoints
 

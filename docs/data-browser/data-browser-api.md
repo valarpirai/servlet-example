@@ -88,9 +88,8 @@ Results are paginated at 100 rows. Pass `page` to move through them.
 
 ## Expired sessions
 
-A `sessionId` older than 30 minutes of inactivity is gone, and the endpoint
-returns a session-expired error. The browser reconnects from credentials in
-`localStorage`.
+A stale `sessionId` returns a session-expired error. Lifetime and reconnect
+behaviour are in [data browser](./data-browser.md).
 
 ## Related
 

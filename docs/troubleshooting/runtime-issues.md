@@ -41,12 +41,9 @@ values are not applied.
 **Cause.** `db.url`, `db.username` or `db.password` is missing or the database is
 unreachable.
 
-The app degrades on purpose and keeps serving. Property lookups fall through to
-`application.yml`, which holds only the `db` block, so everything else uses its
-in-code default. Those defaults do not always match the seeded values —
-`script.maxMemory` is 10 MB in code and 50 MB seeded.
-
-See [configuration](../architecture/configuration.md).
+The app degrades on purpose and keeps serving, on in-code defaults rather than
+seeded ones. Which defaults apply, and where they differ:
+[configuration](../architecture/configuration.md).
 
 ## Migration failed at startup
 

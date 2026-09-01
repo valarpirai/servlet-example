@@ -47,11 +47,11 @@ surface is wide enough that reflection would dominate the code.
 ## Look for a shared JDK interface first
 
 Before writing reflection for a whole API, check whether any part of it
-implements a JDK type. Those can be cast normally across classloaders.
+implements a JDK type. Those cast normally across classloaders, which shrinks
+the reflective surface sharply.
 
-`java.sql.Driver` is what makes `DriverShim` possible.
-`java.util.Iterator` is what lets a Mongo cursor be driven without reflection.
-Finding one of these shrinks the reflective surface sharply.
+Both existing integrations exploit this — see
+[driver loading](./driver-loading.md) and [MongoDB mode](./mongodb-mode.md).
 
 ## Related
 
