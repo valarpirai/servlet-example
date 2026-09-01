@@ -1,49 +1,50 @@
 # CLAUDE.md
 
-**Last updated**: 2026-09-01
-
-Quick guidance for Claude Code. **All details in topic-specific docs below.**
+Quick guidance for Claude Code. **All detail lives in docs/ — start at
+[docs/readme.md](docs/readme.md).**
 
 ## Where to Look
 
 **Task** | **Doc** | **Key Files**
 ---|---|---
-Routing | docs/ROUTE-REGISTRY.md | routes.yml, route/
-File storage | docs/MEMORY-GUARANTEE.md | storage/
-JS security | docs/SCRIPT-SECURITY.md | ScriptProcessor.java:39-147
-Databases | docs/data-browser.md | datasource/
-Logging | docs/STRUCTURED-LOGGING.md | util/StructuredLogger.java
-Code structure | docs/CODEBASE-MAP.md | All packages
-App flow diagrams | docs/APP-FLOW.md | config/, servlet/
-Issues/fixes | docs/TROUBLESHOOTING.md | -
-Dev setup | docs/DEVELOPMENT.md | pom.xml
-Build system / versions | docs/BUILD-SYSTEM.md | shared-build/
+Routing | docs/routing/route-registry.md | routes.yml, route/
+File storage | docs/storage/memory-guarantee.md | storage/
+JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
+Databases | docs/data-browser/datasource-strategies.md | datasource/
+Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
+Code structure | docs/architecture/package-map.md | All packages
+App flow diagrams | docs/architecture/startup-flow.md | config/, servlet/
+Configuration | docs/architecture/configuration.md | application.yml, app_properties
+Issues/fixes | docs/troubleshooting/ | -
+Dev setup | docs/development/workflows.md | pom.xml
+Build system / versions | docs/build/build-system.md | shared-build/
+Writing docs | .claude/rules/documentation.md | docs/
 
 ---
 
 ## Quick Decision Tree
 
 **Adding functionality?**
-- New HTTP endpoint? → Add to `routes.yml` → Register in `RouteDispatcher` → See docs/ROUTE-REGISTRY.md
-- JavaScript API? → Create `scripts/api/{name}.js` → See docs/API-SCRIPTING.md
-- Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser.md
-- File storage feature? → Modify `storage/` → Use streaming APIs → See docs/MEMORY-GUARANTEE.md
-- Logging feature? → Use `StructuredLogger` → See docs/STRUCTURED-LOGGING.md
-- New dependency? → Add to `shared-build/catalog/thirdparty/pom.xml` → declare **without version** in `pom.xml` → See docs/BUILD-SYSTEM.md
+- New HTTP endpoint? → `routes.yml` → register in **both** `RouteRegistry` and `RouteDispatcher` → See docs/routing/adding-a-route.md
+- JavaScript API? → Create `scripts/api/{name}.js` → See docs/scripting/api-scripting.md
+- Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser/datasource-strategies.md
+- File storage feature? → Modify `storage/` → Use streaming APIs → See docs/storage/memory-guarantee.md
+- Logging feature? → Use `StructuredLogger` → See docs/observability/structured-logging.md
+- New dependency? → Add to `shared-build/catalog/thirdparty/pom.xml` → declare **without version** in `pom.xml` → See docs/build/adding-a-dependency.md
+- Writing or editing docs? → **Read .claude/rules/documentation.md first**
 
 **Fixing a bug?**
-- Test failing? → **Read docs/TROUBLESHOOTING.md first**
-- JSON error? → **Use `JsonUtil` NOT `new Gson()`** → See `storage/LocalFileSystemStorage.java`
-- Memory issue? → Check streaming usage → See docs/MEMORY-GUARANTEE.md
-- Route 404? → Check `routes.yml` order (specific before wildcards) → See docs/ROUTE-REGISTRY.md
-- Script timeout? → Check `application.yml` limits → See docs/SCRIPT-SECURITY.md
-- Build error? → Run `mvn spotless:apply` → See docs/DEVELOPMENT.md
+- Test failing? → **Read docs/troubleshooting/ first**
+- JSON error? → **Use `JsonUtil` NOT `new Gson()`** → See docs/troubleshooting/json-and-serialization.md
+- Memory issue? → Check streaming usage → See docs/storage/memory-guarantee.md
+- Route 404? → Check `routes.yml` order and **both** registration points → See docs/troubleshooting/routing-issues.md
+- Script timeout? → `script.timeout` in `app_properties` → See docs/troubleshooting/script-issues.md
+- Build error? → Run `mvn spotless:apply` → See docs/troubleshooting/build-issues.md
 - Enforcer failure? → A transitive dep wants a newer version → pin it in `shared-build/catalog/thirdparty/pom.xml`
 
 **Exploring codebase?**
-- First time? → Read docs/CODEBASE-MAP.md
-- App startup / request flow? → Read docs/APP-FLOW.md
-- Looking for file? → Use File Patterns below
+- First time? → Read docs/readme.md then docs/architecture/package-map.md
+- App startup / request flow? → docs/architecture/startup-flow.md, docs/architecture/request-flow.md
 
 ## CRITICAL
 
@@ -51,14 +52,20 @@ Build system / versions | docs/BUILD-SYSTEM.md | shared-build/
 - Why: Custom `InstantTypeAdapter` for `java.time.Instant` fields
 
 **2. NEVER load entire files** → Always stream with `InputStream`/`OutputStream`
-- Why: 500MB file = 1MB heap — see docs/MEMORY-GUARANTEE.md
+- Why: heap must scale with concurrency, not file size — see docs/storage/memory-guarantee.md
 
 **3. NEVER mix writers** → Downloads use `getOutputStream()`, JSON uses `getWriter()`
 
 **4. DB access goes through `Database.query()` / `transact()`** — never raw JDBC except `openConnection()` for cursors
 
 **5. NEVER hardcode a dependency version in `pom.xml`** → Pin it in `shared-build/catalog/thirdparty/pom.xml`, then declare it version-free
-- Why: one version of each library, changed in one reviewed place — see docs/BUILD-SYSTEM.md
+- Why: one version of each library, changed in one reviewed place — see docs/build/build-system.md
+
+**6. NEVER edit an applied Flyway migration** → Add a new `V{n}__` file
+- Why: Flyway validates checksums of applied migrations; editing one breaks startup on every existing database
+
+**7. Handler and processor names are registered TWICE** → `RouteRegistry` for validation, `RouteDispatcher` for dispatch
+- Why: they are string literals, so a rename compiles cleanly and fails at runtime
 
 ---
 
@@ -67,6 +74,7 @@ Build system / versions | docs/BUILD-SYSTEM.md | shared-build/
 | Component | Status | Issue | Workaround |
 |-----------|--------|-------|------------|
 | RouteDispatcher | Minor | 3/371 tests error: `testDeleteHandlerRoute`, `testHandlerRouteDownload`, `testHandlerRouteWithPathParams` ("Handler invocation failed") | Pre-existing. Routes work at runtime — verified via `/api/properties`, `/health`, `/metrics` |
+| Storage tests | Minor | `StorageTestHelper` deletes `data/attachments` recursively, so running the suite wipes locally stored attachments | By design, but it will surprise you once |
 
 ---
 
@@ -79,7 +87,8 @@ Build system / versions | docs/BUILD-SYSTEM.md | shared-build/
 - App dependencies (no versions): `pom.xml`
 
 **Configuration:**
-- Main config: `src/main/resources/application.yml`
+- DB credentials only: `src/main/resources/application.yml`
+- Everything else: `app_properties` table, seeded by `db/V2__seed_app_properties.sql`
 - Routes: `src/main/resources/routes.yml`
 - DB migrations: `src/main/resources/db/V*.sql`
 
@@ -92,17 +101,22 @@ Build system / versions | docs/BUILD-SYSTEM.md | shared-build/
 - Utilities: `src/main/java/**/util/*.java`
 - Route system: `src/main/java/**/route/*.java`
 
+**Runtime state (all gitignored, all under `data/`):**
+- Attachments: `data/attachments/`
+- User JS modules: `data/modules/`
+- Downloaded JDBC driver jars: `data/extlib/`
+- Logs: `logs/`
+
 **Tests:**
 - All tests: `src/test/java/**/*Test.java`
-- Config tests: `src/test/java/**/config/*Test.java`
-- Route tests: `src/test/java/**/route/*Test.java`
-- Storage tests: `src/test/java/**/storage/*Test.java`
+- Tests mirror source packages exactly
 
 ---
 
 ## Commands
 
 ```bash
+mvn clean verify                     # Build, test, format check, enforcer
 mvn -PappRun                         # Dev server
 mvn clean package                    # Build JAR
 mvn test                             # All tests
@@ -116,20 +130,16 @@ curl localhost:8080/health           # Health check
 
 ## Config
 
-`src/main/resources/application.yml` — server.port (8080), storage.chunkSize (1MB), script.timeout (5s)
+`src/main/resources/application.yml` — **db credentials only**
 `src/main/resources/routes.yml` — 35 HTTP routes
 
-Optional DB-backed properties (all fall back to YAML if absent):
-```yaml
-db:
-  url: jdbc:postgresql://localhost:5432/mydb
-  username: user
-  password: secret
-storage:
-  type: database   # or: local (default)
-```
+Every other property lives in `app_properties`. Lookup order is LRU cache → DB →
+YAML. Env vars override YAML: `SERVER_PORT=9090`.
 
-**Env vars override YAML**: `SERVER_PORT=9090`
+Notable defaults: `storage.type` is **`database`**, `storage.chunkSize` 1MB,
+`script.timeout` 5s, `script.maxMemory` 50MB, `upload.maxFileSize` 10MB.
+
+See docs/architecture/configuration.md for the full table.
 
 ---
 
@@ -137,23 +147,22 @@ storage:
 
 **Routing**: 35 routes in YAML → RouteRegistry → RouteDispatcher → Handler/Processor
 **Properties**: LRU cache → DB (`app_properties`) → YAML (three-level fallback)
-**Storage**: 1MB chunks → ChunkedOutputStream/InputStream → memory-safe; DB or local backend
+**Storage**: 1MB chunks → ChunkedOutputStream/InputStream → memory-safe; DB or filesystem backend
 **DB**: `Database` wrapper (jOOQ DSL) + Flyway auto-migrations on startup
-**JS**: Rhino sandbox → ClassShutter (whitelist/blacklist)
-
+**JS**: Rhino sandbox → `ScriptSecurityManager` ClassShutter (whitelist/blacklist)
 **Build**: catalog-thirdparty → catalog-internal → shared-build-parent → app (Maven parent chain)
 
 **Packages**: `com.example.*` — servlet/, route/, processor/, handler/, storage/, datasource/, config/,
 script/, security/, module/, extlib/, mongo/, model/, exception/, util/
 
-**See docs/CODEBASE-MAP.md and docs/APP-FLOW.md for full details**
+**See docs/architecture/ for full details**
 
 ---
 
 ## Stuck?
 
-1. **docs/TROUBLESHOOTING.md** — 20+ common issues with solutions
-2. **docs/CODEBASE-MAP.md** — navigate packages, find files
-3. **docs/APP-FLOW.md** — startup and request flow diagrams
+1. **docs/troubleshooting/** — symptom-first fixes by area
+2. **docs/architecture/package-map.md** — navigate packages, find files
+3. **docs/architecture/startup-flow.md** and **request-flow.md** — flow diagrams
 4. Run relevant tests to understand expected behavior
-5. Enable DEBUG logging in `application.yml`
+5. Raise `logging.level` in `app_properties`

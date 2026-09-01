@@ -19,8 +19,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 - **RESTful API**: JSON responses for all endpoints with consistent error handling
 - **Structured Logging**: Correlation IDs for distributed tracing and request tracking
 - **Health Monitoring**: `/health` and `/metrics` endpoints for application monitoring
-- **YAML Configuration**: Easy configuration via `application.yml` with environment variable overrides
-- **Centralized Build**: Every dependency and plugin version pinned in `shared-build/` — see docs/BUILD-SYSTEM.md
+- **Centralized Build**: Every dependency and plugin version pinned in `shared-build/` — see [docs/build/build-system.md](docs/build/build-system.md)
 - **Production Ready**: Packaged as executable JAR with embedded Tomcat server
 
 ## Prerequisites
@@ -38,9 +37,14 @@ servlet-example/
 │   └── catalog/
 │       ├── thirdparty/pom.xml  (third-party versions)
 │       └── internal/pom.xml    (internal/forked artifact versions)
-├── modules/                    (JavaScript modules storage)
-├── attachments/                (Chunked file storage — local backend)
-├── extlib/                     (Drop-in JDBC driver jars)
+├── data/                       (runtime state, gitignored)
+│   ├── attachments/            (chunked file storage, filesystem backend)
+│   ├── modules/                (user-created JavaScript modules)
+│   └── extlib/                 (JDBC driver jars, downloaded on demand)
+├── docs/                       (see docs/readme.md)
+│   ├── architecture/  routing/  storage/  scripting/
+│   ├── data-browser/  observability/  build/
+│   └── development/  troubleshooting/
 ├── src/
 │   └── main/
 │       ├── java/
@@ -106,35 +110,28 @@ servlet-example/
 
 ## Configuration
 
-Configuration is managed through `src/main/resources/application.yml`:
+`src/main/resources/application.yml` holds database credentials and nothing else:
 
 ```yaml
-# Server Configuration
-server:
-  port: ${SERVER_PORT:8080}
-
-# File Upload / Storage
-storage:
-  type: local          # local (default) or database
-  chunkSize: 1048576   # 1 MB chunks
-
-# Module System
-modules:
-  directory: modules
-  maxFileSize: 1048576
-
-# Script engine
-script:
-  timeout: 5000        # ms
-
-# PostgreSQL (optional — enables DB-backed properties and DB attachment storage)
 db:
-  url: jdbc:postgresql://localhost:5432/mydb
-  username: user
-  password: secret
+  url:      ${DB_URL:jdbc:postgresql://localhost:5432/appdb}
+  username: ${DB_USERNAME:postgres}
+  password: ${DB_PASSWORD:postgres}
 ```
 
-When `db.*` is present, on startup Flyway applies any pending migrations and the app switches to DB-backed property lookup (LRU cache → DB → YAML). Without `db.*`, the app runs in YAML-only mode with local file storage.
+Every other property lives in the `app_properties` table, seeded by
+`db/V2__seed_app_properties.sql`. Lookup order is LRU cache, then the table,
+then YAML.
+
+Notable defaults: `server.port` 8080, `storage.type` `database`,
+`storage.chunkSize` 1 MB, `script.timeout` 5000 ms, `script.maxMemory` 50 MB,
+`upload.maxFileSize` 10 MB.
+
+On startup Flyway applies pending migrations and the app switches to DB-backed
+property lookup. Without a reachable database it logs a warning and serves
+in-code defaults.
+
+Full table in [docs/architecture/configuration.md](docs/architecture/configuration.md).
 
 ### Environment Variables
 
@@ -543,13 +540,12 @@ console.log(name); // "John doe"
 
 **Configuration:**
 
-Module system settings in `application.yml`:
+Module system properties in `app_properties`:
 
-```yaml
-modules:
-  directory: modules        # Module storage directory
-  maxFileSize: 1048576     # Max file size (1 MB)
-```
+| Property | Default |
+|---|---|
+| `modules.directory` | `data/modules` |
+| `modules.maxFileSize` | `1048576` (1 MB) |
 
 Environment variable override:
 ```bash
@@ -661,7 +657,7 @@ HTTP Request → RouterServlet → RouteRegistry (routes.yml) → RouteDispatche
 
 ## Thread Pool Configuration
 
-The embedded Tomcat server uses the following defaults (configurable in application.yml):
+The embedded Tomcat server uses these defaults, all `threadPool.*` properties in `app_properties`:
 
 - **Max Threads**: 200 (concurrent requests)
 - **Min Spare Threads**: 10
