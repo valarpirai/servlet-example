@@ -13,7 +13,7 @@ public class StorageTestHelper {
    * @throws IOException if cleanup fails
    */
   public static void cleanupAttachmentsDirectory() throws IOException {
-    Path storageDir = Path.of("attachments");
+    Path storageDir = Path.of("data/attachments");
     if (Files.exists(storageDir)) {
       Files.walk(storageDir)
           .sorted(java.util.Comparator.reverseOrder())

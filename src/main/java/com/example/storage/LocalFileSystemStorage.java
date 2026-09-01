@@ -36,7 +36,7 @@ public class LocalFileSystemStorage implements AttachmentStorage {
   private final Path baseDirectory;
 
   public LocalFileSystemStorage() {
-    String basePath = PropertiesUtil.getString("storage.filesystem.path", "attachments");
+    String basePath = PropertiesUtil.getString("storage.filesystem.path", "data/attachments");
     this.baseDirectory = Paths.get(basePath);
 
     try {

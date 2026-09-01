@@ -25,16 +25,17 @@ replay_pid*
 target/
 .idea/
 tomcat*/
-extlib/*.jar
 .playwright-cli/
 *.log
-attachments/
 logs/
 
 
 # Maven shade plugin output, regenerated on every package
 dependency-reduced-pom.xml
 
-# Runtime JS module storage, same treatment as attachments/ and logs/.
-# The sample modules already committed stay tracked; new ones need git add -f.
-modules/
+# Runtime storage under data/. Attachments, downloaded driver jars, and
+# user-created JS modules are all local state, not source.
+# Committed sample modules stay tracked; new ones need git add -f.
+data/attachments/
+data/extlib/*.jar
+data/modules/

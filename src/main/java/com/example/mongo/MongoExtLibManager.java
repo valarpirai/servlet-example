@@ -12,8 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Downloads the MongoDB Java driver (and its transitive runtime deps) into extlib/ and loads them
- * into a URLClassLoader, mirroring how JDBC drivers are loaded via ExtLibManager. Unlike JDBC,
+ * Downloads the MongoDB Java driver (and its transitive runtime deps) into data/extlib/ and loads
+ * them into a URLClassLoader, mirroring how JDBC drivers are loaded via ExtLibManager. Unlike JDBC,
  * MongoDB's client API has no JDK-standard interface to cast against, so callers must drive the
  * loaded classes purely via reflection (see MongoReflectionClient).
  */
@@ -21,7 +21,7 @@ public class MongoExtLibManager {
 
   private static final Logger logger = LoggerFactory.getLogger(MongoExtLibManager.class);
   private static final MongoExtLibManager INSTANCE = new MongoExtLibManager();
-  private static final String EXTLIB_DIR = "extlib";
+  private static final String EXTLIB_DIR = "data/extlib";
   private static final String MAVEN_BASE = "https://repo1.maven.org/maven2/";
   private static final String DRIVER_VERSION = "5.2.1";
 
@@ -73,7 +73,7 @@ public class MongoExtLibManager {
     }
 
     loader = new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
-    logger.info("Loaded MongoDB driver classes from extlib/");
+    logger.info("Loaded MongoDB driver classes from data/extlib/");
     return loader;
   }
 

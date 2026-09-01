@@ -16,7 +16,7 @@ public class ExtLibManager {
 
   private static final Logger logger = LoggerFactory.getLogger(ExtLibManager.class);
   private static final ExtLibManager INSTANCE = new ExtLibManager();
-  private static final String EXTLIB_DIR = "extlib";
+  private static final String EXTLIB_DIR = "data/extlib";
   private static final String MAVEN_BASE = "https://repo1.maven.org/maven2/";
 
   // Maps driver class name → its URLClassLoader, kept open for the driver's lifetime.

@@ -21,7 +21,7 @@ public class ModuleManager {
   private final long maxFileSize;
 
   private ModuleManager() {
-    String modulesDir = PropertiesUtil.getString("modules.directory", "modules");
+    String modulesDir = PropertiesUtil.getString("modules.directory", "data/modules");
     this.modulesDirectory = Paths.get(modulesDir);
     this.maxFileSize = PropertiesUtil.getLong("modules.maxFileSize", 1048576L);
 
