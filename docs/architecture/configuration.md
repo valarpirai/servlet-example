@@ -27,8 +27,22 @@ stay in the file.
 2. `app_properties` table
 3. `application.yml`
 
-Environment variables override YAML. Without a reachable database the app logs a
-warning and serves YAML values only.
+Without a reachable database the app logs a warning, skips migrations, and
+serves in-code defaults. Those are not always the seeded values:
+`script.maxMemory` is 10 MB in code and 50 MB seeded. Attachment storage falls
+back to the filesystem, because `storage.type` cannot be read.
+
+Environment variables are not a general override. Only two paths exist:
+
+- A `${VAR:default}` placeholder in `application.yml`. `PropertiesUtil`
+  resolves these against the environment, then system properties, then the
+  inline default. This is how `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` work.
+- `server.port`, which `Main` reads specially: `-Dserver.port`, then
+  `SERVER_PORT`, then `app_properties`, then 8080.
+
+No other property responds to an environment variable. A property in
+`app_properties` holds a literal value with no placeholder, so nothing resolves
+it.
 
 ## Seeded properties
 

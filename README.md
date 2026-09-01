@@ -26,6 +26,11 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 
 - Java 17 or higher
 - Maven 3.6+
+- PostgreSQL, optional. Expected at `localhost:5432/appdb` with user and
+  password `postgres`. Override with `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+
+The app starts without a database, on reduced defaults. See
+[docs/architecture/configuration.md](docs/architecture/configuration.md).
 
 ## Project Structure
 
@@ -123,22 +128,21 @@ Every other property lives in the `app_properties` table, seeded by
 `db/V2__seed_app_properties.sql`. Lookup order is LRU cache, then the table,
 then YAML.
 
-Notable defaults: `server.port` 8080, `storage.type` `database`,
-`storage.chunkSize` 1 MB, `script.timeout` 5000 ms, `script.maxMemory` 50 MB,
-`upload.maxFileSize` 10 MB.
-
 On startup Flyway applies pending migrations and the app switches to DB-backed
-property lookup. Without a reachable database it logs a warning and serves
-in-code defaults.
+property lookup.
 
-Full table in [docs/architecture/configuration.md](docs/architecture/configuration.md).
+Full property table, precedence rules, and no-database behaviour in
+[docs/architecture/configuration.md](docs/architecture/configuration.md).
 
 ### Environment Variables
 
 ```bash
-SERVER_PORT=9090 mvn -PappRun        # Custom port
-MODULES_DIR=/custom/path mvn -PappRun
+SERVER_PORT=9090 mvn -PappRun
+DB_URL=jdbc:postgresql://host:5432/db DB_USERNAME=alice mvn -PappRun
 ```
+
+Those are the only two mechanisms. Rules and reasons in
+[docs/architecture/configuration.md](docs/architecture/configuration.md).
 
 ## Building and Running
 
@@ -155,15 +159,18 @@ mvn clean package
 java -jar target/servlet-example.jar
 ```
 
-**Development mode (similar to bootRun):**
+**Development mode:**
 ```bash
 mvn -PappRun
 ```
 
-Or alternatively:
+Confirm it came up:
 ```bash
-mvn compile exec:java
+curl localhost:8080/health
 ```
+
+Then open `/` for the dashboard, or `/script-editor`, `/data-browser`,
+`/metrics`.
 
 The application will start and display:
 
@@ -547,10 +554,8 @@ Module system properties in `app_properties`:
 | `modules.directory` | `data/modules` |
 | `modules.maxFileSize` | `1048576` (1 MB) |
 
-Environment variable override:
-```bash
-MODULES_DIR=/custom/path java -jar target/servlet-example.jar
-```
+Change these through the properties API or SQL. There is no environment
+variable override for module settings.
 
 #### Interactive Script Editor
 - **URL**: `http://localhost:8080/script-editor`

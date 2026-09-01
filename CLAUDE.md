@@ -119,12 +119,16 @@ Writing docs | .claude/rules/documentation.md | docs/
 mvn clean verify                     # Build, test, format check, enforcer
 mvn -PappRun                         # Dev server
 mvn clean package                    # Build JAR
+java -jar target/servlet-example.jar # Run the packaged JAR
 mvn test                             # All tests
 mvn spotless:apply                   # Format code
 
 SERVER_PORT=9090 mvn -PappRun        # Custom port
 curl localhost:8080/health           # Health check
 ```
+
+PostgreSQL is optional; the app starts without it on reduced defaults.
+See docs/architecture/configuration.md.
 
 ---
 
@@ -133,13 +137,13 @@ curl localhost:8080/health           # Health check
 `src/main/resources/application.yml` — **db credentials only**
 `src/main/resources/routes.yml` — 35 HTTP routes
 
-Every other property lives in `app_properties`. Lookup order is LRU cache → DB →
-YAML. Env vars override YAML: `SERVER_PORT=9090`.
+Every other property lives in `app_properties`, **not** `application.yml`.
+Lookup order is LRU cache → DB → YAML.
 
-Notable defaults: `storage.type` is **`database`**, `storage.chunkSize` 1MB,
-`script.timeout` 5s, `script.maxMemory` 50MB, `upload.maxFileSize` 10MB.
+Env vars are **not** a general override — only `${VAR}` placeholders in
+`application.yml` plus `SERVER_PORT`.
 
-See docs/architecture/configuration.md for the full table.
+Defaults, env var rules, and no-database behaviour: docs/architecture/configuration.md.
 
 ---
 
