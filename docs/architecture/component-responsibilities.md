@@ -49,3 +49,4 @@ The lookup falls through to YAML and logs a warning once at startup.
 - [Startup flow](./startup-flow.md) — the wiring order
 - [Request flow](./request-flow.md) — the per-request path
 - [Package map](./package-map.md) — where these classes live
+- [Design patterns and principles](./design-patterns.md) — why these classes are shaped this way

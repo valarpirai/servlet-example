@@ -4,9 +4,9 @@ One class per database type. Everything database-specific lives there.
 
 `DataSourceRegistry` is a singleton that finds strategies through
 `ServiceLoader`, reading
-`META-INF/services/com.example.datasource.DataSourceStrategy`. The registry has
-no compile-time reference to any strategy, so adding a database touches no
-existing Java file.
+`META-INF/services/com.example.datasource.DataSourceStrategy`. This is Java's
+Service Provider Interface (SPI) mechanism. The registry has no compile-time
+reference to any strategy, so adding a database touches no existing Java file.
 
 ## The interface
 

@@ -118,3 +118,4 @@ under `src/test/java`.
 - [Component responsibilities](./component-responsibilities.md) — what each class owns
 - [Configuration](./configuration.md) — resource files
 - [Request flow](./request-flow.md) — how a request moves through these packages
+- [Design patterns and principles](./design-patterns.md) — why these packages are shaped this way

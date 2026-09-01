@@ -10,6 +10,7 @@ How the app is put together.
 - [Request flow](./architecture/request-flow.md) — one request, end to end
 - [Component responsibilities](./architecture/component-responsibilities.md) — who owns what
 - [Package map](./architecture/package-map.md) — every package and its purpose
+- [Design patterns and principles](./architecture/design-patterns.md) — patterns and principles, for new team members
 - [Configuration](./architecture/configuration.md) — properties and precedence
 
 ## Routing
