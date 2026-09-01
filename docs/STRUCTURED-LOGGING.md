@@ -59,7 +59,7 @@ MDC cleared (prevents memory leaks)
 
 ### 1. CorrelationIdFilter
 
-**Location**: `com.example.servlet.util.CorrelationIdFilter`
+**Location**: `com.example.util.CorrelationIdFilter`
 
 Servlet filter that:
 - Generates or extracts correlation IDs
@@ -76,7 +76,7 @@ Servlet filter that:
 
 ### 2. StructuredLogger
 
-**Location**: `com.example.servlet.util.StructuredLogger`
+**Location**: `com.example.util.StructuredLogger`
 
 Wrapper around SLF4J logger that:
 - Automatically includes MDC context in logs
@@ -89,7 +89,7 @@ Wrapper around SLF4J logger that:
 ### Basic Logging with Automatic Context
 
 ```java
-import com.example.servlet.util.StructuredLogger;
+import com.example.util.StructuredLogger;
 import org.slf4j.LoggerFactory;
 
 private static final StructuredLogger logger =

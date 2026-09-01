@@ -1,6 +1,6 @@
 # Development Guide
 
-**Last updated**: 2026-03-22
+**Last updated**: 2026-09-01
 
 Quick reference for development workflows, tools, and best practices.
 
@@ -252,7 +252,7 @@ This project uses **Lombok** to reduce boilerplate code.
 
 ### Model Classes
 
-All model classes are in `com.example.servlet.model`:
+All model classes are in `com.example.model`:
 
 - `Attachment` - File attachment metadata
 - `Module` - JavaScript module metadata
@@ -383,18 +383,45 @@ grep "responseTimeMs=" logs/application.log | \
 
 ## Adding Dependencies
 
+Two steps. The version goes in the catalog. The app declares the library
+without one. Full detail in docs/BUILD-SYSTEM.md.
+
+**Step 1** — pin the version in `shared-build/catalog/thirdparty/pom.xml`:
+
 ```xml
-<!-- Add to pom.xml -->
+<properties>
+    <my.library.version>1.0.0</my.library.version>
+</properties>
+
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>my-library</artifactId>
+            <version>${my.library.version}</version>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+**Step 2** — declare it in `pom.xml` with no version:
+
+```xml
 <dependency>
     <groupId>com.example</groupId>
     <artifactId>my-library</artifactId>
-    <version>1.0.0</version>
 </dependency>
 ```
 
+Never write a version in `pom.xml`. It works, which is the problem: two files
+then decide versions, and the enforcer will not warn you.
+
 ```bash
-# Update dependencies
-mvn clean install
+# Build and run the dependency checks
+mvn clean verify
+
+# See what resolved, and from where
+mvn dependency:tree
 
 # Check for updates
 mvn versions:display-dependency-updates

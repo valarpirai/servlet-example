@@ -5,7 +5,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 ## Features
 
 - **Beautiful Home Page**: Visit `/` for an elegant HTML dashboard with links to all endpoints
-- **Declarative Routing**: All 27 routes configured in `routes.yml` - no hardcoded routing logic
+- **Declarative Routing**: All 35 routes configured in `routes.yml` - no hardcoded routing logic
 - **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads — stored on local filesystem or PostgreSQL
 - **DB-Backed Properties**: App configuration stored in PostgreSQL `app_properties` table with a three-level lookup: LRU cache → DB → YAML fallback
 - **Automatic DB Migrations**: Flyway runs pending `db/V*.sql` migrations on startup
@@ -20,6 +20,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 - **Structured Logging**: Correlation IDs for distributed tracing and request tracking
 - **Health Monitoring**: `/health` and `/metrics` endpoints for application monitoring
 - **YAML Configuration**: Easy configuration via `application.yml` with environment variable overrides
+- **Centralized Build**: Every dependency and plugin version pinned in `shared-build/` — see docs/BUILD-SYSTEM.md
 - **Production Ready**: Packaged as executable JAR with embedded Tomcat server
 
 ## Prerequisites
@@ -31,57 +32,72 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 
 ```
 servlet-example/
-├── pom.xml
-├── modules/                 (JavaScript modules storage)
-├── attachments/             (Chunked file storage — local backend)
+├── pom.xml                     (app: what it needs, no versions)
+├── shared-build/               (all versions and build conventions)
+│   ├── pom.xml                 (compiler, plugin versions, conventions)
+│   └── catalog/
+│       ├── thirdparty/pom.xml  (third-party versions)
+│       └── internal/pom.xml    (internal/forked artifact versions)
+├── modules/                    (JavaScript modules storage)
+├── attachments/                (Chunked file storage — local backend)
+├── extlib/                     (Drop-in JDBC driver jars)
 ├── src/
 │   └── main/
 │       ├── java/
 │       │   └── com/
 │       │       └── example/
 │       │           ├── Main.java
-│       │           ├── config/          (DB config, jOOQ wrapper, Flyway, properties)
+│       │           ├── servlet/        (RouterServlet entry point)
+│       │           ├── route/          (Declarative routing)
+│       │           │   ├── RouteRegistry.java
+│       │           │   └── RouteDispatcher.java
+│       │           ├── handler/        (Singleton handlers)
+│       │           │   ├── ApiHandler.java
+│       │           │   ├── PropertiesHandler.java
+│       │           │   ├── AttachmentHandler.java
+│       │           │   ├── DataBrowserHandler.java
+│       │           │   └── MongoHandler.java
+│       │           ├── processor/      (Request processors)
+│       │           │   ├── IRequestProcessor.java
+│       │           │   ├── ScriptProcessor.java
+│       │           │   ├── ApiScriptProcessor.java
+│       │           │   ├── FileUploadProcessor.java
+│       │           │   ├── ModuleProcessor.java
+│       │           │   └── TemplateProcessor.java
+│       │           ├── storage/        (Chunked file storage)
+│       │           │   ├── AttachmentManager.java
+│       │           │   ├── LocalFileSystemStorage.java
+│       │           │   ├── DatabaseAttachmentStorage.java
+│       │           │   └── ChunkedOutputStream.java
+│       │           ├── config/         (DB config, jOOQ wrapper, Flyway, properties)
 │       │           │   ├── DbConfig.java
 │       │           │   ├── Database.java         (jOOQ query/transact wrapper)
 │       │           │   ├── DbPropertiesLoader.java
 │       │           │   ├── PropertyRepository.java
 │       │           │   └── AppProperty.java      (Java record)
-│       │           ├── datasource/      (Database browser connection strategies)
-│       │           ├── extlib/          (Dynamic JDBC driver loading)
-│       │           └── servlet/
-│       │               ├── RouterServlet.java
-│       │               ├── route/       (Declarative routing)
-│       │               │   ├── RouteRegistry.java
-│       │               │   └── RouteDispatcher.java
-│       │               ├── handler/     (Singleton handlers)
-│       │               │   ├── PropertiesHandler.java
-│       │               │   ├── AttachmentHandler.java
-│       │               │   └── DataBrowserHandler.java
-│       │               ├── processor/   (Request processors)
-│       │               │   ├── IRequestProcessor.java
-│       │               │   ├── FileUploadProcessor.java
-│       │               │   ├── ModuleProcessor.java
-│       │               │   ├── ScriptProcessor.java
-│       │               │   └── TemplateProcessor.java
-│       │               ├── storage/     (Chunked file storage)
-│       │               │   ├── AttachmentManager.java
-│       │               │   ├── LocalFileSystemStorage.java
-│       │               │   ├── DatabaseAttachmentStorage.java
-│       │               │   └── ChunkedOutputStream.java
-│       │               ├── module/
-│       │               │   ├── ModuleManager.java
-│       │               │   └── ModuleDependencyResolver.java
-│       │               └── util/
-│       │                   ├── JsonUtil.java
-│       │                   ├── PropertiesUtil.java
-│       │                   └── TemplateEngine.java
+│       │           ├── datasource/     (Database browser connection strategies)
+│       │           ├── script/         (Rhino execution internals)
+│       │           ├── security/       (ClassShutter sandbox)
+│       │           ├── module/
+│       │           │   ├── ModuleManager.java
+│       │           │   └── ModuleDependencyResolver.java
+│       │           ├── extlib/         (Dynamic JDBC driver loading)
+│       │           ├── mongo/          (MongoDB via reflection)
+│       │           ├── model/          (Shared domain models)
+│       │           ├── exception/
+│       │           └── util/
+│       │               ├── JsonUtil.java
+│       │               ├── PropertiesUtil.java
+│       │               ├── StructuredLogger.java
+│       │               └── TemplateEngine.java
 │       └── resources/
 │           ├── application.yml
-│           ├── routes.yml              (All 27 routes defined here)
+│           ├── routes.yml              (All 35 routes defined here)
 │           ├── db/                     (Flyway migrations)
 │           │   ├── V1__create_app_properties.sql
 │           │   ├── V2__seed_app_properties.sql
 │           │   └── V3__create_attachments.sql
+│           ├── META-INF/services/      (DataSourceStrategy SPI registrations)
 │           └── static/
 │               ├── index.html
 │               ├── script-editor.html

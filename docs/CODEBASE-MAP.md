@@ -1,11 +1,11 @@
 # Codebase Navigation Map
 
-**Last updated**: 2026-03-22
+**Last updated**: 2026-09-01
 
 ## 📋 TL;DR (for Claude Code)
 
-**Total tests**: 72 tests (all passing)
-**Main packages**: route/, processor/, storage/, handler/, datasource/, util/
+**Total tests**: 371 tests (368 passing, 3 known RouteDispatcherTest failures)
+**Main packages**: route/, processor/, handler/, storage/, datasource/, config/, script/, module/, util/
 **Entry point**: `Main.java` → `RouterServlet.java`
 **Config files**: `application.yml`, `routes.yml`
 
@@ -26,50 +26,76 @@
 ## Package Structure
 
 ```
-src/main/java/com/example/servlet/
-├── Main.java                           - Tomcat bootstrap (140 lines)
-├── RouterServlet.java                  - HTTP request router (236 lines)
+src/main/java/com/example/
+├── Main.java                           - Tomcat bootstrap
+│
+├── servlet/
+│   └── RouterServlet.java              - HTTP request router
 │
 ├── route/                              - Declarative routing system
 │   ├── RouteRegistry.java              - YAML loader & pattern matcher (singleton)
-│   ├── Route.java                      - Route model (Lombok @Getter/@Setter)
 │   └── RouteDispatcher.java            - Reflection-based handler dispatch
 │
 ├── processor/                          - Request processors (IRequestProcessor)
 │   ├── IRequestProcessor.java          - Processor interface
-│   ├── ProcessorResponse.java          - Response builder (Lombok @Builder)
 │   ├── ScriptProcessor.java            - JavaScript execution (Rhino)
 │   │   └── Lines 39-147                - ClassShutter security implementation
+│   ├── ApiScriptProcessor.java         - Script-defined HTTP APIs
 │   ├── FileUploadProcessor.java        - Multipart file upload handler
 │   ├── TemplateProcessor.java          - HTML template rendering
 │   └── ModuleProcessor.java            - JavaScript module CRUD
 │
+├── handler/                            - Singleton HTTP handlers
+│   ├── ApiHandler.java                 - Script-backed API dispatch
+│   ├── AttachmentHandler.java          - File operations (download/delete/list)
+│   ├── DataBrowserHandler.java         - Database browser operations
+│   ├── MongoHandler.java               - MongoDB browser operations
+│   └── PropertiesHandler.java          - Properties REST API
+│
 ├── storage/                            - Chunked file storage (1MB chunks)
 │   ├── AttachmentStorage.java          - Storage strategy interface
-│   ├── Attachment.java                 - File metadata model (Lombok)
 │   ├── AttachmentManager.java          - Singleton storage coordinator
-│   ├── LocalFileSystemStorage.java     - Filesystem storage implementation
+│   ├── LocalFileSystemStorage.java     - Filesystem backend
 │   │   ├── saveMetadata()              - Uses JsonUtil (NOT new Gson()!)
-│   │   ├── loadMetadata()              - Uses JsonUtil (NOT new Gson()!)
-│   │   ├── ChunkedOutputStream         - Inner class: 1MB write buffer
-│   │   └── ChunkedInputStream          - Inner class: 1MB read streaming
+│   │   └── loadMetadata()              - Uses JsonUtil (NOT new Gson()!)
+│   ├── DatabaseAttachmentStorage.java  - PostgreSQL backend
 │   └── ChunkedOutputStream.java        - Standalone chunked writer
 │
-├── handler/                            - Singleton HTTP handlers
-│   ├── AttachmentHandler.java          - File operations (download/delete/list)
-│   └── DataBrowserHandler.java         - Database browser operations
-│
 ├── datasource/                         - Database connection strategies
-│   ├── DataSourceStrategy.java         - Strategy interface
+│   ├── DataSourceStrategy.java         - Strategy interface (ServiceLoader SPI)
 │   ├── DataSourceRegistry.java         - Strategy registry (singleton)
 │   ├── PostgreSqlStrategy.java         - PostgreSQL connection builder
 │   ├── MySqlStrategy.java              - MySQL connection builder
 │   └── SnowflakeStrategy.java          - Snowflake connection builder
 │
+├── config/                             - DB config, jOOQ wrapper, properties
+│   ├── DbConfig.java                   - Connection setup + Flyway migrations
+│   ├── Database.java                   - jOOQ query()/transact() wrapper
+│   ├── DbPropertiesLoader.java         - DB-backed property loading
+│   ├── PropertyRepository.java         - app_properties CRUD
+│   └── AppProperty.java                - Java record
+│
+├── script/                             - Rhino execution internals
+│   ├── ScriptExecutor.java             - Script invocation
+│   ├── ScriptModuleLoader.java         - require() / import resolution
+│   └── ScriptScopeBuilder.java         - Sandbox scope construction
+│
+├── security/
+│   └── ScriptSecurityManager.java      - ClassShutter whitelist/blacklist
+│
 ├── module/                             - JavaScript module system
-│   ├── Module.java                     - Module metadata model (Lombok)
 │   ├── ModuleManager.java              - Module CRUD & filesystem storage
 │   └── ModuleDependencyResolver.java   - Dependency graph & cycle detection
+│
+├── extlib/                             - Dynamic JDBC driver loading
+│   ├── ExtLibManager.java              - Driver jar loading from extlib/
+│   ├── DriverShim.java                 - Driver delegation wrapper
+│   └── SessionManager.java             - Connection session lifecycle
+│
+├── mongo/                              - MongoDB via reflection (no compile dep)
+│   ├── MongoExtLibManager.java         - Mongo driver loading
+│   ├── MongoReflectionClient.java      - Reflective driver calls
+│   └── MongoSessionManager.java        - Mongo session lifecycle
 │
 ├── model/                              - Shared domain models (all Lombok)
 │   ├── Attachment.java                 - File metadata
@@ -77,13 +103,39 @@ src/main/java/com/example/servlet/
 │   ├── Route.java                      - Route configuration
 │   └── ProcessorResponse.java          - HTTP response builder
 │
+├── exception/
+│   ├── ScriptExecutionException.java   - Script failure
+│   └── StorageException.java           - Storage failure
+│
 └── util/                               - Shared utilities
     ├── PropertiesUtil.java             - YAML config loader (env vars)
     ├── JsonUtil.java                   - Gson wrapper with InstantTypeAdapter
+    ├── JsonConverter.java              - Java/JS value conversion
     ├── TemplateEngine.java             - HTML template processor
     ├── StructuredLogger.java           - MDC-based structured logging
-    └── CorrelationIdFilter.java        - Servlet filter for correlation IDs
+    ├── CorrelationIdFilter.java        - Servlet filter for correlation IDs
+    ├── LoggingConfig.java              - Programmatic logback setup
+    ├── RequestHelper.java              - Request parsing helpers
+    └── ResponseHelper.java             - Response writing helpers
 ```
+
+## Build System
+
+```
+shared-build/                            - All versions and build conventions
+├── pom.xml                              - Compiler, plugin versions, conventions
+│   ├── pluginManagement                 - Versions + config for all plugins
+│   ├── build/plugins                    - enforcer + spotless, every child gets these
+│   └── profile appRun                   - mvn -PappRun dev server
+└── catalog/
+    ├── thirdparty/pom.xml               - Third-party versions (chain base)
+    └── internal/pom.xml                 - Internal/forked versions (empty today)
+```
+
+Inheritance chain, each link by `<relativePath>`:
+`catalog-thirdparty` → `catalog-internal` → `shared-build-parent` → app `pom.xml`
+
+See docs/BUILD-SYSTEM.md.
 
 ## Configuration Files
 
@@ -95,7 +147,7 @@ src/main/resources/
 │   ├── script.timeout                  - JS timeout (default: 5000ms)
 │   └── script.maxMemory                - JS memory limit (default: 10MB)
 │
-├── routes.yml                          - All 21 HTTP routes (single source of truth)
+├── routes.yml                          - All 35 HTTP routes (single source of truth)
 │   ├── static routes                   - HTML/CSS/JS files from classpath
 │   ├── handler routes                  - Invoke singleton methods via reflection
 │   ├── processor routes                - Instantiate RequestProcessor impls
@@ -110,7 +162,7 @@ src/main/resources/
 ## Test Structure
 
 ```
-src/test/java/com/example/servlet/
+src/test/java/com/example/
 ├── route/
 │   ├── RouteRegistryTest.java          - 10 tests: pattern matching, params, wildcards
 │   └── RouteDispatcherTest.java        - 11 tests: all route types, responses
@@ -463,5 +515,6 @@ open http://localhost:8080/data-browser      # Database browser
 | Database Browser | docs/data-browser.md | datasource/, DataBrowserHandler.java |
 | Logging | docs/STRUCTURED-LOGGING.md | util/StructuredLogger.java |
 | Development | docs/DEVELOPMENT.md | pom.xml, .git/hooks/pre-commit |
+| Build System | docs/BUILD-SYSTEM.md | shared-build/, catalog/ |
 | Troubleshooting | docs/TROUBLESHOOTING.md | - |
 | Navigation | docs/CODEBASE-MAP.md | This file |

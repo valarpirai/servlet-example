@@ -6,7 +6,7 @@ Eliminate code duplication between `ApiScriptProcessor` and `ScriptProcessor` by
 ## Changes Made
 
 ### 1. Created `ScriptExecutor.java` (New File)
-**Location**: `src/main/java/com/example/servlet/script/ScriptExecutor.java`
+**Location**: `src/main/java/com/example/script/ScriptExecutor.java`
 
 **Responsibilities**:
 - Secure JavaScript execution with Rhino engine

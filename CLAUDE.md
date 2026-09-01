@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last updated**: 2026-04-21
+**Last updated**: 2026-09-01
 
 Quick guidance for Claude Code. **All details in topic-specific docs below.**
 
@@ -17,6 +17,7 @@ Code structure | docs/CODEBASE-MAP.md | All packages
 App flow diagrams | docs/APP-FLOW.md | config/, servlet/
 Issues/fixes | docs/TROUBLESHOOTING.md | -
 Dev setup | docs/DEVELOPMENT.md | pom.xml
+Build system / versions | docs/BUILD-SYSTEM.md | shared-build/
 
 ---
 
@@ -28,6 +29,7 @@ Dev setup | docs/DEVELOPMENT.md | pom.xml
 - Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser.md
 - File storage feature? → Modify `storage/` → Use streaming APIs → See docs/MEMORY-GUARANTEE.md
 - Logging feature? → Use `StructuredLogger` → See docs/STRUCTURED-LOGGING.md
+- New dependency? → Add to `shared-build/catalog/thirdparty/pom.xml` → declare **without version** in `pom.xml` → See docs/BUILD-SYSTEM.md
 
 **Fixing a bug?**
 - Test failing? → **Read docs/TROUBLESHOOTING.md first**
@@ -36,6 +38,7 @@ Dev setup | docs/DEVELOPMENT.md | pom.xml
 - Route 404? → Check `routes.yml` order (specific before wildcards) → See docs/ROUTE-REGISTRY.md
 - Script timeout? → Check `application.yml` limits → See docs/SCRIPT-SECURITY.md
 - Build error? → Run `mvn spotless:apply` → See docs/DEVELOPMENT.md
+- Enforcer failure? → A transitive dep wants a newer version → pin it in `shared-build/catalog/thirdparty/pom.xml`
 
 **Exploring codebase?**
 - First time? → Read docs/CODEBASE-MAP.md
@@ -54,18 +57,26 @@ Dev setup | docs/DEVELOPMENT.md | pom.xml
 
 **4. DB access goes through `Database.query()` / `transact()`** — never raw JDBC except `openConnection()` for cursors
 
+**5. NEVER hardcode a dependency version in `pom.xml`** → Pin it in `shared-build/catalog/thirdparty/pom.xml`, then declare it version-free
+- Why: one version of each library, changed in one reviewed place — see docs/BUILD-SYSTEM.md
+
 ---
 
 ## Known Issues
 
 | Component | Status | Issue | Workaround |
 |-----------|--------|-------|------------|
-| API Scripting | Partial | 11/17 tests passing - request object conversion issues | Use core ScriptProcessor. See docs/API-SCRIPTING.md:214 |
-| ScriptProcessor | Minor | 2/26 tests fail (ArrayList/HashMap conversion) | Pre-existing, doesn't affect production |
+| RouteDispatcher | Minor | 3/371 tests error: `testDeleteHandlerRoute`, `testHandlerRouteDownload`, `testHandlerRouteWithPathParams` ("Handler invocation failed") | Pre-existing. Routes work at runtime — verified via `/api/properties`, `/health`, `/metrics` |
 
 ---
 
 ## File Patterns
+
+**Build:**
+- Conventions (plugins, compiler, Java version): `shared-build/pom.xml`
+- Third-party versions: `shared-build/catalog/thirdparty/pom.xml`
+- Internal/org versions: `shared-build/catalog/internal/pom.xml`
+- App dependencies (no versions): `pom.xml`
 
 **Configuration:**
 - Main config: `src/main/resources/application.yml`
@@ -106,7 +117,7 @@ curl localhost:8080/health           # Health check
 ## Config
 
 `src/main/resources/application.yml` — server.port (8080), storage.chunkSize (1MB), script.timeout (5s)
-`src/main/resources/routes.yml` — 27 HTTP routes
+`src/main/resources/routes.yml` — 35 HTTP routes
 
 Optional DB-backed properties (all fall back to YAML if absent):
 ```yaml
@@ -124,13 +135,16 @@ storage:
 
 ## Architecture
 
-**Routing**: 27 routes in YAML → RouteRegistry → RouteDispatcher → Handler/Processor
+**Routing**: 35 routes in YAML → RouteRegistry → RouteDispatcher → Handler/Processor
 **Properties**: LRU cache → DB (`app_properties`) → YAML (three-level fallback)
 **Storage**: 1MB chunks → ChunkedOutputStream/InputStream → memory-safe; DB or local backend
 **DB**: `Database` wrapper (jOOQ DSL) + Flyway auto-migrations on startup
 **JS**: Rhino sandbox → ClassShutter (whitelist/blacklist)
 
-**Packages**: config/, route/, processor/, storage/, handler/, datasource/, util/
+**Build**: catalog-thirdparty → catalog-internal → shared-build-parent → app (Maven parent chain)
+
+**Packages**: `com.example.*` — servlet/, route/, processor/, handler/, storage/, datasource/, config/,
+script/, security/, module/, extlib/, mongo/, model/, exception/, util/
 
 **See docs/CODEBASE-MAP.md and docs/APP-FLOW.md for full details**
 

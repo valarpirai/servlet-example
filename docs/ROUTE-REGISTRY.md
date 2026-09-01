@@ -25,8 +25,8 @@ The route registry system is the **core routing mechanism** for the application.
 
 **Key files**:
 - `src/main/resources/routes.yml` - All 21 route definitions
-- `src/main/java/com/example/servlet/route/RouteRegistry.java` - Loads & matches routes
-- `src/main/java/com/example/servlet/route/RouteDispatcher.java` - Dispatches to handlers
+- `src/main/java/com/example/route/RouteRegistry.java` - Loads & matches routes
+- `src/main/java/com/example/route/RouteDispatcher.java` - Dispatches to handlers
 - `src/main/java/com/example/servlet/RouterServlet.java` - HTTP entry point (236 lines)
 
 ## Architecture

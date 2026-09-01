@@ -232,4 +232,4 @@ mvn test -Dtest=ApiScriptProcessorTest,ApiHandlerTest
 - **Implementation**: `ApiScriptProcessor.java`, `ApiHandler.java`
 - **Security**: `ScriptSecurityManager.java`
 - **Configuration**: `application.yml`, `routes.yml`
-- **Tests**: `src/test/java/com/example/servlet/processor/`
+- **Tests**: `src/test/java/com/example/processor/`
