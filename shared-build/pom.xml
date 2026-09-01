@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Last link in the catalog chain. Inheriting from catalog-internal, which
+        inherits from catalog-thirdparty, means every pinned library version
+        arrives here without any catalog needing to be installed first.
+    -->
+    <parent>
+        <groupId>com.example.build</groupId>
+        <artifactId>catalog-internal</artifactId>
+        <version>1.0.0</version>
+        <relativePath>catalog/internal/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>shared-build-parent</artifactId>
+    <packaging>pom</packaging>
+
+    <name>Shared Build Parent</name>
+    <description>
+        Build conventions: compiler settings, plugin versions, plugin
+        configuration, and the plugins every project gets automatically.
+        Library versions live in the catalogs under catalog/.
+
+        This module is build infrastructure only. It ships no code and
+        contributes nothing to any child artifact.
+    </description>
+
+    <properties>
+        <!-- Build settings inherited by every child -->
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+            Set by children that produce an executable JAR. The shade and exec
+            conventions below both read it. A child that leaves it unset gets no
+            runnable manifest, which is correct for a library.
+        -->
+        <app.mainClass/>
+
+        <!-- Build plugin versions - separate from the library catalogs because
+             build tooling moves on its own cycle -->
+        <compiler.plugin.version>3.11.0</compiler.plugin.version>
+        <surefire.plugin.version>3.2.5</surefire.plugin.version>
+        <spotless.plugin.version>2.43.0</spotless.plugin.version>
+        <shade.plugin.version>3.5.1</shade.plugin.version>
+        <exec.plugin.version>3.1.1</exec.plugin.version>
+        <enforcer.plugin.version>3.4.1</enforcer.plugin.version>
+        <google.java.format.version>1.19.2</google.java.format.version>
+    </properties>
+
+    <build>
+        <!--
+            Plugin versions and default configuration live here. Compiler and
+            surefire are part of the default lifecycle, so a child picks up this
+            configuration without declaring anything. Shade and exec are opt-in:
+            a child activates them by naming the plugin, with no version and no
+            configuration of its own.
+        -->
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${compiler.plugin.version}</version>
+                    <configuration>
+                        <release>${java.version}</release>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${surefire.plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>${spotless.plugin.version}</version>
+                    <configuration>
+                        <java>
+                            <googleJavaFormat>
+                                <version>${google.java.format.version}</version>
+                                <style>GOOGLE</style>
+                            </googleJavaFormat>
+                        </java>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>${enforcer.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>enforce-dependency-hygiene</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <phase>validate</phase>
+                            <configuration>
+                                <rules>
+                                    <!--
+                                        Fails when a transitive dependency needs a
+                                        newer version than the one actually resolved.
+                                        This is the guard against declaring one
+                                        version and silently running another.
+                                    -->
+                                    <requireUpperBoundDeps/>
+                                    <banDuplicatePomDependencyVersions/>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${shade.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                            <configuration>
+                                <filters>
+                                    <filter>
+                                        <artifact>*:*</artifact>
+                                        <excludes>
+                                            <exclude>META-INF/*.SF</exclude>
+                                            <exclude>META-INF/*.DSA</exclude>
+                                            <exclude>META-INF/*.RSA</exclude>
+                                        </excludes>
+                                    </filter>
+                                </filters>
+                                <transformers>
+                                    <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                        <mainClass>${app.mainClass}</mainClass>
+                                    </transformer>
+                                </transformers>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>appRun</id>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
+                            <configuration>
+                                <mainClass>${app.mainClass}</mainClass>
+                                <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <!-- Applied to every child automatically -->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- Development mode, inherited by every child: mvn -PappRun -->
+        <profile>
+            <id>appRun</id>
+            <build>
+                <defaultGoal>compile exec:java@appRun</defaultGoal>
+            </build>
+        </profile>
+    </profiles>
+</project>

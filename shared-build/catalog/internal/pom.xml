@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example.build</groupId>
+        <artifactId>catalog-thirdparty</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../thirdparty/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>catalog-internal</artifactId>
+    <packaging>pom</packaging>
+
+    <name>Catalog - Internal</name>
+    <description>
+        Versions for artifacts built inside this organization, including forks of
+        upstream libraries that carry local patches. Separated from the
+        third-party catalog because these move on our release cycle, not an
+        upstream one.
+
+        Empty today. When this repo starts consuming a sibling module, pin it
+        here rather than in the third-party catalog.
+    </description>
+
+    <properties>
+        <!-- Internal artifact versions go here, for example:
+             <platform.core.version>a3f8c21d</platform.core.version> -->
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Internal artifacts go here, for example:
+                 <dependency>
+                     <groupId>com.example</groupId>
+                     <artifactId>platform-core</artifactId>
+                     <version>${platform.core.version}</version>
+                 </dependency> -->
+        </dependencies>
+    </dependencyManagement>
+</project>
