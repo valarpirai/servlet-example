@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
@@ -101,7 +102,11 @@ public class RouterServlet extends HttpServlet {
     response.setContentType("application/json");
     response.setCharacterEncoding("UTF-8");
     PrintWriter out = response.getWriter();
-    out.print(String.format("{\"error\":\"Not Found\",\"path\":\"%s\",\"status\":404}", path));
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("error", "Not Found");
+    body.put("path", path);
+    body.put("status", 404);
+    out.print(JsonUtil.toJson(body));
     out.flush();
   }
 
