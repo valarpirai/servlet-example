@@ -1,6 +1,7 @@
 package com.example;
 
 import com.example.config.DbPropertiesLoader;
+import com.example.route.RouteRegistry;
 import com.example.servlet.RouterServlet;
 import com.example.util.CorrelationIdFilter;
 import com.example.util.LoggingConfig;
@@ -55,6 +56,12 @@ public class Main {
   }
 
   public static void main(String[] args) {
+    try {
+      RouteRegistry.getInstance(); // fail now, not on the first request, when there are no routes
+    } catch (IllegalStateException e) {
+      logger.error("Cannot start: {}", e.getMessage());
+      System.exit(1);
+    }
     int port = resolvePort();
     Tomcat tomcat = new Tomcat();
     tomcat.setPort(port);
