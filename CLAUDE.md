@@ -9,7 +9,7 @@ Quick guidance for Claude Code. **All detail lives in docs/ — start at
 ---|---|---
 Routing | docs/routing/table-routes.md | `routes` table, route/
 File storage | docs/storage/memory-guarantee.md | storage/
-Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | browser/, handler/TableBrowserHandler.java, static/table-browser.html
+Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | tableapi/, handler/TableApiHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
 Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java

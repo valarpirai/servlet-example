@@ -27,10 +27,10 @@ src/main/java/com/example/
 │   ├── AttachmentHandler.java          Download, delete, list
 │   ├── DataBrowserHandler.java         Relational browsing
 │   ├── MongoHandler.java               MongoDB browsing
-│   └── TableBrowserHandler.java        Table browser JSON endpoints
+│   └── TableApiHandler.java            Table API JSON endpoints
 │
-├── browser/                            Browse and edit the app database tables
-│   ├── TableBrowser.java               Table list, paged rows, one row
+├── tableapi/                           Read and edit the app database tables
+│   ├── TableApi.java                   Table list, paged rows, one row
 │   └── TableEditor.java                Create, update, delete through TableRecord
 │
 ├── storage/                            Chunked file storage

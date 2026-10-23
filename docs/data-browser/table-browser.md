@@ -65,7 +65,7 @@ work.
 
 ## API
 
-The read endpoints are `GET` and return JSON. `TableBrowserHandler` serves them.
+The read endpoints are `GET` and return JSON. `TableApiHandler` serves them.
 The write endpoints are in [table editing](./table-editing.md).
 
 | Endpoint | Returns |
@@ -88,7 +88,7 @@ sortable column returns 400. An unknown table or row returns 404.
 
 ## How it stays safe
 
-`TableBrowser` checks the table name against `information_schema` before it uses
+`TableApi` checks the table name against `information_schema` before it uses
 it, then quotes it. The sort column must match a real, sortable column of that
 table. Names that match nothing never reach a query.
 
@@ -100,10 +100,10 @@ not trust.
 
 ## Where the code lives
 
-- `browser/TableBrowser.java` holds the queries
-- `handler/TableBrowserHandler.java` turns them into HTTP
+- `tableapi/TableApi.java` holds the queries
+- `handler/TableApiHandler.java` turns them into HTTP
 - `static/table-browser.html` is the UI
-- `browser/TableEditor.java` holds the writes
+- `tableapi/TableEditor.java` holds the writes
 - the `routes` table registers four static routes and six API routes
 
 ## Related
