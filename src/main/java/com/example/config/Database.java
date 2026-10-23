@@ -57,4 +57,9 @@ public class Database {
   public Connection openConnection() throws SQLException {
     return config.getConnection();
   }
+
+  /** Connection pool load, or null before the pool starts. */
+  public java.util.Map<String, Object> poolStats() {
+    return config == null ? null : config.poolStats();
+  }
 }

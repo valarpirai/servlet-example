@@ -2,6 +2,8 @@ package com.example.servlet;
 
 import com.example.route.RouteDispatcher;
 import com.example.route.RouteRegistry;
+import com.example.util.JsonUtil;
+import com.example.util.RuntimeMetrics;
 import com.example.util.StructuredLogger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -61,7 +63,7 @@ public class RouterServlet extends HttpServlet {
     }
   }
 
-  /** Dispatch request via routes.yml or return 404 */
+  /** Dispatch request via the routes table or return 404 */
   private void dispatchOrNotFound(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     String path = request.getPathInfo();
@@ -176,35 +178,6 @@ public class RouterServlet extends HttpServlet {
 
   /** Handle /metrics endpoint - called for builtin routes */
   private void handleMetrics(PrintWriter out) {
-    Runtime runtime = Runtime.getRuntime();
-    long totalMemory = runtime.totalMemory();
-    long freeMemory = runtime.freeMemory();
-    long usedMemory = totalMemory - freeMemory;
-    long maxMemory = runtime.maxMemory();
-
-    String metrics =
-        String.format(
-            "{\"metrics\":{"
-                + "\"totalRequests\":%d,"
-                + "\"memory\":{"
-                + "\"used\":%d,"
-                + "\"free\":%d,"
-                + "\"total\":%d,"
-                + "\"max\":%d"
-                + "},"
-                + "\"threads\":{"
-                + "\"active\":%d"
-                + "},"
-                + "\"timestamp\":%d"
-                + "}}",
-            requestCount.get(),
-            usedMemory,
-            freeMemory,
-            totalMemory,
-            maxMemory,
-            Thread.activeCount(),
-            System.currentTimeMillis());
-
-    out.print(metrics);
+    out.print(JsonUtil.toJson(Map.of("metrics", RuntimeMetrics.snapshot(requestCount.get()))));
   }
 }

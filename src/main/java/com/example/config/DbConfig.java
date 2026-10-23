@@ -2,8 +2,11 @@ package com.example.config;
 
 import com.example.util.PropertiesUtil;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /** Reads PostgreSQL connection credentials from application.yml and lends pooled connections. */
 public class DbConfig {
@@ -74,6 +77,26 @@ public class DbConfig {
       }
     }
     return p;
+  }
+
+  /**
+   * Current pool load.
+   *
+   * @return active, idle, total, waiting and max connections, or null before the pool starts
+   */
+  public Map<String, Object> poolStats() {
+    HikariDataSource p = pool;
+    if (p == null || p.getHikariPoolMXBean() == null) {
+      return null;
+    }
+    HikariPoolMXBean bean = p.getHikariPoolMXBean();
+    Map<String, Object> stats = new LinkedHashMap<>();
+    stats.put("active", bean.getActiveConnections());
+    stats.put("idle", bean.getIdleConnections());
+    stats.put("total", bean.getTotalConnections());
+    stats.put("waiting", bean.getThreadsAwaitingConnection());
+    stats.put("max", p.getMaximumPoolSize());
+    return stats;
   }
 
   /** Close the pool. A later getConnection() starts a fresh one. */

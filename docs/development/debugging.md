@@ -42,7 +42,8 @@ curl localhost:8080/health
 curl localhost:8080/metrics
 ```
 
-`/metrics` reports heap use, uptime and request count. It is the fastest way to
+`/metrics` reports heap use, request count, JVM and worker threads, and the
+DB connection pool. It is the fastest way to
 confirm a memory suspicion — heap that tracks file size means something loads a
 whole file.
 
