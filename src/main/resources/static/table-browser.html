@@ -106,7 +106,7 @@
             width: 100%; padding: 7px 9px; border: 1px solid #ccc; border-radius: 8px;
             font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;
         }
-        table.fields textarea { min-height: 150px; resize: vertical; }
+        table.fields textarea { resize: vertical; line-height: 1.4; }
         table.fields input:disabled, table.fields textarea:disabled, table.fields select:disabled { background: #f4f4f6; color: #666; }
         .message { margin-top: 12px; font-size: 0.9rem; }
         .message.ok { color: #1e7a3c; }
@@ -365,6 +365,15 @@
             'text', 'character varying', 'character', 'timestamp with time zone', 'timestamp without time zone', 'date'];
         const LONG_TEXT = ['content', 'script', 'condition', 'value'];
 
+        const MIN_ROWS = 4;
+        const MAX_ROWS = 30;
+
+        // Sizes a text area to its content: one row per line, between MIN_ROWS and MAX_ROWS.
+        // Longer text scrolls inside the box.
+        function fitRows(area) {
+            area.rows = Math.min(Math.max(area.value.split('\n').length, MIN_ROWS), MAX_ROWS);
+        }
+
         function inputFor(column, value, disabled) {
             const text = value === null || value === undefined ? '' : String(value);
             let input;
@@ -378,6 +387,10 @@
             }
             input.value = text;
             input.disabled = disabled;
+            if (input.tagName === 'TEXTAREA') {
+                fitRows(input);
+                input.addEventListener('input', () => fitRows(input));
+            }
             return input;
         }
 

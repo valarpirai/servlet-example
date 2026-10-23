@@ -26,6 +26,9 @@ allow-list and rules.
 The Actions menu sits at the top of the list. It is disabled until a row is ticked.
 Delete is its only action. Ticks survive paging. The page asks before it deletes.
 
+Long text fields open as text areas sized to their content, from 4 to 30 rows. Longer
+text scrolls inside the box. The area grows as you type.
+
 The key column is locked on the edit page. Save sends only the fields you changed.
 A rule that stops a write shows its message under the form.
 
