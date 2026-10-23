@@ -124,7 +124,6 @@ public class Main {
       logger.info("  - http://localhost:{}/api/upload (Content-Type: multipart/form-data)", port);
       logger.info(
           "  - http://localhost:{}/api/script (Content-Type: application/javascript)", port);
-      logger.info("  - http://localhost:{}/api/render (Content-Type: text/html)", port);
       logger.info("=========================================");
 
       tomcat.getServer().await();

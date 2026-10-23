@@ -8,9 +8,7 @@ import com.example.handler.TableBrowserHandler;
 import com.example.model.ProcessorResponse;
 import com.example.model.Route;
 import com.example.processor.FileUploadProcessor;
-import com.example.processor.ModuleProcessor;
 import com.example.processor.ScriptProcessor;
-import com.example.processor.TemplateProcessor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -297,14 +295,10 @@ public class RouteDispatcher {
   /** Get processor instance by name (creates new instance). */
   private Object getProcessorInstance(String processorName) {
     switch (processorName) {
-      case "ModuleProcessor":
-        return new ModuleProcessor();
       case "FileUploadProcessor":
         return new FileUploadProcessor();
       case "ScriptProcessor":
         return new ScriptProcessor();
-      case "TemplateProcessor":
-        return new TemplateProcessor();
       default:
         return null;
     }

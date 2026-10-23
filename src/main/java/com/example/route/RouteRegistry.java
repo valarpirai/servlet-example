@@ -459,14 +459,10 @@ public class RouteRegistry {
   /** Map processor name from the routes table to fully qualified class name. */
   private String getProcessorClassName(String processorName) {
     switch (processorName) {
-      case "ModuleProcessor":
-        return "com.example.processor.ModuleProcessor";
       case "FileUploadProcessor":
         return "com.example.processor.FileUploadProcessor";
       case "ScriptProcessor":
         return "com.example.processor.ScriptProcessor";
-      case "TemplateProcessor":
-        return "com.example.processor.TemplateProcessor";
       default:
         return null;
     }

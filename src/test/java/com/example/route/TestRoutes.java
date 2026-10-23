@@ -23,9 +23,9 @@ final class TestRoutes {
     for (String[] r : byId) {
       db.setPathParams(db.defaultRoute(r[0], r[1], "handler", "AttachmentHandler", r[2]), "id");
     }
-    long modules =
-        db.defaultRoute("/api/modules/**", "GET,POST,PUT,DELETE", "processor", null, null);
-    db.setProcessor(modules, "ModuleProcessor");
+    db.defaultRoute("/api/modules/**", "GET,POST,PUT,DELETE", "script", "modules-api", "handle");
+    long script = db.defaultRoute("/api/script", "POST", "processor", null, null);
+    db.setProcessor(script, "ScriptProcessor");
     db.defaultRoute("/health", "GET", "builtin", "handleHealth", null);
     db.defaultRoute("/metrics", "GET", "builtin", "handleMetrics", null);
     String[][] browserApi = {
