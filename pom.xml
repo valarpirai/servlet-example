@@ -94,6 +94,12 @@
             <artifactId>postgresql</artifactId>
         </dependency>
 
+        <!-- HikariCP - JDBC connection pool -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+
         <!-- jOOQ - type-safe SQL DSL -->
         <dependency>
             <groupId>org.jooq</groupId>

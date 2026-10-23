@@ -19,6 +19,13 @@ This is deliberate. Properties that live in a table can change without a
 redeploy. Credentials cannot come from the database that needs them, so they
 stay in the file.
 
+## Connection pool
+
+`DbConfig` holds one HikariCP pool for the whole JVM. `Database` borrows from it
+and returns the connection on close. The pool holds up to 10 connections.
+Set `db.pool.size` in `application.yml` to change that. The table cannot hold
+it, because the pool must exist before the table can be read.
+
 ## Precedence
 
 `PropertiesUtil` answers every lookup in this order:

@@ -34,6 +34,7 @@
         <janino.version>3.1.10</janino.version>
         <lombok.version>1.18.30</lombok.version>
         <postgresql.version>42.7.9</postgresql.version>
+        <hikaricp.version>5.1.0</hikaricp.version>
         <jooq.version>3.19.11</jooq.version>
         <flyway.version>9.22.3</flyway.version>
         <junit.version>5.10.2</junit.version>
@@ -111,6 +112,11 @@
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${hikaricp.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.jooq</groupId>

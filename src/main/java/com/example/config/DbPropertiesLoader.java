@@ -34,6 +34,7 @@ public class DbPropertiesLoader {
           .migrate();
 
       database = new Database(config);
+      Runtime.getRuntime().addShutdownHook(new Thread(config::close));
       repository = new PropertyRepository(database);
       PropertiesUtil.setPropertyRepository(repository);
       System.out.println("[DbPropertiesLoader] DB ready – schema migrated, LRU cache active");

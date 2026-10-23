@@ -38,4 +38,9 @@ class DbConfigTest {
     assertFalse(config.getUsername().isBlank());
     assertFalse(config.getPassword().isBlank());
   }
+
+  @Test
+  void fromProperties_returnsOneInstance_soTheJvmHasOnePool() {
+    assertSame(DbConfig.fromProperties(), DbConfig.fromProperties());
+  }
 }
