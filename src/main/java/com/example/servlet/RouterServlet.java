@@ -1,5 +1,6 @@
 package com.example.servlet;
 
+import com.example.config.DbPropertiesLoader;
 import com.example.route.RouteDispatcher;
 import com.example.route.RouteRegistry;
 import com.example.util.JsonUtil;
@@ -84,7 +85,7 @@ public class RouterServlet extends HttpServlet {
 
       switch (path) {
         case "/health":
-          handleHealth(out);
+          handleHealth(response, out);
           break;
         case "/metrics":
           handleMetrics(out);
@@ -164,16 +165,28 @@ public class RouterServlet extends HttpServlet {
     handleRequest(request, response, () -> dispatchOrNotFound(request, response));
   }
 
-  /** Handle /health endpoint - called for builtin routes */
-  private void handleHealth(PrintWriter out) {
+  /**
+   * Handle /health endpoint - called for builtin routes. Reports DOWN with 503 when the database
+   * does not answer.
+   *
+   * @param response HTTP response, set to 503 when the database check fails
+   * @param out response writer
+   */
+  private void handleHealth(HttpServletResponse response, PrintWriter out) {
     long uptime = System.currentTimeMillis() - startTime;
+    String status = "UP";
+    try {
+      DbPropertiesLoader.getDatabase().query(dsl -> dsl.selectOne().fetch());
+    } catch (Exception e) {
+      logger.warn("Health check failed: {}", e.getMessage());
+      status = "DOWN";
+      response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+    }
 
-    String healthStatus =
+    out.print(
         String.format(
-            "{\"status\":\"UP\",\"timestamp\":%d,\"uptime\":\"%d ms\"}",
-            System.currentTimeMillis(), uptime);
-
-    out.print(healthStatus);
+            "{\"status\":\"%s\",\"timestamp\":%d,\"uptime\":\"%d ms\"}",
+            status, System.currentTimeMillis(), uptime));
   }
 
   /** Handle /metrics endpoint - called for builtin routes */

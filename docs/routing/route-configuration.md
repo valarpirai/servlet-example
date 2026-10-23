@@ -51,7 +51,8 @@ VALUES ('/api/upload', 'POST', 'processor',
 ```
 
 **`builtin`** calls a `RouterServlet` method directly. Only `handleHealth` and
-`handleMetrics` are valid.
+`handleMetrics` are valid. `handleHealth` runs `SELECT 1` and returns 503 with
+`"status":"DOWN"` when the database does not answer.
 
 ```sql
 INSERT INTO routes (path, methods, type, handler, content_type)
