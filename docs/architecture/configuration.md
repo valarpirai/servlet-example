@@ -63,7 +63,6 @@ edits survive a restart.
 | `script.maxMemory` | `52428800` | Heap growth per script, 50 MB |
 | `script.optimizationLevel` | `-1` | Rhino interpreted mode |
 | `script.instructionThreshold` | `10000` | Instructions between limit checks |
-| `modules.directory` | `data/modules` | Module storage root |
 | `modules.maxFileSize` | `1048576` | Max module file, 1 MB |
 | `storage.type` | `database` | `database` or `filesystem` |
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |

@@ -61,7 +61,7 @@ src/main/java/com/example/
 │   └── ScriptSecurityManager.java      ClassShutter policy
 │
 ├── module/                             JavaScript module system
-│   ├── ModuleManager.java              Module CRUD and storage
+│   ├── ModuleManager.java              Module CRUD on the modules table
 │   └── ModuleDependencyResolver.java   Dependency graph, cycle detection
 │
 ├── extlib/                             Dynamic JDBC driver loading

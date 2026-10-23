@@ -1,166 +1,144 @@
 package com.example.module;
 
+import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.table;
+
+import com.example.config.Database;
+import com.example.config.DbPropertiesLoader;
 import com.example.model.Module;
 import com.example.util.PropertiesUtil;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.stream.Stream;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** CRUD for JavaScript modules, stored in the {@code modules} table. */
 public class ModuleManager {
 
   private static final Logger logger = LoggerFactory.getLogger(ModuleManager.class);
+  private static final Table<Record> MODULES = table("modules");
+  private static final Field<String> NAME = field("name", String.class);
+  private static final Field<String> CONTENT = field("content", String.class);
+  private static final Field<Integer> SIZE_BYTES = field("size_bytes", Integer.class);
+  private static final Field<OffsetDateTime> CREATED_AT = field("created_at", OffsetDateTime.class);
+  private static final Field<OffsetDateTime> UPDATED_AT = field("updated_at", OffsetDateTime.class);
+
   private static ModuleManager instance;
-  private final Path modulesDirectory;
+  private final Database database;
   private final long maxFileSize;
 
-  private ModuleManager() {
-    String modulesDir = PropertiesUtil.getString("modules.directory", "data/modules");
-    this.modulesDirectory = Paths.get(modulesDir);
+  /**
+   * Creates a manager on a fixed database.
+   *
+   * @param database database to use, or null to look up the application database on first use
+   */
+  ModuleManager(Database database) {
+    this.database = database;
     this.maxFileSize = PropertiesUtil.getLong("modules.maxFileSize", 1048576L);
-
-    // Create modules directory if it doesn't exist
-    try {
-      if (!Files.exists(modulesDirectory)) {
-        Files.createDirectories(modulesDirectory);
-        logger.info("Created modules directory at: {}", modulesDirectory.toAbsolutePath());
-      }
-    } catch (IOException e) {
-      logger.error("Failed to create modules directory", e);
-      throw new RuntimeException("Failed to initialize module system", e);
-    }
   }
 
   public static synchronized ModuleManager getInstance() {
     if (instance == null) {
-      instance = new ModuleManager();
+      instance = new ModuleManager(null);
     }
     return instance;
   }
 
   public List<Module> listModules() throws IOException {
-    List<Module> modules = new ArrayList<>();
-
-    try (Stream<Path> paths = Files.walk(modulesDirectory)) {
-      paths
-          .filter(Files::isRegularFile)
-          .filter(path -> path.toString().endsWith(".js"))
-          .forEach(
-              path -> {
-                try {
-                  modules.add(loadModuleFromFile(path));
-                } catch (IOException e) {
-                  logger.error("Failed to load module: {}", path, e);
-                }
-              });
-    }
-
-    return modules;
+    return run(dsl -> dsl.select().from(MODULES).orderBy(NAME).fetch(ModuleManager::toModule));
   }
 
   public Module getModule(String modulePath) throws IOException {
-    Path filePath = resolveModulePath(modulePath);
-
-    if (!Files.exists(filePath)) {
-      return null;
-    }
-
-    return loadModuleFromFile(filePath);
+    String name = normalizeName(modulePath);
+    return run(
+        dsl -> dsl.select().from(MODULES).where(NAME.eq(name)).fetchOne(ModuleManager::toModule));
   }
 
   public Module createModule(String modulePath, String content) throws IOException {
     validateModulePath(modulePath);
     validateContent(content);
+    String name = normalizeName(modulePath);
 
-    Path filePath = resolveModulePath(modulePath);
-
-    // Check if module already exists
-    if (Files.exists(filePath)) {
+    int inserted =
+        run(
+            dsl ->
+                dsl.insertInto(MODULES)
+                    .columns(NAME, CONTENT, SIZE_BYTES)
+                    .values(name, content, content.getBytes().length)
+                    .onConflictDoNothing()
+                    .execute());
+    if (inserted == 0) {
       throw new IOException("Module already exists: " + modulePath);
     }
-
-    // Create parent directories if needed
-    Path parent = filePath.getParent();
-    if (parent != null && !Files.exists(parent)) {
-      Files.createDirectories(parent);
-    }
-
-    // Write content
-    Files.writeString(filePath, content);
     logger.info("Created module: {}", modulePath);
-
-    return loadModuleFromFile(filePath);
+    return getModule(name);
   }
 
   public Module updateModule(String modulePath, String content) throws IOException {
     validateContent(content);
+    String name = normalizeName(modulePath);
 
-    Path filePath = resolveModulePath(modulePath);
-
-    if (!Files.exists(filePath)) {
+    int updated =
+        run(
+            dsl ->
+                dsl.update(MODULES)
+                    .set(CONTENT, content)
+                    .set(SIZE_BYTES, content.getBytes().length)
+                    .set(UPDATED_AT, currentOffsetDateTime())
+                    .where(NAME.eq(name))
+                    .execute());
+    if (updated == 0) {
       throw new IOException("Module not found: " + modulePath);
     }
-
-    Files.writeString(filePath, content);
     logger.info("Updated module: {}", modulePath);
-
-    return loadModuleFromFile(filePath);
+    return getModule(name);
   }
 
   public void deleteModule(String modulePath) throws IOException {
-    Path filePath = resolveModulePath(modulePath);
+    String name = normalizeName(modulePath);
 
-    if (!Files.exists(filePath)) {
+    int deleted = run(dsl -> dsl.deleteFrom(MODULES).where(NAME.eq(name)).execute());
+    if (deleted == 0) {
       throw new IOException("Module not found: " + modulePath);
     }
-
-    Files.delete(filePath);
     logger.info("Deleted module: {}", modulePath);
-
-    // Clean up empty parent directories
-    cleanupEmptyDirectories(filePath.getParent());
   }
 
-  private Module loadModuleFromFile(Path filePath) throws IOException {
-    String content = Files.readString(filePath);
-    String relativePath = modulesDirectory.relativize(filePath).toString();
-    String moduleName = relativePath.replace(".js", "").replace("\\", "/");
+  private <T> T run(Database.Work<T> work) throws IOException {
+    Database db = database != null ? database : DbPropertiesLoader.getDatabase();
+    if (db == null) {
+      throw new IOException("Modules are stored in the database, which is not ready");
+    }
+    try {
+      return db.query(work);
+    } catch (Exception e) {
+      throw new IOException("Module storage failed: " + e.getMessage(), e);
+    }
+  }
 
-    BasicFileAttributes attrs = Files.readAttributes(filePath, BasicFileAttributes.class);
-
-    Module module = new Module(moduleName, relativePath, content);
-    module.setCreatedAt(attrs.creationTime().toInstant());
-    module.setUpdatedAt(attrs.lastModifiedTime().toInstant());
-
+  private static Module toModule(Record r) {
+    String name = r.get(NAME);
+    Module module = new Module(name, name + ".js", r.get(CONTENT));
+    module.setCreatedAt(r.get(CREATED_AT).toInstant());
+    module.setUpdatedAt(r.get(UPDATED_AT).toInstant());
     return module;
   }
 
-  private Path resolveModulePath(String modulePath) {
-    // Normalize path separators
-    String normalizedPath = modulePath.replace("\\", "/");
-
-    // Remove leading/trailing slashes
-    normalizedPath = normalizedPath.replaceAll("^/+|/+$", "");
-
-    // Ensure .js extension
-    if (!normalizedPath.endsWith(".js")) {
-      normalizedPath += ".js";
+  /** Strips slashes and the {@code .js} suffix, so {@code /utils/math.js} becomes utils/math. */
+  private String normalizeName(String modulePath) {
+    String name = modulePath.replace("\\", "/").replaceAll("^/+|/+$", "");
+    if (name.endsWith(".js")) {
+      name = name.substring(0, name.length() - 3);
     }
-
-    Path resolved = modulesDirectory.resolve(normalizedPath).normalize();
-
-    // Security check: ensure resolved path is within modules directory
-    if (!resolved.startsWith(modulesDirectory)) {
+    if (name.contains("..")) {
       throw new SecurityException("Invalid module path: " + modulePath);
     }
-
-    return resolved;
+    return name;
   }
 
   private void validateModulePath(String modulePath) throws IOException {
@@ -187,33 +165,5 @@ public class ModuleManager {
     if (content.getBytes().length > maxFileSize) {
       throw new IOException("Module content exceeds maximum size of " + maxFileSize + " bytes");
     }
-  }
-
-  private void cleanupEmptyDirectories(Path directory) {
-    if (directory == null
-        || !directory.startsWith(modulesDirectory)
-        || directory.equals(modulesDirectory)) {
-      return;
-    }
-
-    try {
-      if (Files.isDirectory(directory) && isDirectoryEmpty(directory)) {
-        Files.delete(directory);
-        logger.debug("Deleted empty directory: {}", directory);
-        cleanupEmptyDirectories(directory.getParent());
-      }
-    } catch (IOException e) {
-      logger.debug("Could not delete directory: {}", directory, e);
-    }
-  }
-
-  private boolean isDirectoryEmpty(Path directory) throws IOException {
-    try (Stream<Path> entries = Files.list(directory)) {
-      return entries.findFirst().isEmpty();
-    }
-  }
-
-  public Path getModulesDirectory() {
-    return modulesDirectory;
   }
 }

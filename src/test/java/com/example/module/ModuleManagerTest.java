@@ -2,167 +2,196 @@ package com.example.module;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.config.Database;
 import com.example.model.Module;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.jooq.Field;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
+import org.jooq.tools.jdbc.MockConnection;
+import org.jooq.tools.jdbc.MockDataProvider;
+import org.jooq.tools.jdbc.MockExecuteContext;
+import org.jooq.tools.jdbc.MockResult;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 class ModuleManagerTest {
 
-  @TempDir Path tempDir;
+  private static final Field<String> NAME = DSL.field("name", String.class);
+  private static final Field<String> CONTENT = DSL.field("content", String.class);
+  private static final Field<Integer> SIZE = DSL.field("size_bytes", Integer.class);
+  private static final Field<OffsetDateTime> CREATED =
+      DSL.field("created_at", OffsetDateTime.class);
+  private static final Field<OffsetDateTime> UPDATED =
+      DSL.field("updated_at", OffsetDateTime.class);
 
-  private ModuleManager manager;
+  /** Statements the manager sent, in order. */
+  private final List<MockExecuteContext> seen = new ArrayList<>();
 
-  @BeforeEach
-  void setUp() throws Exception {
-    resetSingleton();
-    manager = ModuleManager.getInstance();
-    // PropertiesUtil doesn't check system properties directly, so override the field
-    java.lang.reflect.Field dirField = ModuleManager.class.getDeclaredField("modulesDirectory");
-    dirField.setAccessible(true);
-    dirField.set(manager, tempDir);
+  /** Rows a SELECT returns; empty by default. */
+  private final List<String[]> rows = new ArrayList<>();
+
+  /** Row count reported for INSERT, UPDATE and DELETE. */
+  private int affected = 1;
+
+  private ModuleManager manager() {
+    MockDataProvider provider =
+        ctx -> {
+          seen.add(ctx);
+          if (ctx.sql().toLowerCase().startsWith("select")) {
+            var result =
+                DSL.using(SQLDialect.POSTGRES).newResult(NAME, CONTENT, SIZE, CREATED, UPDATED);
+            for (String[] row : rows) {
+              result.add(
+                  DSL.using(SQLDialect.POSTGRES)
+                      .newRecord(NAME, CONTENT, SIZE, CREATED, UPDATED)
+                      .values(
+                          row[0],
+                          row[1],
+                          row[1].length(),
+                          OffsetDateTime.now(),
+                          OffsetDateTime.now()));
+            }
+            return new MockResult[] {new MockResult(result.size(), result)};
+          }
+          return new MockResult[] {new MockResult(affected)};
+        };
+    Database db =
+        new Database(null) {
+          @Override
+          public <T> T query(Work<T> fn) throws Exception {
+            return fn.run(DSL.using(new MockConnection(provider), SQLDialect.POSTGRES));
+          }
+        };
+    return new ModuleManager(db);
   }
 
-  @AfterEach
-  void tearDown() throws Exception {
-    resetSingleton();
+  private String lastSql() {
+    return seen.get(seen.size() - 1).sql().toLowerCase();
   }
 
-  private void resetSingleton() throws Exception {
-    java.lang.reflect.Field f = ModuleManager.class.getDeclaredField("instance");
-    f.setAccessible(true);
-    f.set(null, null);
+  private Object lastBinding(int index) {
+    return seen.get(seen.size() - 1).bindings()[index];
   }
 
   // --- listModules ---
 
   @Test
-  void listModules_emptyWhenNoModulesExist() throws IOException {
-    assertTrue(manager.listModules().isEmpty());
-  }
-
-  @Test
-  void listModules_returnsCreatedModules() throws IOException {
-    manager.createModule("utils/math", "module.exports = {};");
-    manager.createModule("utils/string", "module.exports = {};");
-    List<Module> modules = manager.listModules();
+  void listModules_mapsRows() throws IOException {
+    rows.add(new String[] {"utils/math", "var a;"});
+    rows.add(new String[] {"utils/string", "var b;"});
+    List<Module> modules = manager().listModules();
     assertEquals(2, modules.size());
-  }
-
-  // --- createModule ---
-
-  @Test
-  void createModule_returnsModuleWithCorrectPath() throws IOException {
-    Module m = manager.createModule("utils/math", "function add(a,b){return a+b;}");
-    assertEquals("utils/math", m.getName());
-  }
-
-  @Test
-  void createModule_storesContent() throws IOException {
-    manager.createModule("helpers/fmt", "var x = 1;");
-    Module loaded = manager.getModule("helpers/fmt");
-    assertNotNull(loaded);
-    assertTrue(loaded.getContent().contains("var x = 1;"));
-  }
-
-  @Test
-  void createModule_throwsWhenAlreadyExists() throws IOException {
-    manager.createModule("dup/module", "var a = 1;");
-    assertThrows(IOException.class, () -> manager.createModule("dup/module", "var b = 2;"));
-  }
-
-  @Test
-  void createModule_throwsOnNullPath() {
-    assertThrows(IOException.class, () -> manager.createModule(null, "content"));
-  }
-
-  @Test
-  void createModule_throwsOnEmptyPath() {
-    assertThrows(IOException.class, () -> manager.createModule("  ", "content"));
-  }
-
-  @Test
-  void createModule_throwsOnPathTraversal() {
-    assertThrows(IOException.class, () -> manager.createModule("../escape", "content"));
-  }
-
-  @Test
-  void createModule_throwsOnInvalidCharacters() {
-    assertThrows(IOException.class, () -> manager.createModule("bad<name>", "content"));
-  }
-
-  @Test
-  void createModule_throwsOnNullContent() {
-    assertThrows(IOException.class, () -> manager.createModule("valid/path", null));
+    assertEquals("utils/math", modules.get(0).getName());
+    assertEquals("utils/math.js", modules.get(0).getPath());
   }
 
   // --- getModule ---
 
   @Test
   void getModule_returnsNullForNonexistent() throws IOException {
-    assertNull(manager.getModule("no/such/module"));
+    assertNull(manager().getModule("no/such/module"));
   }
 
   @Test
-  void getModule_addsJsExtensionAutomatically() throws IOException {
-    manager.createModule("ext/test", "var x=1;");
-    assertNotNull(manager.getModule("ext/test"));
-    assertNotNull(manager.getModule("ext/test.js"));
+  void getModule_returnsContent() throws IOException {
+    rows.add(new String[] {"helpers/fmt", "var x = 1;"});
+    Module m = manager().getModule("helpers/fmt");
+    assertEquals("var x = 1;", m.getContent());
+    assertEquals(10, m.getSize());
+  }
+
+  @Test
+  void getModule_stripsJsSuffixAndSlashes() throws IOException {
+    manager().getModule("/ext/test.js");
+    assertEquals("ext/test", lastBinding(0));
+  }
+
+  @Test
+  void getModule_rejectsTraversal() {
+    assertThrows(SecurityException.class, () -> manager().getModule("../../etc/passwd"));
+  }
+
+  // --- createModule ---
+
+  @Test
+  void createModule_insertsNameAndContent() throws IOException {
+    rows.add(new String[] {"utils/math", "var a;"});
+    Module m = manager().createModule("utils/math", "var a;");
+    assertEquals("utils/math", m.getName());
+    Object[] insert = seen.get(0).bindings();
+    assertEquals("utils/math", insert[0]);
+    assertEquals("var a;", insert[1]);
+    assertTrue(seen.get(0).sql().toLowerCase().contains("on conflict"));
+  }
+
+  @Test
+  void createModule_throwsWhenAlreadyExists() {
+    affected = 0;
+    assertThrows(IOException.class, () -> manager().createModule("dup/module", "var b = 2;"));
+  }
+
+  @Test
+  void createModule_throwsOnNullPath() {
+    assertThrows(IOException.class, () -> manager().createModule(null, "content"));
+  }
+
+  @Test
+  void createModule_throwsOnEmptyPath() {
+    assertThrows(IOException.class, () -> manager().createModule("  ", "content"));
+  }
+
+  @Test
+  void createModule_throwsOnPathTraversal() {
+    assertThrows(IOException.class, () -> manager().createModule("../escape", "content"));
+  }
+
+  @Test
+  void createModule_throwsOnInvalidCharacters() {
+    assertThrows(IOException.class, () -> manager().createModule("bad<name>", "content"));
+  }
+
+  @Test
+  void createModule_throwsOnNullContent() {
+    assertThrows(IOException.class, () -> manager().createModule("valid/path", null));
+  }
+
+  @Test
+  void createModule_neverTouchesDbWhenInvalid() {
+    assertThrows(IOException.class, () -> manager().createModule("../escape", "content"));
+    assertTrue(seen.isEmpty());
   }
 
   // --- updateModule ---
 
   @Test
-  void updateModule_replacesContent() throws IOException {
-    manager.createModule("upd/mod", "var old = 1;");
-    manager.updateModule("upd/mod", "var new_ = 2;");
-    Module m = manager.getModule("upd/mod");
-    assertTrue(m.getContent().contains("new_"));
-    assertFalse(m.getContent().contains("old"));
+  void updateModule_sendsUpdate() throws IOException {
+    rows.add(new String[] {"upd/mod", "var new_ = 2;"});
+    Module m = manager().updateModule("upd/mod", "var new_ = 2;");
+    assertTrue(seen.get(0).sql().toLowerCase().startsWith("update"));
+    assertEquals("var new_ = 2;", m.getContent());
   }
 
   @Test
   void updateModule_throwsWhenModuleNotFound() {
-    assertThrows(IOException.class, () -> manager.updateModule("nonexistent/mod", "content"));
+    affected = 0;
+    assertThrows(IOException.class, () -> manager().updateModule("nonexistent/mod", "content"));
   }
 
   // --- deleteModule ---
 
   @Test
-  void deleteModule_removesModule() throws IOException {
-    manager.createModule("del/mod", "var x=1;");
-    assertNotNull(manager.getModule("del/mod"));
-    manager.deleteModule("del/mod");
-    assertNull(manager.getModule("del/mod"));
+  void deleteModule_sendsDelete() throws IOException {
+    manager().deleteModule("del/mod");
+    assertTrue(lastSql().startsWith("delete"));
+    assertEquals("del/mod", lastBinding(0));
   }
 
   @Test
   void deleteModule_throwsWhenNotFound() {
-    assertThrows(IOException.class, () -> manager.deleteModule("ghost/mod"));
-  }
-
-  @Test
-  void deleteModule_cleansUpEmptyParentDirectory() throws IOException {
-    manager.createModule("cleanup/nested/mod", "var x=1;");
-    manager.deleteModule("cleanup/nested/mod");
-    assertFalse(tempDir.resolve("cleanup/nested").toFile().exists());
-  }
-
-  // --- security ---
-
-  @Test
-  void resolveModulePath_rejectsTraversalAboveModulesDir() {
-    assertThrows(SecurityException.class, () -> manager.getModule("../../etc/passwd"));
-  }
-
-  // --- getModulesDirectory ---
-
-  @Test
-  void getModulesDirectory_returnsTempDir() {
-    assertEquals(tempDir, manager.getModulesDirectory());
+    affected = 0;
+    assertThrows(IOException.class, () -> manager().deleteModule("ghost/mod"));
   }
 }

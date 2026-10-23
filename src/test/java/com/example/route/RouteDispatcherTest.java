@@ -3,7 +3,9 @@ package com.example.route;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.example.config.Database;
 import com.example.model.Route;
+import com.example.module.ModuleManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -176,7 +179,12 @@ public class RouteDispatcherTest {
   }
 
   @Test
-  public void testProcessorRouteModules() throws IOException {
+  public void testProcessorRouteModules() throws Exception {
+    // Given: modules live in the database, so give the manager one that holds no modules
+    Database db = mock(Database.class);
+    when(db.query(any())).thenReturn(List.of());
+    setModuleManagerInstance(db);
+
     // Given: Processor route for /api/modules/**
     RouteRegistry.RouteMatch match =
         RouteRegistry.getInstance().findRoute("GET", "/api/modules/list");
@@ -191,7 +199,12 @@ public class RouteDispatcherTest {
     when(request.getPathInfo()).thenReturn("/api/modules/list");
 
     // When: Dispatch the request
-    boolean handled = dispatcher.dispatch(match, request, response);
+    boolean handled;
+    try {
+      handled = dispatcher.dispatch(match, request, response);
+    } finally {
+      setModuleManagerInstance(null);
+    }
 
     // Then: Response is handled
     assertTrue(handled, "Route should be handled by dispatcher");
@@ -200,6 +213,15 @@ public class RouteDispatcherTest {
     writer.flush();
     String output = stringWriter.toString();
     assertTrue(output.contains("\"modules\""), "Should return modules list");
+  }
+
+  /** Installs a ModuleManager on the given database as the singleton; null clears it. */
+  private static void setModuleManagerInstance(Database db) throws Exception {
+    var ctor = ModuleManager.class.getDeclaredConstructor(Database.class);
+    ctor.setAccessible(true);
+    var field = ModuleManager.class.getDeclaredField("instance");
+    field.setAccessible(true);
+    field.set(null, db == null ? null : ctor.newInstance(db));
   }
 
   @Test

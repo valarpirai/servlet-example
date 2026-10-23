@@ -2,8 +2,7 @@
 
 Reusable JavaScript stored on the server and pulled into scripts by name.
 
-Modules live under `modules.directory`, `data/modules` by default. `ModuleManager`
-handles storage. `ModuleDependencyResolver` walks the dependency graph.
+Modules live in the `modules` table. `ModuleManager` handles storage. `ModuleDependencyResolver` walks the dependency graph.
 `ScriptModuleLoader` turns the result into one source string for Rhino.
 
 ## Both import styles work
@@ -27,7 +26,7 @@ import calculator from 'utils/calculator.js';
 Assign to `module.exports`.
 
 ```javascript
-// data/modules/utils/calculator.js
+// module name: utils/calculator
 function add(a, b) {
   return a + b;
 }
@@ -65,10 +64,13 @@ Because resolution happens up front, a broken graph never runs half a script.
 
 `modules.maxFileSize` caps a single module at 1 MB by default.
 
-## The modules directory is live state
+## Storage
 
-`data/modules/` is runtime storage, treated like `data/attachments/` and `logs/`. Sample
-modules are committed; anything created through the UI or the API is not tracked.
+Each module is one row. `name` is the path without `.js`, such as `utils/math`.
+`getModule` accepts either form and strips leading slashes.
+
+Modules need the database. Without it, module calls fail with "Modules are stored
+in the database, which is not ready". Scripts that import nothing still run.
 
 ## Related
 

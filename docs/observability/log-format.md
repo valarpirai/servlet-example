@@ -85,7 +85,7 @@ hardcoded defaults. Only the earliest startup lines use those. See
 
 ## The logs directory is not tracked
 
-`logs/` is gitignored, like `data/attachments/` and `data/modules/`.
+`logs/` is gitignored, like `data/attachments/`.
 
 ## Related
 

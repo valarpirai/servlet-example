@@ -551,7 +551,6 @@ Module system properties in `app_properties`:
 
 | Property | Default |
 |---|---|
-| `modules.directory` | `data/modules` |
 | `modules.maxFileSize` | `1048576` (1 MB) |
 
 Change these through the properties API or SQL. There is no environment
@@ -650,7 +649,7 @@ HTTP Request → RouterServlet → RouteRegistry (routes.yml) → RouteDispatche
 4. **IRequestProcessor**: Interface for content-type specific processing
 5. **ScriptProcessor**: JavaScript execution engine with security sandbox and performance monitoring
 6. **ModuleProcessor**: Handles module CRUD operations via REST API
-7. **ModuleManager**: Manages filesystem storage and retrieval of JavaScript modules
+7. **ModuleManager**: Stores and retrieves JavaScript modules in the `modules` table
 8. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
 9. **TemplateProcessor**: HTML template rendering with variable substitution
 10. **TemplateEngine**: Custom template parser and renderer

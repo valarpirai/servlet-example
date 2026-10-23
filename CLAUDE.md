@@ -103,7 +103,6 @@ Writing docs | .claude/rules/documentation.md | docs/
 
 **Runtime state (all gitignored, all under `data/`):**
 - Attachments: `data/attachments/`
-- User JS modules: `data/modules/`
 - Downloaded JDBC driver jars: `data/extlib/`
 - Logs: `logs/`
 
