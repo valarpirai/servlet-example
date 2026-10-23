@@ -32,7 +32,7 @@ flowchart TD
     H -->|Yes| J
 
     subgraph WIRE["Wire DB-backed properties"]
-        J[new Database config\nHikariCP pool starts on first use\nshutdown hook closes it] --> K
+        J[new Database config\nHikariCP pool starts on first use\nMain shutdown hook closes it after Tomcat stops] --> K
         K[new PropertyRepository database] --> L
         L[PropertiesUtil.setPropertyRepository\nClears LRU cache]
     end

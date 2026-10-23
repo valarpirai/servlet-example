@@ -104,6 +104,21 @@ public class Main {
 
     try {
       tomcat.start();
+      // One hook, in order: Tomcat drains in-flight requests, then the DB pool closes.
+      Runtime.getRuntime()
+          .addShutdownHook(
+              new Thread(
+                  () -> {
+                    try {
+                      tomcat.stop();
+                      tomcat.destroy();
+                    } catch (LifecycleException e) {
+                      logger.error("Tomcat did not stop cleanly: {}", e.getMessage());
+                    } finally {
+                      DbPropertiesLoader.close();
+                    }
+                  },
+                  "shutdown"));
       com.example.util.RuntimeMetrics.setWorkerExecutor(
           tomcat.getConnector().getProtocolHandler().getExecutor());
 

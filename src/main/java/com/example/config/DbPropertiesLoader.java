@@ -15,6 +15,7 @@ import org.flywaydb.core.Flyway;
  */
 public class DbPropertiesLoader {
 
+  private static DbConfig dbConfig;
   private static Database database;
   private static PropertyRepository repository;
 
@@ -33,12 +34,19 @@ public class DbPropertiesLoader {
           .migrate();
 
       database = new Database(config);
-      Runtime.getRuntime().addShutdownHook(new Thread(config::close));
+      dbConfig = config;
       repository = new PropertyRepository(database);
       PropertiesUtil.setPropertyRepository(repository);
       System.out.println("[DbPropertiesLoader] DB ready – schema migrated, LRU cache active");
     } catch (Exception e) {
       throw new IllegalStateException("Cannot connect to the database: " + e.getMessage(), e);
+    }
+  }
+
+  /** Close the connection pool. Main calls this after Tomcat stops, so no request loses its DB. */
+  public static void close() {
+    if (dbConfig != null) {
+      dbConfig.close();
     }
   }
 
