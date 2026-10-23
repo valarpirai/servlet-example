@@ -83,6 +83,7 @@ public class Main {
     String urlPattern = "/*";
 
     Wrapper servletWrapper = tomcat.addServlet(contextPath, servletName, new RouterServlet());
+    servletWrapper.setLoadOnStartup(1); // init() starts the metrics job; do not wait for a request
 
     // Configure multipart for file uploads from properties
     String location =

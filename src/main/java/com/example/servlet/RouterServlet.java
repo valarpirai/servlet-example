@@ -18,6 +18,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,7 @@ public class RouterServlet extends HttpServlet {
   private AtomicLong requestCount;
   private long startTime;
   private RouteDispatcher routeDispatcher;
+  private ScheduledExecutorService metricsLogger;
   private static final DateTimeFormatter LOG_DATE_FORMAT =
       DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
 
@@ -42,6 +46,33 @@ public class RouterServlet extends HttpServlet {
     // Initialize route registry and dispatcher
     RouteRegistry.getInstance(); // Triggers route loading from the routes table
     routeDispatcher = new RouteDispatcher();
+
+    // ponytail: one fixed job, no job framework. Add one when a second job appears.
+    metricsLogger =
+        Executors.newSingleThreadScheduledExecutor(
+            r -> {
+              Thread t = new Thread(r, "metrics-logger");
+              t.setDaemon(true);
+              return t;
+            });
+    metricsLogger.scheduleAtFixedRate(this::logMetrics, 2, 2, TimeUnit.MINUTES);
+  }
+
+  @Override
+  public void destroy() {
+    if (metricsLogger != null) {
+      metricsLogger.shutdownNow();
+    }
+    super.destroy();
+  }
+
+  /** Log a metrics snapshot. Catches everything, because an exception would cancel the job. */
+  private void logMetrics() {
+    try {
+      structuredLogger.info("Metrics", RuntimeMetrics.snapshot(requestCount.get()));
+    } catch (Exception e) {
+      logger.warn("Metrics log failed: {}", e.getMessage());
+    }
   }
 
   /** Functional interface for request handlers */
