@@ -1,17 +1,19 @@
 # Table Browser
 
-A read-only web view of this app's own database tables.
+A web view of this app's own database tables. Allow-listed tables can be edited. See
+[table editing](./table-editing.md).
 
 ## What it does
 
-Three pages show the tables of the `public` schema. One HTML file,
-`static/table-browser.html`, serves all three. It reads the URL path to pick a view.
+Four pages show the tables of the `public` schema. One HTML file,
+`static/table-browser.html`, serves all of them. It reads the URL path to pick a view.
 
 | URL | Shows |
 |---|---|
 | `/tables` | Every table, with its column count |
 | `/<table>_list` | One page of rows from a table |
-| `/<table>_row?id=<key>` | One row, every field in full |
+| `/<table>_row?id=<key>` | One row, every field in full, as a form |
+| `/<table>_new` | A form for a new row |
 
 Click a table to open its list. Click a row to open the record.
 
@@ -57,19 +59,20 @@ the URL.
 
 ## The record page
 
-`/<table>_row?id=<key>` shows each column with its type and full value. The `id`
+`/<table>_row?id=<key>` shows each column with its type and full value, in a form. The `id`
 value is compared as text against the table's key column. Only single-column keys
 work.
 
 ## API
 
-All endpoints are `GET` and return JSON. `TableBrowserHandler` serves them.
+The read endpoints are `GET` and return JSON. `TableBrowserHandler` serves them.
+The write endpoints are in [table editing](./table-editing.md).
 
 | Endpoint | Returns |
 |---|---|
 | `/api/tables` | `{tables: [{name, columns}]}` |
-| `/api/tables/{table}/rows` | Columns, key, total, page, size, sort and rows |
-| `/api/tables/{table}/row?id=` | Columns, key and one row |
+| `/api/tables/{table}/rows` | Columns, key, `writable`, total, page, size, sort and rows |
+| `/api/tables/{table}/row?id=` | Columns, key, `writable` and one row |
 
 Query parameters for `rows`:
 
@@ -91,18 +94,21 @@ table. Names that match nothing never reach a query.
 
 The page builds its DOM with text nodes. Table data never becomes HTML.
 
-The browser is read-only and, like the rest of the app, has no login. It lists every
-table, including `app_properties`. Keep it off any network you do not trust.
+Like the rest of the app, the browser has no login. It lists every table, including
+`app_properties`, and can write the allow-listed ones. Keep it off any network you do
+not trust.
 
 ## Where the code lives
 
 - `browser/TableBrowser.java` holds the queries
 - `handler/TableBrowserHandler.java` turns them into HTTP
 - `static/table-browser.html` is the UI
-- the `routes` table registers three static routes and three API routes
+- `browser/TableEditor.java` holds the writes
+- the `routes` table registers four static routes and six API routes
 
 ## Related
 
+- [Table editing](./table-editing.md) — create, update and delete
 - [Data browser](./data-browser.md) — the browser for other databases
 - [Adding a route](../routing/adding-a-route.md) — how the routes were registered
 - [Route registry](../routing/route-registry.md) — why handler names appear twice

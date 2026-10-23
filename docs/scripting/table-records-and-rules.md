@@ -175,3 +175,4 @@ effect at once.
 - [Sandbox policy](./sandbox-policy.md) — why `TableRecord` is on the allow list
 - [Script modules](./script-modules.md) — the `modules` table
 - [Configuration](../architecture/configuration.md) — `record.*` properties
+- [Table editing](../data-browser/table-editing.md) — the table browser writes through `TableRecord`

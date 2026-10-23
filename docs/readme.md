@@ -15,7 +15,7 @@ How the app is put together.
 
 ## Routing
 
-34 default routes in the `routes` table, matched and dispatched by reflection. Handlers can be Java or JavaScript.
+38 default routes in the `routes` table, matched and dispatched by reflection. Handlers can be Java or JavaScript.
 
 - [Route registry](./routing/route-registry.md) — matching, validation, dispatch
 - [Table routes](./routing/table-routes.md) — the routes table, JavaScript handlers, default routes
@@ -53,6 +53,7 @@ Browse PostgreSQL, MySQL, Snowflake or MongoDB from the browser.
 - [Choosing an integration](./data-browser/choosing-an-integration.md) — JDBC, HTTP, or reflection
 - [API endpoints](./data-browser/data-browser-api.md) — the HTTP surface
 - [Table browser](./data-browser/table-browser.md) — view this app's own tables
+- [Table editing](./data-browser/table-editing.md) — create, update and delete rows
 
 ## Observability
 

@@ -31,8 +31,9 @@ src/main/java/com/example/
 │   ├── MongoHandler.java               MongoDB browsing
 │   └── TableBrowserHandler.java        Table browser JSON endpoints
 │
-├── browser/                            Read-only view of the app database
-│   └── TableBrowser.java               Table list, paged rows, one row
+├── browser/                            Browse and edit the app database tables
+│   ├── TableBrowser.java               Table list, paged rows, one row
+│   └── TableEditor.java                Create, update, delete through TableRecord
 │
 ├── storage/                            Chunked file storage
 │   ├── AttachmentStorage.java          Backend interface

@@ -9,7 +9,7 @@ Quick guidance for Claude Code. **All detail lives in docs/ — start at
 ---|---|---
 Routing | docs/routing/table-routes.md | `routes` table, route/
 File storage | docs/storage/memory-guarantee.md | storage/
-Table browser | docs/data-browser/table-browser.md | browser/, handler/TableBrowserHandler.java, static/table-browser.html
+Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | browser/, handler/TableBrowserHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
 Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
@@ -135,7 +135,7 @@ See docs/architecture/configuration.md.
 ## Config
 
 `src/main/resources/application.yml` — **db credentials only**
-The `routes` table — 34 default routes, seeded by `db/V8__create_routes.sql` and trimmed by V10.
+The `routes` table — 38 default routes, seeded by `db/V8__create_routes.sql` and changed by later migrations.
 
 Every other property lives in `app_properties`, **not** `application.yml`.
 Lookup order is LRU cache → DB → YAML.

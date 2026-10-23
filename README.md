@@ -5,7 +5,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 ## Features
 
 - **Beautiful Home Page**: Visit `/` for an elegant HTML dashboard with links to all endpoints
-- **Table-based Routing**: All 34 default routes live in the `routes` table. Java and JavaScript handlers. Default routes are protected by a business rule
+- **Table-based Routing**: All 38 default routes live in the `routes` table. Java and JavaScript handlers. Default routes are protected by a business rule
 - **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads — stored on local filesystem or PostgreSQL
 - **DB-Backed Properties**: App configuration stored in PostgreSQL `app_properties` table with a three-level lookup: LRU cache → DB → YAML fallback
 - **Automatic DB Migrations**: Flyway runs pending `db/V*.sql` migrations on startup
