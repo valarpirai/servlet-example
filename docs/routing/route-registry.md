@@ -45,8 +45,7 @@ method is present. A processor must implement `IRequestProcessor`. Builtin
 routes must name `handleHealth` or `handleMetrics`. A script route needs a script
 name and a function name.
 
-A table row that fails is skipped and logged, and the other routes load. A route
-in the deprecated `routes.yml` that fails stops startup.
+A table row that fails is skipped and logged, and the other routes load.
 
 ## Names are registered in two places
 

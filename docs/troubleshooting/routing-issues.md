@@ -58,8 +58,6 @@ skipped, and the log says why: `Skipping route: Route id 42 (/x): ...`. A proces
 must implement `IRequestProcessor`. A builtin must name `handleHealth` or
 `handleMetrics`. A script route needs a script name and a function name.
 
-A route in the deprecated `routes.yml` that fails stops startup.
-
 Read the log before assuming a runtime problem.
 
 ## A route will not change

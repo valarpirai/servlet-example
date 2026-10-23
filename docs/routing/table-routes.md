@@ -129,13 +129,10 @@ The other routes load. A row fails when:
 
 ## When the table is not available
 
-`routes.yml` is deprecated. The registry reads it only when:
+The registry needs the table. Startup stops when:
 
-- there is no database, or the database cannot be read at startup
+- there is no database, or the table cannot be read
 - the table has no usable routes
-
-The file lists the same default routes, so the app starts without a database.
-Nothing else reads it. A routes.yml route that fails validation stops startup.
 
 If a refresh fails, the registry keeps the routes it has.
 

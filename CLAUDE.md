@@ -90,7 +90,7 @@ Writing docs | .claude/rules/documentation.md | docs/
 **Configuration:**
 - DB credentials only: `src/main/resources/application.yml`
 - Everything else: `app_properties` table, seeded by `db/V2__seed_app_properties.sql`
-- Routes: the `routes` table. `src/main/resources/routes.yml` is deprecated, a fallback only
+- Routes: the `routes` table
 - DB migrations: `src/main/resources/db/V*.sql`
 
 **Source code (by package):**
@@ -127,7 +127,7 @@ SERVER_PORT=9090 mvn -PappRun        # Custom port
 curl localhost:8080/health           # Health check
 ```
 
-PostgreSQL is optional; the app starts without it on reduced defaults.
+PostgreSQL is required; the app exits at startup without it.
 See docs/architecture/configuration.md.
 
 ---
@@ -135,7 +135,7 @@ See docs/architecture/configuration.md.
 ## Config
 
 `src/main/resources/application.yml` — **db credentials only**
-The `routes` table — 34 default routes, seeded by `db/V8__create_routes.sql` and trimmed by V10. `routes.yml` is a deprecated fallback
+The `routes` table — 34 default routes, seeded by `db/V8__create_routes.sql` and trimmed by V10.
 
 Every other property lives in `app_properties`, **not** `application.yml`.
 Lookup order is LRU cache → DB → YAML.
@@ -143,7 +143,7 @@ Lookup order is LRU cache → DB → YAML.
 Env vars are **not** a general override — only `${VAR}` placeholders in
 `application.yml` plus `SERVER_PORT`.
 
-Defaults, env var rules, and no-database behaviour: docs/architecture/configuration.md.
+Defaults, env var rules, and the connection pool: docs/architecture/configuration.md.
 
 ---
 

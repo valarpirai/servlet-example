@@ -96,6 +96,34 @@ class FakeRoutesDb extends Database {
     rows.stream().filter(r -> r[0].equals(id)).forEach(r -> r[4] = handler);
   }
 
+  /** Sets the comma separated path parameter names of a route. */
+  void setPathParams(long id, String pathParams) {
+    rows.stream().filter(r -> r[0].equals(id)).forEach(r -> r[10] = pathParams);
+  }
+
+  /** Sets the content type of every route whose path starts with the prefix. */
+  void setJsonContentTypeFor(String pathPrefix) {
+    rows.stream()
+        .filter(
+            r -> ((String) r[1]).startsWith(pathPrefix) && !((String) r[1]).endsWith("/download"))
+        .forEach(r -> r[8] = "application/json");
+  }
+
+  /** Sets the content type of a route. */
+  void setContentType(long id, String contentType) {
+    rows.stream().filter(r -> r[0].equals(id)).forEach(r -> r[8] = contentType);
+  }
+
+  /** Sets the processor of a route. */
+  void setProcessor(long id, String processor) {
+    rows.stream().filter(r -> r[0].equals(id)).forEach(r -> r[6] = processor);
+  }
+
+  /** Sets the classpath resource of a static route. */
+  void setResource(long id, String resource) {
+    rows.stream().filter(r -> r[0].equals(id)).forEach(r -> r[7] = resource);
+  }
+
   void remove(long id) {
     rows.removeIf(r -> r[0].equals(id));
   }

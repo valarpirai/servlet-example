@@ -35,7 +35,7 @@ public class RouteDispatcherTest {
   @Test
   public void testStaticFileRoute() throws IOException {
     // Given: Static file route for /script-editor
-    RouteRegistry.RouteMatch match = RouteRegistry.getInstance().findRoute("GET", "/script-editor");
+    RouteRegistry.RouteMatch match = TestRoutes.registry().findRoute("GET", "/script-editor");
     assertNotNull(match, "Route should be found");
     assertEquals("static", match.getRoute().getType());
 
@@ -100,8 +100,7 @@ public class RouteDispatcherTest {
   @Test
   public void testHandlerRouteWithoutParams() throws IOException {
     // Given: Handler route for /api/attachments
-    RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("GET", "/api/attachments");
+    RouteRegistry.RouteMatch match = TestRoutes.registry().findRoute("GET", "/api/attachments");
     assertNotNull(match, "Route should be found");
     assertEquals("handler", match.getRoute().getType());
     assertEquals("AttachmentHandler", match.getRoute().getHandler());
@@ -126,7 +125,7 @@ public class RouteDispatcherTest {
   public void testHandlerRouteWithPathParams() throws IOException {
     // Given: Handler route for /api/attachment/{id}
     RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("GET", "/api/attachment/test-123");
+        TestRoutes.registry().findRoute("GET", "/api/attachment/test-123");
     assertNotNull(match, "Route should be found");
     assertEquals("handler", match.getRoute().getType());
     assertEquals("AttachmentHandler", match.getRoute().getHandler());
@@ -153,7 +152,7 @@ public class RouteDispatcherTest {
   public void testHandlerRouteDownload() throws IOException {
     // Given: Handler route for /api/attachment/{id}/download
     RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("GET", "/api/attachment/test-456/download");
+        TestRoutes.registry().findRoute("GET", "/api/attachment/test-456/download");
     assertNotNull(match, "Route should be found");
     assertEquals("handler", match.getRoute().getType());
     assertEquals("AttachmentHandler", match.getRoute().getHandler());
@@ -186,8 +185,7 @@ public class RouteDispatcherTest {
     setModuleManagerInstance(db);
 
     // Given: Processor route for /api/modules/**
-    RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("GET", "/api/modules/list");
+    RouteRegistry.RouteMatch match = TestRoutes.registry().findRoute("GET", "/api/modules/list");
     assertNotNull(match, "Route should be found");
     assertEquals("processor", match.getRoute().getType());
     assertEquals("ModuleProcessor", match.getRoute().getProcessor());
@@ -227,7 +225,7 @@ public class RouteDispatcherTest {
   @Test
   public void testBuiltinRouteReturnsHand() throws IOException {
     // Given: Builtin route for /health
-    RouteRegistry.RouteMatch match = RouteRegistry.getInstance().findRoute("GET", "/health");
+    RouteRegistry.RouteMatch match = TestRoutes.registry().findRoute("GET", "/health");
     assertNotNull(match, "Route should be found");
     assertEquals("builtin", match.getRoute().getType());
     assertEquals("handleHealth", match.getRoute().getHandler());
@@ -243,7 +241,7 @@ public class RouteDispatcherTest {
   public void testDeleteHandlerRoute() throws IOException {
     // Given: DELETE handler route for /api/attachment/{id}
     RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("DELETE", "/api/attachment/test-789");
+        TestRoutes.registry().findRoute("DELETE", "/api/attachment/test-789");
     assertNotNull(match, "Route should be found");
     assertEquals("handler", match.getRoute().getType());
     assertEquals("AttachmentHandler", match.getRoute().getHandler());
@@ -270,7 +268,7 @@ public class RouteDispatcherTest {
   public void testDataBrowserHandlerRoute() throws IOException {
     // Given: POST handler route for /api/data-browser/driver-status
     RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("POST", "/api/data-browser/driver-status");
+        TestRoutes.registry().findRoute("POST", "/api/data-browser/driver-status");
     assertNotNull(match, "Route should be found");
     assertEquals("handler", match.getRoute().getType());
     assertEquals("DataBrowserHandler", match.getRoute().getHandler());
@@ -300,7 +298,7 @@ public class RouteDispatcherTest {
   @Test
   public void testStaticDataBrowserRoute() throws IOException {
     // Given: Static file route for /data-browser
-    RouteRegistry.RouteMatch match = RouteRegistry.getInstance().findRoute("GET", "/data-browser");
+    RouteRegistry.RouteMatch match = TestRoutes.registry().findRoute("GET", "/data-browser");
     assertNotNull(match, "Route should be found");
     assertEquals("static", match.getRoute().getType());
 
@@ -335,8 +333,7 @@ public class RouteDispatcherTest {
   @Test
   public void testModulePOSTRoute() throws IOException {
     // Given: POST processor route for /api/modules/create
-    RouteRegistry.RouteMatch match =
-        RouteRegistry.getInstance().findRoute("POST", "/api/modules/create");
+    RouteRegistry.RouteMatch match = TestRoutes.registry().findRoute("POST", "/api/modules/create");
     assertNotNull(match, "Route should be found");
     assertEquals("processor", match.getRoute().getType());
     assertEquals("ModuleProcessor", match.getRoute().getProcessor());

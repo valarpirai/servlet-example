@@ -23,8 +23,7 @@ public class DbPropertiesLoader {
   public static void initialize() {
     DbConfig config = DbConfig.fromProperties();
     if (config == null) {
-      System.err.println("[DbPropertiesLoader] db.url/username/password not configured");
-      return;
+      throw new IllegalStateException("db.url, db.username and db.password must be configured");
     }
     try {
       Flyway.configure()
@@ -39,8 +38,7 @@ public class DbPropertiesLoader {
       PropertiesUtil.setPropertyRepository(repository);
       System.out.println("[DbPropertiesLoader] DB ready – schema migrated, LRU cache active");
     } catch (Exception e) {
-      System.err.println(
-          "[DbPropertiesLoader] Cannot connect to DB, falling back to defaults: " + e.getMessage());
+      throw new IllegalStateException("Cannot connect to the database: " + e.getMessage(), e);
     }
   }
 

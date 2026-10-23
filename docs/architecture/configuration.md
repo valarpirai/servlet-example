@@ -34,10 +34,8 @@ it, because the pool must exist before the table can be read.
 2. `app_properties` table
 3. `application.yml`
 
-Without a reachable database the app logs a warning, skips migrations, and
-serves in-code defaults. Those are not always the seeded values:
-`script.maxMemory` is 10 MB in code and 50 MB seeded. Attachment storage falls
-back to the filesystem, because `storage.type` cannot be read.
+The app needs the database. When it is unreachable, or the credentials are
+missing, startup stops with exit code 1 and a message naming the cause.
 
 Environment variables are not a general override. Only two paths exist:
 
@@ -89,7 +87,6 @@ The default storage backend is `database`, not the filesystem.
 ```
 src/main/resources/
 ├── application.yml          Database credentials
-├── routes.yml               Deprecated fallback routes, used without a database
 ├── logback.xml              Appenders and third-party log levels
 ├── db/                      Flyway migrations
 ├── META-INF/services/       DataSourceStrategy registrations

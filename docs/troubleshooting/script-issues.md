@@ -49,7 +49,7 @@ including Rhino's own overhead, so reported usage exceeds what the script
 allocated.
 
 Set `script.maxMemory` above what a script should need rather than at it. The
-seeded value is 50 MB; the in-code fallback, used with no database, is 10 MB.
+seeded value is 50 MB.
 
 ## A fast script is not timed out
 

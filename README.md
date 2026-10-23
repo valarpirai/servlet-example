@@ -25,10 +25,10 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 
 - Java 17 or higher
 - Maven 3.6+
-- PostgreSQL, optional. Expected at `localhost:5432/appdb` with user and
+- PostgreSQL, required. Expected at `localhost:5432/appdb` with user and
   password `postgres`. Override with `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 
-The app starts without a database, on reduced defaults. See
+The app does not start without a database. See
 [docs/architecture/configuration.md](docs/architecture/configuration.md).
 
 ## Project Structure
@@ -98,7 +98,6 @@ servlet-example/
 │       │               └── TemplateEngine.java
 │       └── resources/
 │           ├── application.yml
-│           ├── routes.yml              (Deprecated. Fallback routes, no database)
 │           ├── db/                     (Flyway migrations)
 │           │   ├── V1__create_app_properties.sql
 │           │   ├── V2__seed_app_properties.sql
@@ -128,7 +127,7 @@ then YAML.
 On startup Flyway applies pending migrations and the app switches to DB-backed
 property lookup.
 
-Full property table, precedence rules, and no-database behaviour in
+Full property table, precedence rules, and connection pool settings in
 [docs/architecture/configuration.md](docs/architecture/configuration.md).
 
 ### Environment Variables
@@ -259,8 +258,11 @@ curl http://localhost:8080/metrics
       "total": 100000000,
       "max": 200000000
     },
-    "threads": {
-      "active": 10
+    "threads": {"active": 10, "live": 27, "daemon": 23, "peak": 27},
+    "workers": {"busy": 1, "poolSize": 10, "maxSize": 200, "queued": 0, "completedTasks": 42},
+    "db": {
+      "connected": true,
+      "pool": {"active": 0, "idle": 10, "total": 10, "waiting": 0, "max": 10}
     },
     "timestamp": 1234567890
   }

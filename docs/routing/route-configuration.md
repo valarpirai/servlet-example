@@ -22,9 +22,6 @@ protected.
 | `path_params` | any with `{param}` | Names to extract from the path, comma separated |
 | `sort_order` | all | Lower matches first |
 
-The deprecated `routes.yml` uses the camelCase forms of the same fields:
-`method`, `handlerMethod`, `contentType` and `pathParams`.
-
 ## The five types
 
 **`static`** streams a classpath resource. No Java involved.

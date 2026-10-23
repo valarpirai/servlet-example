@@ -29,13 +29,14 @@ class RouteRegistryTableTest {
   }
 
   @Test
-  void doesNotReadRoutesYml() {
+  void doesNotMixInTheBuiltInRoutes() {
     db.route("/only-in-table", "GET", "script", "s", "f");
 
     RouteRegistry registry = registry();
 
     assertNotNull(registry.findRoute("GET", "/only-in-table"));
-    assertNull(registry.findRoute("GET", "/health"), "/health is in routes.yml, not the table");
+    assertNull(
+        registry.findRoute("GET", "/health"), "/health is a built-in route, not in the table");
   }
 
   @Test
@@ -48,6 +49,7 @@ class RouteRegistryTableTest {
 
   @Test
   void ordersRowsInSql() {
+    db.route("/one", "GET", "script", "s", "f");
     registry();
 
     String select = db.sql.stream().filter(s -> !s.contains("md5(")).findFirst().orElseThrow();
@@ -117,25 +119,25 @@ class RouteRegistryTableTest {
     assertNotNull(registry.findRoute("GET", "/good"));
   }
 
-  // --- fallback ---
+  // --- startup needs the table ---
 
   @Test
-  void fallsBackToRoutesYmlWhenTheTableIsEmpty() {
-    assertNotNull(registry().findRoute("GET", "/health"));
+  void failsToStartWhenTheTableIsEmpty() {
+    assertThrows(IllegalStateException.class, this::registry);
   }
 
   @Test
-  void fallsBackToRoutesYmlWhenEveryRowIsInvalid() {
+  void failsToStartWhenEveryRowIsInvalid() {
     db.route("/bad", "GET", "handler", "NoSuchHandler", "handle");
 
-    assertNotNull(registry().findRoute("GET", "/health"));
+    assertThrows(IllegalStateException.class, this::registry);
   }
 
   @Test
-  void fallsBackToRoutesYmlWhenTheDatabaseIsDown() {
+  void failsToStartWhenTheDatabaseIsDown() {
     db.failing = true;
 
-    assertNotNull(registry().findRoute("GET", "/health"));
+    assertThrows(IllegalStateException.class, this::registry);
   }
 
   // --- refresh ---

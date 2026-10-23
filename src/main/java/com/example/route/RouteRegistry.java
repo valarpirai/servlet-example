@@ -13,15 +13,13 @@ import java.util.Map;
 import org.jooq.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 /**
  * Registry for loading and matching routes. Routes live in the {@code routes} table. The table is
  * checked for changes every few seconds, so an edit goes live without a restart.
  *
- * <p>{@code routes.yml} is deprecated. It is read only when the database is not available or the
- * table has no active routes. A route in the table that fails validation is skipped with a warning.
- * A route in routes.yml that fails validation stops startup.
+ * <p>The registry needs the database. Startup fails when the table cannot be read or has no usable
+ * routes. A route in the table that fails validation is skipped with a warning.
  */
 public class RouteRegistry {
 
@@ -79,29 +77,27 @@ public class RouteRegistry {
     return fixedDatabase != null ? fixedDatabase : DbPropertiesLoader.getDatabase();
   }
 
-  /** Loads from the table, or from routes.yml when the table cannot supply routes. */
+  /** Loads the routes at startup. Throws when the database or the routes table is unusable. */
   private synchronized void load() {
     lastCheck = System.currentTimeMillis();
     Database db = database();
-    if (db != null) {
-      try {
-        String seen = readFingerprint(db);
-        List<Route> loaded = loadFromTable(db);
-        fingerprint = seen;
-        if (!loaded.isEmpty()) {
-          routes = List.copyOf(loaded);
-          logger.info("Loaded {} routes from the routes table", loaded.size());
-          return;
-        }
-        logger.warn("The routes table has no usable routes. Using deprecated routes.yml");
-      } catch (Exception e) {
-        logger.warn(
-            "Cannot read the routes table ({}). Using deprecated routes.yml", e.getMessage());
-      }
-    } else {
-      logger.warn("No database. Using deprecated routes.yml");
+    if (db == null) {
+      throw new IllegalStateException("No database. The routes table is required");
     }
-    loadFromYaml();
+    try {
+      String seen = readFingerprint(db);
+      List<Route> loaded = loadFromTable(db);
+      if (loaded.isEmpty()) {
+        throw new IllegalStateException("The routes table has no usable routes");
+      }
+      fingerprint = seen;
+      routes = List.copyOf(loaded);
+      logger.info("Loaded {} routes from the routes table", loaded.size());
+    } catch (IllegalStateException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IllegalStateException("Cannot read the routes table: " + e.getMessage(), e);
+    }
   }
 
   /** Reloads when the table changed since the last load. Keeps the current routes on an error. */
@@ -201,73 +197,6 @@ public class RouteRegistry {
     return java.util.Arrays.stream(commaSeparated.split(",")).map(String::trim).toList();
   }
 
-  /** Deprecated. Loads routes.yml and stops startup when a route is invalid. */
-  @SuppressWarnings("unchecked")
-  private void loadFromYaml() {
-    List<Route> loaded = new ArrayList<>();
-    try (InputStream input = getClass().getClassLoader().getResourceAsStream("routes.yml")) {
-
-      if (input == null) {
-        logger.error("routes.yml not found in classpath");
-        return;
-      }
-
-      Yaml yaml = new Yaml();
-      Map<String, Object> config = yaml.load(input);
-      List<Map<String, Object>> routeConfigs = (List<Map<String, Object>>) config.get("routes");
-
-      if (routeConfigs == null) {
-        logger.warn("No routes defined in routes.yml");
-        return;
-      }
-
-      for (Map<String, Object> routeConfig : routeConfigs) {
-        Route route = parseRoute(routeConfig);
-        route.setDefaultRoute(true);
-        loaded.add(route);
-        logger.debug("Loaded route: {}", route);
-      }
-
-      logger.info("Loaded {} routes from routes.yml", loaded.size());
-
-    } catch (Exception e) {
-      logger.error("Failed to load routes.yml", e);
-    }
-    routes = List.copyOf(loaded);
-    validateRoutes();
-  }
-
-  /** Parse a single route configuration map into a Route object. */
-  @SuppressWarnings("unchecked")
-  private Route parseRoute(Map<String, Object> config) {
-    Route route = new Route();
-
-    route.setPath((String) config.get("path"));
-    route.setType((String) config.get("type"));
-    route.setHandler((String) config.get("handler"));
-    route.setHandlerMethod((String) config.get("handlerMethod"));
-    route.setProcessor((String) config.get("processor"));
-    route.setResource((String) config.get("resource"));
-    route.setContentType((String) config.get("contentType"));
-    route.setDescription((String) config.get("description"));
-
-    // Handle method (single string or list)
-    Object methodObj = config.get("method");
-    if (methodObj instanceof String) {
-      route.setMethod((String) methodObj);
-    } else if (methodObj instanceof List) {
-      route.setMethods((List<String>) methodObj);
-    }
-
-    // Handle path parameters
-    Object paramsObj = config.get("pathParams");
-    if (paramsObj instanceof List) {
-      route.setPathParams((List<String>) paramsObj);
-    }
-
-    return route;
-  }
-
   /**
    * Find the first route that matches the given method and path.
    *
@@ -289,33 +218,6 @@ public class RouteRegistry {
   /** Get all loaded routes (for debugging/introspection). */
   public List<Route> getAllRoutes() {
     return new ArrayList<>(routes);
-  }
-
-  /**
-   * Validate all loaded routes at startup. Fails fast with detailed error messages for
-   * misconfigurations.
-   */
-  private void validateRoutes() {
-    List<String> errors = new ArrayList<>();
-
-    for (int i = 0; i < routes.size(); i++) {
-      Route route = routes.get(i);
-      String routeDesc =
-          String.format("Route #%d (%s %s)", i + 1, route.getMethods(), route.getPath());
-      validateRoute(route, routeDesc, errors);
-    }
-
-    if (!errors.isEmpty()) {
-      StringBuilder errorMsg = new StringBuilder("Route validation failed:\n");
-      for (String error : errors) {
-        errorMsg.append("  - ").append(error).append("\n");
-      }
-      logger.error(errorMsg.toString());
-      throw new IllegalStateException(
-          errorMsg.toString() + "\nFix routes.yml (deprecated) and restart the application");
-    }
-
-    logger.info("Route validation passed: {} routes validated successfully", routes.size());
   }
 
   /** Adds one error per problem found in the route. */
@@ -536,7 +438,7 @@ public class RouteRegistry {
     }
   }
 
-  /** Map handler name from routes.yml to fully qualified class name. */
+  /** Map handler name from the routes table to fully qualified class name. */
   private String getHandlerClassName(String handlerName) {
     switch (handlerName) {
       case "ApiHandler":
@@ -554,7 +456,7 @@ public class RouteRegistry {
     }
   }
 
-  /** Map processor name from routes.yml to fully qualified class name. */
+  /** Map processor name from the routes table to fully qualified class name. */
   private String getProcessorClassName(String processorName) {
     switch (processorName) {
       case "ModuleProcessor":

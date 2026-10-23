@@ -33,21 +33,19 @@ file. See [memory guarantee](../storage/memory-guarantee.md).
 java -XX:+HeapDumpOnOutOfMemoryError -jar target/servlet-example.jar
 ```
 
-## App starts in YAML-only mode
+## App exits at startup
 
-**Symptom.** A startup warning about database properties, and seeded property
-values are not applied.
+**Symptom.** `Cannot start: ...` on stderr and exit code 1.
 
 **Cause.** `db.url`, `db.username` or `db.password` is missing or the database is
 unreachable.
 
-The app degrades on purpose and keeps serving, on in-code defaults rather than
-seeded ones. Which defaults apply, and where they differ:
-[configuration](../architecture/configuration.md).
+The app does not start without its database. It prints `Cannot start: ...` and
+exits with code 1. See [configuration](../architecture/configuration.md).
 
 ## Migration failed at startup
 
-Flyway logs the error and the app falls back to YAML defaults. It still starts.
+Flyway logs the error and the app exits. Fix the migration, then start again.
 
 Do not edit an applied migration to fix it. Flyway validates checksums of
 applied migrations, so editing one breaks startup on every existing database.

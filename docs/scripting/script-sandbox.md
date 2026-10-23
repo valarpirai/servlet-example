@@ -17,8 +17,7 @@ checks the clock every `script.instructionThreshold` instructions, 10,000 by
 default.
 
 **Memory.** `script.maxMemory` caps heap growth during one execution. The seeded
-value is 50 MB. The in-code fallback, used when no database is reachable, is
-10 MB.
+value is 50 MB.
 
 **Optimization level.** `script.optimizationLevel` is `-1`, interpreted mode.
 Slower than compiled, but it keeps the instruction observer working, which is

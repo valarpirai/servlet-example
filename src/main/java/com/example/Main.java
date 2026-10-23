@@ -24,7 +24,12 @@ public class Main {
 
   static {
     LoggingConfig.initialize();
-    DbPropertiesLoader.initialize(); // wires LRU-backed PropertyRepository into PropertiesUtil
+    try {
+      DbPropertiesLoader.initialize(); // wires LRU-backed PropertyRepository into PropertiesUtil
+    } catch (IllegalStateException e) {
+      System.err.println("Cannot start: " + e.getMessage());
+      System.exit(1);
+    }
     logger = LoggerFactory.getLogger(Main.class);
   }
 
@@ -92,6 +97,8 @@ public class Main {
 
     try {
       tomcat.start();
+      com.example.util.RuntimeMetrics.setWorkerExecutor(
+          tomcat.getConnector().getProtocolHandler().getExecutor());
 
       logger.info("=========================================");
       logger.info("Tomcat server started successfully!");

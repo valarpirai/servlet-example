@@ -10,9 +10,9 @@ public class RouteRegistryTest {
 
   @Test
   public void testLoadRoutes() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
     assertNotNull(registry);
-    assertFalse(registry.getAllRoutes().isEmpty(), "Routes should be loaded from routes.yml");
+    assertFalse(registry.getAllRoutes().isEmpty(), "Routes should be loaded");
 
     System.out.println("Loaded " + registry.getAllRoutes().size() + " routes:");
     for (Route route : registry.getAllRoutes()) {
@@ -22,7 +22,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testExactPathMatching() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test exact path matching
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/health");
@@ -37,7 +37,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testPathParameterExtraction() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test path with parameters: /api/attachment/{id}
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/api/attachment/abc-123-def");
@@ -52,7 +52,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testPathParameterWithAction() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test: /api/attachment/{id}/download
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/api/attachment/xyz-789/download");
@@ -67,7 +67,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testWildcardMatching() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test wildcard: /api/modules/**
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/api/modules/list");
@@ -82,7 +82,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testStaticFileRoutes() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test static file routes
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/script-editor");
@@ -97,7 +97,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testMethodFiltering() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // /api/attachment/{id} - GET should work
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/api/attachment/test-123");
@@ -110,22 +110,22 @@ public class RouteRegistryTest {
 
     // POST should not match (no route defined for POST on this path)
     match = registry.findRoute("POST", "/api/attachment/test-123");
-    // Note: This might match if there's a wildcard route, adjust test based on routes.yml
+    // Note: This might match if there's a wildcard route, adjust test based on the routes
   }
 
   @Test
   public void testRouteNotFound() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test non-existent route
     RouteRegistry.RouteMatch match = registry.findRoute("GET", "/api/nonexistent");
-    // Depending on routes.yml, this might return null or a catch-all route
+    // Depending on the routes, this might return null or a catch-all route
     System.out.println("Route match for /api/nonexistent: " + match);
   }
 
   @Test
   public void testAttachmentRoutes() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test all attachment routes
     assertNotNull(registry.findRoute("GET", "/api/attachments"), "List attachments");
@@ -137,7 +137,7 @@ public class RouteRegistryTest {
 
   @Test
   public void testDataBrowserRoutes() {
-    RouteRegistry registry = RouteRegistry.getInstance();
+    RouteRegistry registry = TestRoutes.registry();
 
     // Test all data-browser routes
     assertNotNull(registry.findRoute("POST", "/api/data-browser/driver-status"));
