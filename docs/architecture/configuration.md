@@ -26,6 +26,10 @@ and returns the connection on close. The pool holds up to 10 connections.
 Set `db.pool.size` in `application.yml` to change that. The table cannot hold
 it, because the pool must exist before the table can be read.
 
+Every pooled connection runs `SET statement_timeout`. A statement that runs
+longer fails and frees its thread. The default is 30000 ms. Set
+`db.statement.timeout.ms` in `application.yml` to change it.
+
 ## Precedence
 
 `PropertiesUtil` answers every lookup in this order:

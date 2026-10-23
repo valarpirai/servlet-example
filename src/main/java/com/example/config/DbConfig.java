@@ -17,13 +17,16 @@ public class DbConfig {
   private final String username;
   private final String password;
   private final int poolSize;
+  private final int statementTimeoutMs;
   private volatile HikariDataSource pool;
 
-  private DbConfig(String url, String username, String password, int poolSize) {
+  private DbConfig(
+      String url, String username, String password, int poolSize, int statementTimeoutMs) {
     this.url = url;
     this.username = username;
     this.password = password;
     this.poolSize = poolSize;
+    this.statementTimeoutMs = statementTimeoutMs;
   }
 
   /**
@@ -39,6 +42,7 @@ public class DbConfig {
     }
     // Read now: inside pool() this lookup would reach the database, which needs the pool.
     int poolSize = PropertiesUtil.getInt("db.pool.size", 10);
+    int statementTimeoutMs = PropertiesUtil.getInt("db.statement.timeout.ms", 30000);
     if (instance == null
         || !instance.url.equals(url)
         || !instance.username.equals(username)
@@ -46,7 +50,7 @@ public class DbConfig {
       if (instance != null) {
         instance.close();
       }
-      instance = new DbConfig(url, username, password, poolSize);
+      instance = new DbConfig(url, username, password, poolSize, statementTimeoutMs);
     }
     return instance;
   }
@@ -72,6 +76,8 @@ public class DbConfig {
           p.setPassword(password);
           p.setMaximumPoolSize(poolSize);
           p.setConnectionTimeout(5000);
+          // A slow statement fails after the timeout instead of holding a thread and a connection.
+          p.setConnectionInitSql("SET statement_timeout = " + statementTimeoutMs);
           pool = p;
         }
       }
