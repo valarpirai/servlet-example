@@ -29,8 +29,7 @@ then evaluates.
 knows what a caller exposes to the script, so the same executor serves the
 script editor and the API scripting path with different scopes.
 
-`loadScript(String path)` reads source from the classpath. `convertToJavaObject`
-converts a Rhino value back to a Java value on the way out.
+`convertToJavaObject` converts a Rhino value back to a Java value on the way out.
 
 ## ScriptScopeBuilder
 
@@ -52,8 +51,8 @@ any user code runs. See [script modules](./script-modules.md).
 
 ## Why the split matters
 
-`require()` support, scope construction and context management change for
-different reasons. Keeping them apart means the security policy has one owner
+Module loading, scope construction and context management change for different
+reasons. Keeping them apart means the security policy has one owner
 and the module system has another.
 
 Both `ScriptProcessor` and `ApiScriptProcessor` drive this same path, so a

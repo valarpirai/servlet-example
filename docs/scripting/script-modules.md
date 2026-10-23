@@ -5,21 +5,21 @@ Reusable JavaScript stored on the server and pulled into scripts by name.
 Modules live in the `modules` table. `ModuleManager` handles storage. `ModuleDependencyResolver` walks the dependency graph.
 `ScriptModuleLoader` turns the result into one source string for Rhino.
 
-## Both import styles work
+## Importing
 
-CommonJS is the native form.
-
-```javascript
-var calculator = require('utils/calculator.js');
-```
-
-ES6 `import` is rewritten to `require()` before execution. This is a textual
-rewrite, so it accepts the common shapes and not the full ES6 grammar.
+Use `import`.
 
 ```javascript
-import calculator from 'utils/calculator.js';
-// becomes: var calculator = require('utils/calculator.js')
+import calculator from 'utils/calculator';
 ```
+
+Before the script runs, each `import x from 'path'` becomes
+`var x = require('path')`. This is a textual rewrite, so it accepts the common
+shapes and not the full ES6 grammar. Keep the imported names on one line unless
+they sit inside braces.
+
+Modules can use `import` too. A module body gets the same rewrite as the script
+that loads it.
 
 ## Exporting
 
@@ -75,6 +75,6 @@ in the database, which is not ready". Scripts that import nothing still run.
 ## Related
 
 - [Script execution](./script-execution.md) — where resolution fits
-- [API scripting](./api-scripting.md) — require() in scripted endpoints
+- [API scripting](./api-scripting.md) — import in scripted endpoints
 - [Script sandbox](./script-sandbox.md) — limits apply to module code too
 - [Configuration](../architecture/configuration.md) — the modules properties

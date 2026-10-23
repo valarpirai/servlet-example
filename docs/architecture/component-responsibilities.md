@@ -19,7 +19,7 @@ Who owns what. One row per class that carries real responsibility.
 | Storage | `DatabaseAttachmentStorage` | Chunk-streamed BYTEA storage, cursor retrieval |
 | Scripting | `ScriptExecutor` | Runs script source inside a Rhino context |
 | Scripting | `ScriptScopeBuilder` | Builds the sandbox scope handed to a script |
-| Scripting | `ScriptModuleLoader` | Resolves `require()` and import calls |
+| Scripting | `ScriptModuleLoader` | Resolves import statements and prepares the combined source |
 | Scripting | `ScriptSecurityManager` | ClassShutter whitelist and blacklist |
 | Data browser | `DataSourceRegistry` | Discovers strategies through `ServiceLoader` |
 | Data browser | `ExtLibManager` | Loads JDBC driver jars at runtime |

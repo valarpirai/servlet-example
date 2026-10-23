@@ -58,7 +58,7 @@ src/main/java/com/example/
 │
 ├── script/                             Rhino execution internals
 │   ├── ScriptExecutor.java             Script invocation
-│   ├── ScriptModuleLoader.java         require() resolution
+│   ├── ScriptModuleLoader.java         import resolution
 │   └── ScriptScopeBuilder.java         Sandbox scope construction
 │
 ├── security/

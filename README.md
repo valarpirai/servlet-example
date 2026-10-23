@@ -493,7 +493,7 @@ module.exports = {
 
 **Importing Modules:**
 
-Scripts use ES6 import syntax (transformed to `require()` internally):
+Scripts use ES6 import syntax:
 
 ```javascript
 // Import the math module
@@ -543,7 +543,7 @@ console.log(name); // "John doe"
 - **Circular Dependency Detection**: Prevents infinite loops with clear error messages
 - **ES6 Import Syntax**: Familiar syntax for modern JavaScript developers
 - **CommonJS Exports**: Compatible with Node.js module patterns
-- **File-based Storage**: Modules stored as `.js` files in the filesystem
+- **Table-based Storage**: Modules stored in the `modules` table
 
 **Configuration:**
 

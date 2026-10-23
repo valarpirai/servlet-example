@@ -27,7 +27,7 @@ Writing docs | .claude/rules/documentation.md | docs/
 
 **Adding functionality?**
 - New HTTP endpoint? → `routes.yml` → register in **both** `RouteRegistry` and `RouteDispatcher` → See docs/routing/adding-a-route.md
-- JavaScript API? → Create `scripts/api/{name}.js` → See docs/scripting/api-scripting.md
+- JavaScript API? → Insert a row into `api_scripts` (name = endpoint) → See docs/scripting/api-scripting.md
 - Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser/datasource-strategies.md
 - File storage feature? → Modify `storage/` → Use streaming APIs → See docs/storage/memory-guarantee.md
 - Logging feature? → Use `StructuredLogger` → See docs/observability/structured-logging.md
