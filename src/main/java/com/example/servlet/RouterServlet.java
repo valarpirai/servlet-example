@@ -3,7 +3,9 @@ package com.example.servlet;
 import com.example.config.DbPropertiesLoader;
 import com.example.route.RouteDispatcher;
 import com.example.route.RouteRegistry;
+import com.example.util.CorrelationIdFilter;
 import com.example.util.JsonUtil;
+import com.example.util.ResponseHelper;
 import com.example.util.RuntimeMetrics;
 import com.example.util.StructuredLogger;
 import jakarta.servlet.ServletException;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class RouterServlet extends HttpServlet {
 
@@ -61,7 +64,16 @@ public class RouterServlet extends HttpServlet {
     } catch (Exception e) {
       long responseTime = System.currentTimeMillis() - startTime;
       logError(request, e, responseTime);
-      throw e;
+      if (response.isCommitted()) {
+        throw e;
+      }
+      // Reply in the API's JSON shape, not Tomcat's HTML error page. The ID ties it to the log.
+      response.reset();
+      ResponseHelper.sendJsonError(
+          response,
+          HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+          "Internal Server Error",
+          "Request failed. Correlation ID: " + MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY));
     }
   }
 
