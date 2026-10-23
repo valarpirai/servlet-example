@@ -68,6 +68,7 @@ that time, on every node. No reload is needed.
 | `upload.maxFileSize` | `10485760` | Max upload, 10 MB |
 | `upload.maxRequestSize` | `52428800` | Max multipart request, 50 MB |
 | `upload.fileSizeThreshold` | `1048576` | Spill to disk above 1 MB |
+| `request.maxBodySize` | `1048576` | Max JSON or script body, 1 MB |
 | `threadPool.maxThreads` | `200` | Tomcat threads |
 | `threadPool.minSpareThreads` | `10` | Idle Tomcat threads kept ready |
 | `threadPool.acceptCount` | `100` | Accept queue |

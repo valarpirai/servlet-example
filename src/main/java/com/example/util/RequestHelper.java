@@ -13,16 +13,30 @@ import java.util.Map;
 public class RequestHelper {
 
   /**
-   * Reads the entire request body as a string.
+   * Reads the request body as a string. The body is capped by {@code request.maxBodySize} so one
+   * request cannot take the heap.
    *
    * @param request HTTP request
    * @return Request body as string
-   * @throws IOException if reading fails
+   * @throws IOException if reading fails or the body exceeds the cap
    */
   public static String readRequestBody(HttpServletRequest request) throws IOException {
-    try (BufferedReader reader = request.getReader()) {
-      return reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+    long max = PropertiesUtil.getLong("request.maxBodySize", 1048576L);
+    if (request.getContentLengthLong() > max) {
+      throw new IOException("Request body exceeds " + max + " bytes");
     }
+    StringBuilder sb = new StringBuilder();
+    char[] buf = new char[8192];
+    try (BufferedReader reader = request.getReader()) {
+      int n;
+      while ((n = reader.read(buf)) != -1) {
+        sb.append(buf, 0, n);
+        if (sb.length() > max) {
+          throw new IOException("Request body exceeds " + max + " bytes");
+        }
+      }
+    }
+    return sb.toString();
   }
 
   /**

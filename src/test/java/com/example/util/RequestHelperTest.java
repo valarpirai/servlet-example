@@ -28,6 +28,18 @@ class RequestHelperTest {
   // --- readRequestBody ---
 
   @Test
+  void readRequestBody_rejectsDeclaredLengthOverCap() {
+    when(request.getContentLengthLong()).thenReturn(10_000_000L);
+    assertThrows(IOException.class, () -> RequestHelper.readRequestBody(request));
+  }
+
+  @Test
+  void readRequestBody_rejectsStreamedBodyOverCap() throws IOException {
+    givenBody("x".repeat(1_048_577));
+    assertThrows(IOException.class, () -> RequestHelper.readRequestBody(request));
+  }
+
+  @Test
   void readRequestBody_lineCommentDoesNotSwallowNextLine() throws IOException {
     givenBody("// note\nvar x = 1;");
     assertEquals("// note\nvar x = 1;", RequestHelper.readRequestBody(request));
