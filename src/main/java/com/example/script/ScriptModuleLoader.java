@@ -10,6 +10,9 @@ import java.util.List;
 /** Resolves module imports and prepares the combined JS source to be executed by Rhino. */
 public class ScriptModuleLoader {
 
+  private static final String IMPORT_STATEMENT =
+      "import\\s+((?:[\\w$*, \\t]|\\{[^}]*\\})+?)[ \\t]+from\\s*['\"]([^'\"]+)['\"]";
+
   private final ModuleManager moduleManager;
 
   public ScriptModuleLoader(ModuleManager moduleManager) {
@@ -40,7 +43,7 @@ public class ScriptModuleLoader {
       preamble.append("    if (__moduleCache[path]) return __moduleCache[path];\n");
       preamble.append("    throw new Error('Module not found: ' + path);\n");
       preamble.append("  };\n");
-      preamble.append(module.getContent()).append("\n");
+      preamble.append(rewriteImports(module.getContent())).append("\n");
       preamble.append("  __moduleCache['").append(modulePath).append("'] = module.exports;\n");
       preamble.append("})();\n\n");
     }
@@ -50,10 +53,18 @@ public class ScriptModuleLoader {
     preamble.append("  throw new Error('Module not found: ' + modulePath);\n");
     preamble.append("}\n\n");
 
-    String transformed =
-        script.replaceAll(
-            "import\\s+([\\w{},\\s*]+)\\s+from\\s+['\"]([^'\"]+)['\"]", "var $1 = require('$2')");
+    return preamble + rewriteImports(script);
+  }
 
-    return preamble + transformed;
+  /**
+   * Rewrites each {@code import x from 'path'} statement to {@code var x = require('path')}. The
+   * imported names stay on one line unless they sit inside braces, so prose such as a comment
+   * saying "import usage" never swallows the statement that follows it.
+   *
+   * @param source JavaScript source, a script or a module body
+   * @return the source with import statements rewritten
+   */
+  static String rewriteImports(String source) {
+    return source.replaceAll(IMPORT_STATEMENT, "var $1 = require('$2')");
   }
 }
