@@ -77,6 +77,7 @@ Versions and conventions live in `shared-build/`.
 - [Code formatting](./development/code-formatting.md) — spotless
 - [Lombok](./development/lombok.md) — annotations and IDE setup
 - [Debugging](./development/debugging.md) — logs, debugger, profiling
+- [Future work](./development/future-work.md) — deferred tasks and known gaps
 
 ## Troubleshooting
 
