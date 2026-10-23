@@ -27,6 +27,11 @@ public class PropertiesUtil {
             }
           });
 
+  // How long cached values are trusted. An edit to app_properties, from SQL or TableRecord, shows
+  // up within this time. The whole cache clears at once. Tests set it to force an expiry.
+  static volatile long cacheTtlMillis = 5000;
+  private static volatile long cacheFilledAt = System.currentTimeMillis();
+
   // Set by DbPropertiesLoader once the DB connection is ready.
   private static volatile PropertyRepository propertyRepository;
 
@@ -65,7 +70,12 @@ public class PropertiesUtil {
    */
   public static void setPropertyRepository(PropertyRepository repo) {
     propertyRepository = repo;
+    clearCache();
+  }
+
+  private static void clearCache() {
     lruCache.clear();
+    cacheFilledAt = System.currentTimeMillis();
   }
 
   // ---- Public typed accessors ----
@@ -125,7 +135,7 @@ public class PropertiesUtil {
   /** Reload YAML and clear the LRU cache (next reads re-fetch from DB). */
   public static void reload() {
     loadYaml();
-    lruCache.clear();
+    clearCache();
   }
 
   /** Returns the YAML properties map (now only contains db.* bootstrap keys). */
@@ -146,7 +156,10 @@ public class PropertiesUtil {
   private static Object getProperty(String key) {
     if (key == null || key.trim().isEmpty()) return null;
 
-    // 1. LRU cache
+    // 1. LRU cache, emptied when it is older than the TTL
+    if (System.currentTimeMillis() - cacheFilledAt > cacheTtlMillis) {
+      clearCache();
+    }
     Optional<String> cached = lruCache.get(key);
     if (cached != null) {
       // Cache hit: present = DB value found; empty = DB miss, fall through to YAML

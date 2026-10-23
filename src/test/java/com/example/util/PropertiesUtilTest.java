@@ -20,6 +20,7 @@ class PropertiesUtilTest {
 
   @AfterEach
   void tearDown() {
+    PropertiesUtil.cacheTtlMillis = 5000;
     PropertiesUtil.setPropertyRepository(null); // detach repo and clear cache
     PropertiesUtil.reload();
   }
@@ -122,6 +123,30 @@ class PropertiesUtilTest {
     PropertiesUtil.getString("server.port", "8080"); // should hit DB again
 
     verify(repo, times(2)).findValueByName("server.port");
+  }
+
+  @Test
+  void cachedValue_isReusedInsideTheTtl() throws Exception {
+    when(repo.findValueByName("server.port")).thenReturn(Optional.of("9090"));
+    PropertiesUtil.setPropertyRepository(repo);
+
+    PropertiesUtil.getString("server.port", "8080");
+    PropertiesUtil.getString("server.port", "8080");
+
+    verify(repo, times(1)).findValueByName("server.port");
+  }
+
+  @Test
+  void expiredCache_picksUpAnEditedValue() throws Exception {
+    when(repo.findValueByName("server.port")).thenReturn(Optional.of("9090"));
+    PropertiesUtil.setPropertyRepository(repo);
+    assertEquals("9090", PropertiesUtil.getString("server.port", "8080"));
+
+    // The row is edited in the table. An expired cache reads it again.
+    when(repo.findValueByName("server.port")).thenReturn(Optional.of("9191"));
+    PropertiesUtil.cacheTtlMillis = -1;
+
+    assertEquals("9191", PropertiesUtil.getString("server.port", "8080"));
   }
 
   @Test
