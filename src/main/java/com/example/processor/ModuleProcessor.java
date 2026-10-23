@@ -153,6 +153,11 @@ public class ModuleProcessor implements IRequestProcessor {
           .statusCode(201)
           .body(JsonUtil.successResponse(module))
           .build();
+    } catch (ModuleManager.BlockedException e) {
+      return ProcessorResponse.builder()
+          .statusCode(409)
+          .body(JsonUtil.errorResponse("Conflict", e.getMessage(), 409))
+          .build();
     } catch (IOException e) {
       logger.error("Failed to create module", e);
       return ProcessorResponse.builder()
@@ -198,6 +203,11 @@ public class ModuleProcessor implements IRequestProcessor {
           .statusCode(200)
           .body(JsonUtil.successResponse(module))
           .build();
+    } catch (ModuleManager.BlockedException e) {
+      return ProcessorResponse.builder()
+          .statusCode(409)
+          .body(JsonUtil.errorResponse("Conflict", e.getMessage(), 409))
+          .build();
     } catch (IOException e) {
       logger.error("Failed to update module: {}", operation, e);
       return ProcessorResponse.builder()
@@ -227,6 +237,11 @@ public class ModuleProcessor implements IRequestProcessor {
       return ProcessorResponse.builder()
           .statusCode(200)
           .body(JsonUtil.successResponse(responseData))
+          .build();
+    } catch (ModuleManager.BlockedException e) {
+      return ProcessorResponse.builder()
+          .statusCode(409)
+          .body(JsonUtil.errorResponse("Conflict", e.getMessage(), 409))
           .build();
     } catch (IOException e) {
       logger.error("Failed to delete module: {}", operation, e);

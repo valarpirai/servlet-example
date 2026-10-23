@@ -62,6 +62,10 @@ Because resolution happens up front, a broken graph never runs half a script.
 `createModule`, `updateModule` and `deleteModule`. The `ModuleProcessor` route at
 `/api/modules/**` puts these on HTTP, and the module manager UI uses that.
 
+Create, update and delete go through `TableRecord`, so business rules on `modules`
+run. A `before` rule that stops a write returns 409 and leaves the row alone. Reads
+use the database directly.
+
 `modules.maxFileSize` caps a single module at 1 MB by default.
 
 ## Storage
