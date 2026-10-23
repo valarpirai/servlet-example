@@ -24,6 +24,57 @@ routes:
     contentType: text/html
     description: Attachments UI - upload and browse files
 
+  # Table browser: one page serves all three views and reads the path itself
+  - path: /tables
+    method: GET
+    type: static
+    resource: static/table-browser.html
+    contentType: text/html
+    description: Table browser - all tables
+
+  - path: /{table}_list
+    method: GET
+    type: static
+    resource: static/table-browser.html
+    contentType: text/html
+    description: Table browser - rows of one table
+
+  - path: /{table}_row
+    method: GET
+    type: static
+    resource: static/table-browser.html
+    contentType: text/html
+    description: Table browser - one row, all fields
+
+  # Table browser API (read-only)
+  - path: /api/tables
+    method: GET
+    type: handler
+    handler: TableBrowserHandler
+    handlerMethod: handleTables
+    contentType: application/json
+    description: List all tables
+
+  - path: /api/tables/{table}/rows
+    method: GET
+    type: handler
+    handler: TableBrowserHandler
+    handlerMethod: handleRows
+    pathParams:
+      - table
+    contentType: application/json
+    description: One page of a table. Query page, size, sort and dir; long text cut
+
+  - path: /api/tables/{table}/row
+    method: GET
+    type: handler
+    handler: TableBrowserHandler
+    handlerMethod: handleRow
+    pathParams:
+      - table
+    contentType: application/json
+    description: One row in full, found by the id query parameter
+
   # Attachment API (use OutputStream for downloads)
   - path: /api/attachments
     method: GET

@@ -359,6 +359,8 @@ public class RouteRegistry {
         return "com.example.handler.MongoHandler";
       case "PropertiesHandler":
         return "com.example.handler.PropertiesHandler";
+      case "TableBrowserHandler":
+        return "com.example.handler.TableBrowserHandler";
       default:
         return null;
     }

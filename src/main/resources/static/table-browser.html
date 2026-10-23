@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Browser</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 36px;
+        }
+        header h1 { font-size: 1.6rem; word-break: break-all; }
+        header p { opacity: 0.85; font-size: 0.9rem; margin-top: 4px; }
+        header a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; }
+        header a:hover { color: white; }
+
+        .main { padding: 24px 36px 32px; }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: 0;
+            border-radius: 8px;
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        button:hover { background: #5568d3; }
+
+        .scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #f4f3ff;
+            color: #4b3f8f;
+            border-bottom: 2px solid #ddd8fa;
+            white-space: nowrap;
+        }
+        th small { display: block; font-weight: normal; color: #8a84b8; font-size: 0.72rem; }
+        td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+
+        /* List cells: one line, cut with an ellipsis. */
+        table.list { table-layout: fixed; }
+        table.list td {
+            max-width: 240px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        table.list th { overflow: hidden; text-overflow: ellipsis; }
+
+        tr.clickable { cursor: pointer; }
+        tr.clickable:hover td { background: #faf9ff; }
+
+        /* Row page: full values, wrapped. */
+        table.fields td.name { width: 220px; font-weight: 600; color: #4b3f8f; }
+        table.fields td.name small { display: block; font-weight: normal; color: #8a84b8; }
+        table.fields td.value { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; }
+
+        th.sortable { cursor: pointer; user-select: none; }
+        th.sortable:hover { background: #ebe9fd; }
+        .arrow { margin-left: 4px; font-size: 0.7rem; }
+
+        .controls { display: flex; align-items: center; gap: 10px; }
+        select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.85rem; }
+        .pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; font-size: 0.9rem; color: #555; }
+        button:disabled { background: #cfcde8; cursor: default; }
+
+        .null { color: #aaa; font-style: italic; }
+        .note { margin-top: 12px; color: #777; font-size: 0.85rem; }
+        .error { color: #b3261e; padding: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a id="back" href="/">&larr; Home</a>
+            <h1 id="title">Table Browser</h1>
+            <p id="subtitle"></p>
+        </header>
+        <div class="main" id="main">Loading...</div>
+    </div>
+
+    <script>
+        // One page, three views. The path picks the view:
+        //   /tables           all tables
+        //   /<table>_list     rows of a table
+        //   /<table>_row?id=  one row
+        const MAX_COLUMNS = 8;
+        const main = document.getElementById('main');
+        const path = location.pathname;
+        const view = path === '/tables' ? 'tables' : path.endsWith('_list') ? 'list' : 'row';
+        const table = view === 'list' ? path.slice(1, -'_list'.length)
+                    : view === 'row' ? path.slice(1, -'_row'.length) : null;
+
+        // Builds an element. Children are strings (set as text, never HTML) or nodes.
+        function el(tag, attrs, ...children) {
+            const node = document.createElement(tag);
+            Object.entries(attrs || {}).forEach(([k, v]) => {
+                if (k === 'class') node.className = v; else node.setAttribute(k, v);
+            });
+            children.forEach(c => node.append(c));
+            return node;
+        }
+
+        function valueNode(v) {
+            return v === null ? el('span', { class: 'null' }, 'null') : document.createTextNode(String(v));
+        }
+
+        function setHeader(title, subtitle, backHref, backText) {
+            document.title = title;
+            document.getElementById('title').textContent = title;
+            document.getElementById('subtitle').textContent = subtitle || '';
+            const back = document.getElementById('back');
+            back.href = backHref;
+            back.textContent = backText;
+        }
+
+        async function getJson(url) {
+            const response = await fetch(url);
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.error || response.statusText);
+            return body;
+        }
+
+        function showError(message) {
+            main.replaceChildren(el('div', { class: 'error' }, message));
+        }
+
+        // ---- /tables ----
+        async function showTables() {
+            const { tables } = await getJson('/api/tables');
+            setHeader('Tables', tables.length + ' tables', '/', '← Home');
+            const rows = tables.map(t => {
+                const tr = el('tr', { class: 'clickable' }, el('td', {}, t.name), el('td', {}, String(t.columns)));
+                tr.onclick = () => { location.href = '/' + t.name + '_list'; };
+                return tr;
+            });
+            main.replaceChildren(el('div', { class: 'scroll' },
+                el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Table'), el('th', {}, 'Columns'))),
+                    el('tbody', {}, ...rows))));
+        }
+
+        // ---- /<table>_list ----
+        // State lives in the URL: ?page=2&size=25&sort=name&dir=desc
+        const UNSORTABLE = ['json', 'xml', 'bytea'];
+        const PAGE_SIZES = [10, 25, 50, 100];
+
+        async function showList() {
+            const params = new URLSearchParams(location.search);
+            const state = {
+                page: Math.max(parseInt(params.get('page')) || 1, 1),
+                size: parseInt(params.get('size')) || 25,
+                sort: params.get('sort'),
+                desc: params.get('dir') === 'desc',
+                showAll: false
+            };
+            let data;
+
+            async function load() {
+                const query = new URLSearchParams({ page: state.page, size: state.size });
+                if (state.sort) {
+                    query.set('sort', state.sort);
+                    query.set('dir', state.desc ? 'desc' : 'asc');
+                }
+                data = await getJson('/api/tables/' + encodeURIComponent(table) + '/rows?' + query);
+                // The server clamps page and size. Keep what it used.
+                state.page = data.page;
+                state.size = data.size;
+                history.replaceState(null, '', location.pathname + '?' + query);
+                render();
+            }
+
+            function go(change) {
+                Object.assign(state, change);
+                load().catch(e => showError(e.message));
+            }
+
+            // Click cycles: ascending, descending, then back to the default order.
+            function sortBy(column) {
+                if (state.sort !== column) go({ sort: column, desc: false, page: 1 });
+                else if (!state.desc) go({ desc: true, page: 1 });
+                else go({ sort: null, desc: false, page: 1 });
+            }
+
+            function render() {
+                const columns = state.showAll ? data.columns : data.columns.slice(0, MAX_COLUMNS);
+                const pages = Math.max(Math.ceil(data.total / data.size), 1);
+                const first = (data.page - 1) * data.size + 1;
+                document.getElementById('subtitle').textContent = data.rows.length
+                    ? 'Rows ' + first + '\u2013' + (first + data.rows.length - 1) + ' of ' + data.total
+                    : data.total + ' rows';
+
+                const head = el('tr', {}, ...columns.map(c => {
+                    const sortable = !UNSORTABLE.includes(c.type);
+                    const th = el('th', { title: c.name, class: sortable ? 'sortable' : '' }, c.name);
+                    if (state.sort === c.name) th.append(el('span', { class: 'arrow' }, state.desc ? '\u25BC' : '\u25B2'));
+                    th.append(el('small', {}, c.type));
+                    if (sortable) th.onclick = () => sortBy(c.name);
+                    return th;
+                }));
+
+                const body = data.rows.map(row => {
+                    const tr = el('tr', data.primaryKey ? { class: 'clickable' } : {},
+                        ...columns.map(c => {
+                            const td = el('td', {}, valueNode(row[c.name]));
+                            if (row[c.name] !== null) td.title = String(row[c.name]);
+                            return td;
+                        }));
+                    if (data.primaryKey) {
+                        tr.onclick = () => {
+                            location.href = '/' + table + '_row?id=' + encodeURIComponent(row[data.primaryKey]);
+                        };
+                    }
+                    return tr;
+                });
+
+                const sizeSelect = el('select', { title: 'Rows per page' },
+                    ...PAGE_SIZES.map(n => el('option', { value: n }, n + ' per page')));
+                sizeSelect.value = String(data.size);
+                sizeSelect.onchange = () => go({ size: parseInt(sizeSelect.value), page: 1 });
+
+                const controls = el('div', { class: 'controls' }, sizeSelect);
+                if (data.columns.length > MAX_COLUMNS) {
+                    const toggle = el('button', {}, state.showAll ? 'Show first ' + MAX_COLUMNS + ' columns' : 'Show all ' + data.columns.length + ' columns');
+                    toggle.onclick = () => { state.showAll = !state.showAll; render(); };
+                    controls.append(toggle);
+                }
+                const toolbar = el('div', { class: 'toolbar' },
+                    el('span', {}, columns.length + ' of ' + data.columns.length + ' columns'), controls);
+
+                const prev = el('button', {}, '\u2190 Previous');
+                prev.disabled = data.page <= 1;
+                prev.onclick = () => go({ page: data.page - 1 });
+                const next = el('button', {}, 'Next \u2192');
+                next.disabled = data.page >= pages;
+                next.onclick = () => go({ page: data.page + 1 });
+                const pager = el('div', { class: 'pager' }, prev, el('span', {}, 'Page ' + data.page + ' of ' + pages), next);
+
+                const note = data.primaryKey ? '' : 'This table has no single-column key, so rows cannot be opened.';
+                main.replaceChildren(toolbar,
+                    el('div', { class: 'scroll' }, el('table', { class: 'list' }, el('thead', {}, head), el('tbody', {}, ...body))),
+                    pager, el('div', { class: 'note' }, note));
+            }
+
+            setHeader(table, '', '/tables', '\u2190 All tables');
+            await load();
+        }
+
+        // ---- /<table>_row?id=<pk> ----
+        async function showRow() {
+            const id = new URLSearchParams(location.search).get('id');
+            const data = await getJson('/api/tables/' + encodeURIComponent(table) + '/row?id=' + encodeURIComponent(id));
+            setHeader(table, data.primaryKey + ' = ' + id, '/' + table + '_list', '← ' + table);
+            const rows = data.columns.map(c => el('tr', {},
+                el('td', { class: 'name' }, c.name, el('small', {}, c.type)),
+                el('td', { class: 'value' }, valueNode(data.row[c.name]))));
+            main.replaceChildren(el('div', { class: 'scroll' }, el('table', { class: 'fields' }, el('tbody', {}, ...rows))));
+        }
+
+        (view === 'tables' ? showTables : view === 'list' ? showList : showRow)().catch(e => showError(e.message));
+    </script>
+</body>
+</html>

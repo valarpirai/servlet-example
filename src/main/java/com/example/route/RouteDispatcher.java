@@ -5,6 +5,7 @@ import com.example.handler.AttachmentHandler;
 import com.example.handler.DataBrowserHandler;
 import com.example.handler.MongoHandler;
 import com.example.handler.PropertiesHandler;
+import com.example.handler.TableBrowserHandler;
 import com.example.model.ProcessorResponse;
 import com.example.model.Route;
 import com.example.processor.FileUploadProcessor;
@@ -266,6 +267,8 @@ public class RouteDispatcher {
         return MongoHandler.getInstance();
       case "PropertiesHandler":
         return PropertiesHandler.getInstance();
+      case "TableBrowserHandler":
+        return TableBrowserHandler.getInstance();
       default:
         return null;
     }
