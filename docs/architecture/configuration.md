@@ -75,7 +75,7 @@ that time, on every node. No reload is needed.
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |
 | `storage.filesystem.path` | `data/attachments` | Filesystem storage root |
 | `storage.database.table` | `attachment_chunks` | Chunk table |
-| `record.allowedTables` | `modules:name,routes:id,app_properties:id` | Tables `TableRecord` may touch, as `table:keyColumn` |
+| `record.allowedTables` | `modules:name,routes:id,app_properties:id,business_rules:id` | Tables `TableRecord` may touch, as `table:keyColumn` |
 | `record.maxRuleDepth` | `5` | Deepest nesting of rules that fire rules |
 | `logging.level` | `INFO` | Root log level |
 | `logging.filePath` | `logs/application.log` | Log file |

@@ -17,7 +17,7 @@ in the script sandbox.
 a table with its key column.
 
 ```
-modules:name,app_properties:id
+modules:name,routes:id,app_properties:id,business_rules:id
 ```
 
 Any other table throws `Table is not allowed`. The key column picks the row for
