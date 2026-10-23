@@ -1,4 +1,4 @@
-package com.example.browser;
+package com.example.tableapi;
 
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,9 +1,9 @@
 package com.example.handler;
 
-import com.example.browser.TableBrowser;
-import com.example.browser.TableEditor;
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
+import com.example.tableapi.TableApi;
+import com.example.tableapi.TableEditor;
 import com.example.util.JsonUtil;
 import com.example.util.RequestHelper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,16 +18,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** JSON endpoints behind the table browser pages: read, create, update and delete. */
-public class TableBrowserHandler {
+public class TableApiHandler {
 
-  private static final Logger logger = LoggerFactory.getLogger(TableBrowserHandler.class);
-  private static TableBrowserHandler instance;
+  private static final Logger logger = LoggerFactory.getLogger(TableApiHandler.class);
+  private static TableApiHandler instance;
 
-  private TableBrowserHandler() {}
+  private TableApiHandler() {}
 
-  public static synchronized TableBrowserHandler getInstance() {
+  public static synchronized TableApiHandler getInstance() {
     if (instance == null) {
-      instance = new TableBrowserHandler();
+      instance = new TableApiHandler();
     }
     return instance;
   }
@@ -35,7 +35,7 @@ public class TableBrowserHandler {
   // GET /api/tables
   public void handleTables(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
-    TableBrowser browser = browser(response);
+    TableApi browser = browser(response);
     if (browser == null) {
       return;
     }
@@ -51,7 +51,7 @@ public class TableBrowserHandler {
   public void handleRows(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     String table = (String) request.getAttribute("pathParam.table");
-    TableBrowser browser = browser(response);
+    TableApi browser = browser(response);
     if (browser == null) {
       return;
     }
@@ -78,7 +78,7 @@ public class TableBrowserHandler {
       throws IOException {
     String table = (String) request.getAttribute("pathParam.table");
     String id = request.getParameter("id");
-    TableBrowser browser = browser(response);
+    TableApi browser = browser(response);
     if (browser == null) {
       return;
     }
@@ -208,13 +208,13 @@ public class TableBrowserHandler {
     }
   }
 
-  private TableBrowser browser(HttpServletResponse response) throws IOException {
+  private TableApi browser(HttpServletResponse response) throws IOException {
     Database database = DbPropertiesLoader.getDatabase();
     if (database == null) {
       sendError(response, 503, "Database not configured");
       return null;
     }
-    return new TableBrowser(database);
+    return new TableApi(database);
   }
 
   private void reply(HttpServletResponse response, Optional<Map<String, Object>> body, String miss)

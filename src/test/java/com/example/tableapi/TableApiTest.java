@@ -1,4 +1,4 @@
-package com.example.browser;
+package com.example.tableapi;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,7 +15,7 @@ import org.jooq.tools.jdbc.MockConnection;
 import org.jooq.tools.jdbc.MockResult;
 import org.junit.jupiter.api.Test;
 
-class TableBrowserTest {
+class TableApiTest {
 
   /** Statements sent, lowercased. */
   private final List<String> sql = new ArrayList<>();
@@ -28,7 +28,7 @@ class TableBrowserTest {
   /** Bind values of every statement sent. */
   private final List<Object[]> bindings = new ArrayList<>();
 
-  private final TableBrowser browser = new TableBrowser(new FakeDb());
+  private final TableApi browser = new TableApi(new FakeDb());
 
   /** Answers the metadata queries and the data query by statement text. */
   private class FakeDb extends Database {
@@ -120,7 +120,7 @@ class TableBrowserTest {
     @SuppressWarnings("unchecked")
     var row = ((List<Map<String, Object>>) out.get("rows")).get(0);
 
-    assertEquals(TableBrowser.LIST_CELL_MAX + 1, ((String) row.get("body")).length());
+    assertEquals(TableApi.LIST_CELL_MAX + 1, ((String) row.get("body")).length());
     assertTrue(((String) row.get("body")).endsWith("…"));
     assertEquals("<binary 3 bytes>", row.get("blob"));
     assertEquals(1L, row.get("id"));
@@ -155,10 +155,10 @@ class TableBrowserTest {
   @Test
   void rows_clampsPageAndSize() throws Exception {
     assertEquals(
-        TableBrowser.MAX_PAGE_SIZE,
+        TableApi.MAX_PAGE_SIZE,
         browser.rows("notes", 1, 5000, null, false).orElseThrow().get("size"));
     assertEquals(
-        TableBrowser.DEFAULT_PAGE_SIZE,
+        TableApi.DEFAULT_PAGE_SIZE,
         browser.rows("notes", 1, 0, null, false).orElseThrow().get("size"));
     assertEquals(1, browser.rows("notes", -4, 10, null, false).orElseThrow().get("page"));
   }

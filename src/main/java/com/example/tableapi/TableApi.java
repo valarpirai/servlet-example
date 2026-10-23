@@ -1,4 +1,4 @@
-package com.example.browser;
+package com.example.tableapi;
 
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.name;
@@ -20,7 +20,7 @@ import org.jooq.SortField;
  * View of the tables in the {@code public} schema. A table name is used only after it matches a
  * name in {@code information_schema}, then it is quoted. Writes go through {@link TableEditor}.
  */
-public class TableBrowser {
+public class TableApi {
 
   /** Rows per page when the caller does not say. */
   static final int DEFAULT_PAGE_SIZE = 25;
@@ -55,7 +55,7 @@ public class TableBrowser {
 
   private final Database database;
 
-  public TableBrowser(Database database) {
+  public TableApi(Database database) {
     this.database = database;
   }
 

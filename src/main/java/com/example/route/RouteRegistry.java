@@ -449,8 +449,8 @@ public class RouteRegistry {
         return "com.example.handler.DataBrowserHandler";
       case "MongoHandler":
         return "com.example.handler.MongoHandler";
-      case "TableBrowserHandler":
-        return "com.example.handler.TableBrowserHandler";
+      case "TableApiHandler":
+        return "com.example.handler.TableApiHandler";
       default:
         return null;
     }

@@ -1,4 +1,4 @@
-package com.example.browser;
+package com.example.tableapi;
 
 import com.example.config.Database;
 import com.example.record.TableRecord;
@@ -38,11 +38,11 @@ public class TableEditor {
   }
 
   private final Database database;
-  private final TableBrowser browser;
+  private final TableApi browser;
 
   public TableEditor(Database database) {
     this.database = database;
-    this.browser = new TableBrowser(database);
+    this.browser = new TableApi(database);
   }
 
   /**
@@ -141,7 +141,7 @@ public class TableEditor {
     if (!browser.exists(table)) {
       throw new IllegalArgumentException("Table not found: " + table);
     }
-    if (!TableBrowser.writable(table, browser.primaryKey(table))) {
+    if (!TableApi.writable(table, browser.primaryKey(table))) {
       throw new NotWritableException(table);
     }
     Map<String, String> types = new LinkedHashMap<>();
