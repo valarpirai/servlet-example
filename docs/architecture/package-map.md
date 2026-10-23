@@ -64,6 +64,10 @@ src/main/java/com/example/
 │   ├── ModuleManager.java              Module CRUD on the modules table
 │   └── ModuleDependencyResolver.java   Dependency graph, cycle detection
 │
+├── record/                             Table access and business rules
+│   ├── TableRecord.java                Query and write allow-listed tables
+│   └── BusinessRuleRunner.java         Runs rules around each write
+│
 ├── extlib/                             Dynamic JDBC driver loading
 │   ├── ExtLibManager.java              Driver jar loading
 │   ├── DriverShim.java                 Driver delegation wrapper

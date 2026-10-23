@@ -70,7 +70,10 @@ public class ScriptSecurityManager {
 
             // Math
             "java.math.BigDecimal",
-            "java.math.BigInteger");
+            "java.math.BigInteger",
+
+            // Table access for scripts and business rules
+            "com.example.record.TableRecord");
 
     // Blacklist: Dangerous classes and package prefixes
     private static final java.util.Set<String> BLOCKED_CLASSES =

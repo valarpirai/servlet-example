@@ -1,5 +1,6 @@
 package com.example.script;
 
+import com.example.record.RecordConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
@@ -12,8 +13,8 @@ import org.mozilla.javascript.ScriptableObject;
 public class ScriptScopeBuilder {
 
   /**
-   * Adds params, a {@code request} global (method, path, queryParams), and a {@code console.log}
-   * capture function to the given scope.
+   * Adds params, a {@code request} global (method, path, queryParams), a {@code console.log}
+   * capture function, and the {@code TableRecord} constructor to the given scope.
    */
   public void populate(
       Scriptable scope,
@@ -24,6 +25,7 @@ public class ScriptScopeBuilder {
     addParams(scope, params);
     addRequestContext(scope, request);
     addConsole(scope, consoleLogs);
+    ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
   }
 
   private void addParams(Scriptable scope, Map<String, Object> params) {

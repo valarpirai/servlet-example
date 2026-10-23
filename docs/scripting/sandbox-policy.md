@@ -33,6 +33,12 @@ java.time.Instant     java.time.Duration       java.time.Period
 java.time.ZonedDateTime  java.time.ZoneId
 ```
 
+Table access:
+
+```
+com.example.record.TableRecord
+```
+
 A `java.time` class not on that list is denied, because `java.time` is not
 covered by the default-allow rule.
 

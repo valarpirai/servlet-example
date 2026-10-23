@@ -1,5 +1,6 @@
 package com.example.script;
 
+import com.example.record.RecordConstructor;
 import com.example.security.ScriptSecurityManager;
 import com.example.util.JsonUtil;
 import com.example.util.PropertiesUtil;
@@ -46,6 +47,9 @@ public class ScriptExecutor {
 
       // Add require() function for module loading
       addRequireFunction(scope, cx);
+
+      // Add the TableRecord constructor for table access
+      ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
 
       // Let caller setup scope variables
       if (scopeSetup != null) {

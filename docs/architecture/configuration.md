@@ -68,6 +68,8 @@ edits survive a restart.
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |
 | `storage.filesystem.path` | `data/attachments` | Filesystem storage root |
 | `storage.database.table` | `attachment_chunks` | Chunk table |
+| `record.allowedTables` | `modules:name` | Tables `TableRecord` may touch, as `table:keyColumn` |
+| `record.maxRuleDepth` | `5` | Deepest nesting of rules that fire rules |
 | `logging.level` | `INFO` | Root log level |
 | `logging.filePath` | `logs/application.log` | Log file |
 
