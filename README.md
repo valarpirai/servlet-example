@@ -5,7 +5,7 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 ## Features
 
 - **Beautiful Home Page**: Visit `/` for an elegant HTML dashboard with links to all endpoints
-- **Declarative Routing**: All 35 routes configured in `routes.yml` - no hardcoded routing logic
+- **Declarative Routing**: All 41 routes configured in `routes.yml` - no hardcoded routing logic
 - **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads — stored on local filesystem or PostgreSQL
 - **DB-Backed Properties**: App configuration stored in PostgreSQL `app_properties` table with a three-level lookup: LRU cache → DB → YAML fallback
 - **Automatic DB Migrations**: Flyway runs pending `db/V*.sql` migrations on startup
@@ -101,7 +101,7 @@ servlet-example/
 │       │               └── TemplateEngine.java
 │       └── resources/
 │           ├── application.yml
-│           ├── routes.yml              (All 35 routes defined here)
+│           ├── routes.yml              (All 41 routes defined here)
 │           ├── db/                     (Flyway migrations)
 │           │   ├── V1__create_app_properties.sql
 │           │   ├── V2__seed_app_properties.sql

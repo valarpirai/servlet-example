@@ -15,7 +15,7 @@ How the app is put together.
 
 ## Routing
 
-35 routes in YAML, matched and dispatched by reflection.
+41 routes in YAML, matched and dispatched by reflection.
 
 - [Route registry](./routing/route-registry.md) — matching, validation, dispatch
 - [Route configuration](./routing/route-configuration.md) — the routes.yml format
@@ -51,6 +51,7 @@ Browse PostgreSQL, MySQL, Snowflake or MongoDB from the browser.
 - [MongoDB mode](./data-browser/mongodb-mode.md) — the reflection path
 - [Choosing an integration](./data-browser/choosing-an-integration.md) — JDBC, HTTP, or reflection
 - [API endpoints](./data-browser/data-browser-api.md) — the HTTP surface
+- [Table browser](./data-browser/table-browser.md) — view this app's own tables
 
 ## Observability
 

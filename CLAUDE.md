@@ -9,6 +9,7 @@ Quick guidance for Claude Code. **All detail lives in docs/ — start at
 ---|---|---
 Routing | docs/routing/route-registry.md | routes.yml, route/
 File storage | docs/storage/memory-guarantee.md | storage/
+Table browser | docs/data-browser/table-browser.md | browser/, handler/TableBrowserHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
 Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
@@ -134,7 +135,7 @@ See docs/architecture/configuration.md.
 ## Config
 
 `src/main/resources/application.yml` — **db credentials only**
-`src/main/resources/routes.yml` — 35 HTTP routes
+`src/main/resources/routes.yml` — 41 HTTP routes
 
 Every other property lives in `app_properties`, **not** `application.yml`.
 Lookup order is LRU cache → DB → YAML.
@@ -148,7 +149,7 @@ Defaults, env var rules, and no-database behaviour: docs/architecture/configurat
 
 ## Architecture
 
-**Routing**: 35 routes in YAML → RouteRegistry → RouteDispatcher → Handler/Processor
+**Routing**: 41 routes in YAML → RouteRegistry → RouteDispatcher → Handler/Processor
 **Properties**: LRU cache → DB (`app_properties`) → YAML (three-level fallback)
 **Storage**: 1MB chunks → ChunkedOutputStream/InputStream → memory-safe; DB or filesystem backend
 **DB**: `Database` wrapper (jOOQ DSL) + Flyway auto-migrations on startup

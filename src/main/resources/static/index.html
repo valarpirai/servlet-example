@@ -201,6 +201,13 @@
                     <div class="link-card-desc">Upload, browse and download files. Drag &amp; drop support. Stored in DB or filesystem.</div>
                     <div class="link-card-url">/attachments</div>
                 </a>
+
+                <a href="/tables" class="link-card">
+                    <div class="link-card-method">GET</div>
+                    <div class="link-card-title">Table Browser</div>
+                    <div class="link-card-desc">Browse the application database. List tables, view rows, open a record.</div>
+                    <div class="link-card-url">/tables</div>
+                </a>
             </div>
         </div>
 
@@ -267,12 +274,19 @@
                     <div class="link-card-desc">List all uploaded files with metadata.</div>
                     <div class="link-card-url">/api/attachments</div>
                 </div>
+
+                <a href="/api/tables" class="link-card">
+                    <div class="link-card-method">GET</div>
+                    <div class="link-card-title">Tables</div>
+                    <div class="link-card-desc">List database tables. Rows: /api/tables/{table}/rows. One row: /api/tables/{table}/row?id=.</div>
+                    <div class="link-card-url">/api/tables</div>
+                </a>
             </div>
         </div>
 
         <div class="stats">
             <div class="stat-item">
-                <div class="stat-value">21</div>
+                <div class="stat-value">41</div>
                 <div class="stat-label">Routes</div>
             </div>
             <div class="stat-item">

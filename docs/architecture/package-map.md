@@ -29,7 +29,11 @@ src/main/java/com/example/
 │   ├── AttachmentHandler.java          Download, delete, list
 │   ├── DataBrowserHandler.java         Relational browsing
 │   ├── MongoHandler.java               MongoDB browsing
-│   └── PropertiesHandler.java          Properties REST API
+│   ├── PropertiesHandler.java          Properties REST API
+│   └── TableBrowserHandler.java        Table browser JSON endpoints
+│
+├── browser/                            Read-only view of the app database
+│   └── TableBrowser.java               Table list, paged rows, one row
 │
 ├── storage/                            Chunked file storage
 │   ├── AttachmentStorage.java          Backend interface
