@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 public class FileUploadProcessor implements IRequestProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(FileUploadProcessor.class);
-  private static final String CONTENT_TYPE = "multipart/form-data";
   private static final long MAX_FILE_SIZE =
       PropertiesUtil.getLong("upload.maxFileSize", 524288000L); // 500MB default
   private static final long MAX_REQUEST_SIZE =
@@ -30,11 +29,6 @@ public class FileUploadProcessor implements IRequestProcessor {
 
   public FileUploadProcessor() {
     this.attachmentManager = AttachmentManager.getInstance();
-  }
-
-  @Override
-  public boolean supports(String contentType) {
-    return contentType != null && contentType.toLowerCase().startsWith(CONTENT_TYPE);
   }
 
   @Override
@@ -115,10 +109,5 @@ public class FileUploadProcessor implements IRequestProcessor {
       logger.error("Error processing file upload", e);
       return ResponseHelper.internalError("Error processing file upload: " + e.getMessage());
     }
-  }
-
-  @Override
-  public String getContentType() {
-    return CONTENT_TYPE;
   }
 }

@@ -47,25 +47,6 @@ class FileUploadProcessorTest {
   }
 
   @Test
-  void testSupportsMultipartFormData() {
-    assertTrue(processor.supports("multipart/form-data"));
-    assertTrue(processor.supports("multipart/form-data; boundary=----WebKitFormBoundary"));
-    assertTrue(processor.supports("MULTIPART/FORM-DATA"));
-  }
-
-  @Test
-  void testDoesNotSupportOtherContentTypes() {
-    assertFalse(processor.supports("application/json"));
-    assertFalse(processor.supports("text/plain"));
-    assertFalse(processor.supports(null));
-  }
-
-  @Test
-  void testGetContentType() {
-    assertEquals("multipart/form-data", processor.getContentType());
-  }
-
-  @Test
   void testProcessNoMultipartData() throws Exception {
     when(request.getParts()).thenReturn(new ArrayList<>());
 

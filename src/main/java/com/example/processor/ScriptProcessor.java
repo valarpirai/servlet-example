@@ -24,19 +24,10 @@ import org.mozilla.javascript.Scriptable;
 
 public class ScriptProcessor implements IRequestProcessor {
 
-  private static final String CONTENT_TYPE = "application/javascript";
-
   private final ScriptExecutor scriptExecutor = new ScriptExecutor();
   private final ScriptScopeBuilder scopeBuilder = new ScriptScopeBuilder();
   private final ScriptModuleLoader moduleLoader =
       new ScriptModuleLoader(ModuleManager.getInstance());
-
-  @Override
-  public boolean supports(String contentType) {
-    return contentType != null
-        && (contentType.toLowerCase().startsWith(CONTENT_TYPE)
-            || contentType.toLowerCase().startsWith("text/javascript"));
-  }
 
   @Override
   public ProcessorResponse process(HttpServletRequest request)
@@ -91,11 +82,6 @@ public class ScriptProcessor implements IRequestProcessor {
     } catch (Exception e) {
       return error(500, "Internal Server Error", "Error processing script: " + e.getMessage());
     }
-  }
-
-  @Override
-  public String getContentType() {
-    return CONTENT_TYPE;
   }
 
   private Map<String, Object> extractParams(JsonObject json) {
