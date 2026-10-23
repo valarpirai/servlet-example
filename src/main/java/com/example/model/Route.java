@@ -13,7 +13,9 @@ public class Route {
 
   private String path;
   private List<String> methods;
-  private String type; // static, handler, processor, builtin
+  private Long id; // routes table id; null for routes read from routes.yml
+  private boolean defaultRoute; // true for default routes, which cannot be edited or deleted
+  private String type; // static, handler, processor, builtin, script
   private String handler;
   private String handlerMethod;
   private String processor;

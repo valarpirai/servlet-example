@@ -232,4 +232,99 @@ class ApiScriptProcessorTest {
 
     assertEquals(404, result.get("status"));
   }
+
+  // --- routed scripts: a named function and path params ---
+
+  private Map<String, Object> callRouted(
+      String script, String function, Map<String, String> pathParams) {
+    return processor.processRoutedRequest(
+        script,
+        function,
+        pathParams,
+        "GET",
+        "/users/42",
+        new HashMap<>(),
+        new HashMap<>(),
+        new JsonObject());
+  }
+
+  @Test
+  void testRoutedRequest_CallsTheNamedFunction() {
+    db.endpoint(
+        "multi",
+        """
+        function first(request, response) {
+          response.setBody(JSON.stringify({ ran: 'first' }));
+        }
+        function second(request, response) {
+          response.setBody(JSON.stringify({ ran: 'second' }));
+        }
+        """);
+
+    Map<String, Object> result = callRouted("multi", "second", Map.of());
+
+    assertEquals(200, result.get("status"));
+    assertTrue(((String) result.get("body")).contains("second"));
+  }
+
+  @Test
+  void testRoutedRequest_HandlerSeesPathParams() {
+    db.endpoint(
+        "show-user",
+        """
+        function show(request, response) {
+          response.setBody(JSON.stringify({ id: request.pathParams.id }));
+        }
+        """);
+
+    Map<String, Object> result = callRouted("show-user", "show", Map.of("id", "42"));
+
+    assertTrue(((String) result.get("body")).contains("42"), (String) result.get("body"));
+  }
+
+  @Test
+  void testRoutedRequest_HandlerGetsRequestAndResponseObjects() {
+    db.endpoint(
+        "both",
+        """
+        function handle(request, response) {
+          response.setStatus(202);
+          response.setHeader('X-Method', request.method);
+          response.setBody('ok');
+        }
+        """);
+
+    Map<String, Object> result = callRouted("both", "handle", Map.of());
+
+    assertEquals(202, result.get("status"));
+    @SuppressWarnings("unchecked")
+    Map<String, String> headers = (Map<String, String>) result.get("headers");
+    assertEquals("GET", headers.get("X-Method"));
+  }
+
+  @Test
+  void testRoutedRequest_MissingFunctionIsAnError() {
+    db.endpoint("empty", "var x = 1;");
+
+    Map<String, Object> result = callRouted("empty", "handle", Map.of());
+
+    assertEquals(500, result.get("status"));
+    assertTrue(((String) result.get("body")).contains("Handler function not found: handle"));
+  }
+
+  @Test
+  void testRoutedRequest_MissingScriptIs404() {
+    Map<String, Object> result = callRouted("nope", "handle", Map.of());
+
+    assertEquals(404, result.get("status"));
+  }
+
+  @Test
+  void testEndpointRequest_StillToleratesAScriptWithoutHttpHandler() {
+    db.endpoint("plain", "var x = 1;");
+
+    Map<String, Object> result = call("plain", "GET", new JsonObject());
+
+    assertEquals(200, result.get("status"));
+  }
 }

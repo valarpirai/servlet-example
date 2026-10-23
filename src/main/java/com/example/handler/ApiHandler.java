@@ -85,6 +85,47 @@ public class ApiHandler {
   }
 
   /**
+   * Run the script handler of a route. The named function receives the request and response
+   * objects, and {@code request.pathParams} holds the values captured from the route path.
+   *
+   * @param request HTTP request
+   * @param response HTTP response
+   * @param scriptName name of the api_scripts row
+   * @param handlerMethod function to call
+   * @param pathParams values captured from the route path
+   */
+  public void handleRoutedScript(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      String scriptName,
+      String handlerMethod,
+      Map<String, String> pathParams)
+      throws IOException {
+
+    try {
+      Map<String, Object> result =
+          processor.processRoutedRequest(
+              scriptName,
+              handlerMethod,
+              pathParams,
+              request.getMethod(),
+              request.getRequestURI(),
+              extractQueryParams(request),
+              extractHeaders(request),
+              extractBody(request));
+      sendResponse(response, result);
+
+    } catch (Exception e) {
+      logger.error("Error running script route {}.{}", scriptName, handlerMethod, e);
+      ResponseHelper.sendJsonError(
+          response,
+          HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+          "Internal Server Error",
+          "Error processing script route: " + e.getMessage());
+    }
+  }
+
+  /**
    * Extract endpoint name from path. Expected format: /api/v1/{endpoint-name} or just
    * /{endpoint-name}
    */

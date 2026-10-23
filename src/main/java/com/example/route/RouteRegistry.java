@@ -1,28 +1,71 @@
 package com.example.route;
 
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.table;
+
+import com.example.config.Database;
+import com.example.config.DbPropertiesLoader;
 import com.example.model.Route;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.jooq.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Registry for loading and matching routes from routes.yml configuration. Singleton pattern for
- * global access.
+ * Registry for loading and matching routes. Routes live in the {@code routes} table. The table is
+ * checked for changes every few seconds, so an edit goes live without a restart.
+ *
+ * <p>{@code routes.yml} is deprecated. It is read only when the database is not available or the
+ * table has no active routes. A route in the table that fails validation is skipped with a warning.
+ * A route in routes.yml that fails validation stops startup.
  */
 public class RouteRegistry {
 
   private static final Logger logger = LoggerFactory.getLogger(RouteRegistry.class);
+
+  /** How often the table is checked for changes. */
+  static final long REFRESH_MILLIS = 5000;
+
+  private static final String FINGERPRINT_SQL =
+      "select md5(coalesce(string_agg(cast(r as text), ',' order by r.id), '')) from routes r";
+
+  private static final String DEFAULT_SCRIPT_METHOD = "httpHandler";
+
   private static RouteRegistry instance;
-  private final List<Route> routes;
+
+  private final Database fixedDatabase;
+  private final long refreshMillis;
+  private volatile List<Route> routes = List.of();
+  private volatile String fingerprint;
+  private volatile long lastCheck;
 
   private RouteRegistry() {
-    this.routes = new ArrayList<>();
-    loadRoutes();
-    validateRoutes();
+    this(null);
+  }
+
+  /**
+   * Creates a registry that reads routes from the given database.
+   *
+   * @param database database holding the routes table, or null to use the application database
+   */
+  RouteRegistry(Database database) {
+    this(database, REFRESH_MILLIS);
+  }
+
+  /**
+   * Creates a registry with its own check interval.
+   *
+   * @param database database holding the routes table, or null to use the application database
+   * @param refreshMillis how long to wait between checks for changed routes
+   */
+  RouteRegistry(Database database, long refreshMillis) {
+    this.fixedDatabase = database;
+    this.refreshMillis = refreshMillis;
+    load();
   }
 
   public static synchronized RouteRegistry getInstance() {
@@ -32,9 +75,136 @@ public class RouteRegistry {
     return instance;
   }
 
-  /** Load routes from routes.yml in classpath. */
+  private Database database() {
+    return fixedDatabase != null ? fixedDatabase : DbPropertiesLoader.getDatabase();
+  }
+
+  /** Loads from the table, or from routes.yml when the table cannot supply routes. */
+  private synchronized void load() {
+    lastCheck = System.currentTimeMillis();
+    Database db = database();
+    if (db != null) {
+      try {
+        String seen = readFingerprint(db);
+        List<Route> loaded = loadFromTable(db);
+        fingerprint = seen;
+        if (!loaded.isEmpty()) {
+          routes = List.copyOf(loaded);
+          logger.info("Loaded {} routes from the routes table", loaded.size());
+          return;
+        }
+        logger.warn("The routes table has no usable routes. Using deprecated routes.yml");
+      } catch (Exception e) {
+        logger.warn(
+            "Cannot read the routes table ({}). Using deprecated routes.yml", e.getMessage());
+      }
+    } else {
+      logger.warn("No database. Using deprecated routes.yml");
+    }
+    loadFromYaml();
+  }
+
+  /** Reloads when the table changed since the last load. Keeps the current routes on an error. */
+  private void refreshIfStale() {
+    long now = System.currentTimeMillis();
+    if (now - lastCheck < refreshMillis) {
+      return;
+    }
+    synchronized (this) {
+      if (now - lastCheck < refreshMillis) {
+        return;
+      }
+      lastCheck = now;
+      Database db = database();
+      if (db == null) {
+        return;
+      }
+      try {
+        String seen = readFingerprint(db);
+        if (seen.equals(fingerprint)) {
+          return;
+        }
+        List<Route> loaded = loadFromTable(db);
+        fingerprint = seen;
+        if (!loaded.isEmpty()) {
+          routes = List.copyOf(loaded);
+          logger.info("Routes changed. Reloaded {} routes from the routes table", loaded.size());
+        } else {
+          logger.warn("The routes table has no usable routes. Keeping the current routes");
+        }
+      } catch (Exception e) {
+        logger.warn("Cannot refresh routes ({}). Keeping the current routes", e.getMessage());
+      }
+    }
+  }
+
+  private String readFingerprint(Database db) throws Exception {
+    return db.query(dsl -> String.valueOf(dsl.fetchValue(FINGERPRINT_SQL)));
+  }
+
+  /** Reads the active rows in match order. Rows that fail validation are skipped. */
+  private List<Route> loadFromTable(Database db) throws Exception {
+    List<Route> loaded = new ArrayList<>();
+    List<Record> rows =
+        db.query(
+            dsl ->
+                dsl.select()
+                    .from(table("routes"))
+                    .where(field("active", Boolean.class).isTrue())
+                    .orderBy(field("sort_order"), field("id"))
+                    .fetch());
+
+    for (Record row : rows) {
+      Long id = row.get("id", Long.class);
+      try {
+        Route route = toRoute(row);
+        List<String> errors = new ArrayList<>();
+        validateRoute(route, "Route id " + id + " (" + route.getPath() + ")", errors);
+        if (errors.isEmpty()) {
+          loaded.add(route);
+        } else {
+          logger.warn("Skipping route: {}", String.join("; ", errors));
+        }
+      } catch (RuntimeException e) {
+        logger.warn("Skipping route id {}: {}", id, e.getMessage());
+      }
+    }
+    return loaded;
+  }
+
+  private Route toRoute(Record row) {
+    Route route = new Route();
+    route.setId(row.get("id", Long.class));
+    route.setPath(row.get("path", String.class));
+    route.setMethods(
+        split(row.get("methods", String.class)).stream().map(String::toUpperCase).toList());
+    route.setType(row.get("type", String.class));
+    route.setHandler(row.get("handler", String.class));
+    route.setHandlerMethod(row.get("handler_method", String.class));
+    route.setProcessor(row.get("processor", String.class));
+    route.setResource(row.get("resource", String.class));
+    route.setContentType(row.get("content_type", String.class));
+    route.setDescription(row.get("description", String.class));
+    route.setPathParams(split(row.get("path_params", String.class)));
+    route.setDefaultRoute(Boolean.TRUE.equals(row.get("is_default", Boolean.class)));
+    if ("script".equals(route.getType())
+        && (route.getHandlerMethod() == null || route.getHandlerMethod().isBlank())) {
+      route.setHandlerMethod(DEFAULT_SCRIPT_METHOD);
+    }
+    return route;
+  }
+
+  private static List<String> split(String commaSeparated) {
+    if (commaSeparated == null || commaSeparated.isBlank()) {
+      return List.of();
+    }
+    return java.util.Arrays.stream(commaSeparated.split(",")).map(String::trim).toList();
+  }
+
+  /** Deprecated. Loads routes.yml and stops startup when a route is invalid. */
   @SuppressWarnings("unchecked")
-  private void loadRoutes() {
+  private void loadFromYaml() {
+    List<Route> loaded = new ArrayList<>();
     try (InputStream input = getClass().getClassLoader().getResourceAsStream("routes.yml")) {
 
       if (input == null) {
@@ -53,15 +223,18 @@ public class RouteRegistry {
 
       for (Map<String, Object> routeConfig : routeConfigs) {
         Route route = parseRoute(routeConfig);
-        routes.add(route);
+        route.setDefaultRoute(true);
+        loaded.add(route);
         logger.debug("Loaded route: {}", route);
       }
 
-      logger.info("Loaded {} routes from routes.yml", routes.size());
+      logger.info("Loaded {} routes from routes.yml", loaded.size());
 
     } catch (Exception e) {
       logger.error("Failed to load routes.yml", e);
     }
+    routes = List.copyOf(loaded);
+    validateRoutes();
   }
 
   /** Parse a single route configuration map into a Route object. */
@@ -103,6 +276,7 @@ public class RouteRegistry {
    * @return Matching route or null if not found
    */
   public RouteMatch findRoute(String method, String path) {
+    refreshIfStale();
     for (Route route : routes) {
       if (route.matches(method, path)) {
         Map<String, String> pathParams = route.extractPathParams(path);
@@ -128,39 +302,7 @@ public class RouteRegistry {
       Route route = routes.get(i);
       String routeDesc =
           String.format("Route #%d (%s %s)", i + 1, route.getMethods(), route.getPath());
-
-      // Validate required fields
-      if (route.getPath() == null || route.getPath().trim().isEmpty()) {
-        errors.add(routeDesc + ": Missing required field 'path'");
-      }
-
-      if (route.getMethods() == null || route.getMethods().isEmpty()) {
-        errors.add(routeDesc + ": Missing required field 'method'");
-      }
-
-      if (route.getType() == null || route.getType().trim().isEmpty()) {
-        errors.add(routeDesc + ": Missing required field 'type'");
-      }
-
-      // Validate type-specific requirements
-      if (route.getType() != null) {
-        switch (route.getType()) {
-          case "static":
-            validateStaticRoute(route, routeDesc, errors);
-            break;
-          case "handler":
-            validateHandlerRoute(route, routeDesc, errors);
-            break;
-          case "processor":
-            validateProcessorRoute(route, routeDesc, errors);
-            break;
-          case "builtin":
-            validateBuiltinRoute(route, routeDesc, errors);
-            break;
-          default:
-            errors.add(routeDesc + ": Unknown route type '" + route.getType() + "'");
-        }
-      }
+      validateRoute(route, routeDesc, errors);
     }
 
     if (!errors.isEmpty()) {
@@ -170,10 +312,49 @@ public class RouteRegistry {
       }
       logger.error(errorMsg.toString());
       throw new IllegalStateException(
-          errorMsg.toString() + "\nFix routes.yml and restart the application");
+          errorMsg.toString() + "\nFix routes.yml (deprecated) and restart the application");
     }
 
     logger.info("Route validation passed: {} routes validated successfully", routes.size());
+  }
+
+  /** Adds one error per problem found in the route. */
+  private void validateRoute(Route route, String routeDesc, List<String> errors) {
+    // Validate required fields
+    if (route.getPath() == null || route.getPath().trim().isEmpty()) {
+      errors.add(routeDesc + ": Missing required field 'path'");
+    }
+
+    if (route.getMethods() == null || route.getMethods().isEmpty()) {
+      errors.add(routeDesc + ": Missing required field 'method'");
+    }
+
+    if (route.getType() == null || route.getType().trim().isEmpty()) {
+      errors.add(routeDesc + ": Missing required field 'type'");
+    }
+
+    // Validate type-specific requirements
+    if (route.getType() != null) {
+      switch (route.getType()) {
+        case "static":
+          validateStaticRoute(route, routeDesc, errors);
+          break;
+        case "handler":
+          validateHandlerRoute(route, routeDesc, errors);
+          break;
+        case "processor":
+          validateProcessorRoute(route, routeDesc, errors);
+          break;
+        case "builtin":
+          validateBuiltinRoute(route, routeDesc, errors);
+          break;
+        case "script":
+          validateScriptRoute(route, routeDesc, errors);
+          break;
+        default:
+          errors.add(routeDesc + ": Unknown route type '" + route.getType() + "'");
+      }
+    }
   }
 
   private void validateStaticRoute(Route route, String routeDesc, List<String> errors) {
@@ -323,6 +504,15 @@ public class RouteRegistry {
     }
   }
 
+  private void validateScriptRoute(Route route, String routeDesc, List<String> errors) {
+    if (route.getHandler() == null || route.getHandler().trim().isEmpty()) {
+      errors.add(routeDesc + ": Script route missing 'handler' field (the api_scripts name)");
+    }
+    if (route.getHandlerMethod() == null || route.getHandlerMethod().trim().isEmpty()) {
+      errors.add(routeDesc + ": Script route missing 'handlerMethod' field (the function name)");
+    }
+  }
+
   private void validateBuiltinRoute(Route route, String routeDesc, List<String> errors) {
     if (route.getHandler() == null || route.getHandler().trim().isEmpty()) {
       errors.add(routeDesc + ": Builtin route missing 'handler' field");
@@ -357,8 +547,6 @@ public class RouteRegistry {
         return "com.example.handler.DataBrowserHandler";
       case "MongoHandler":
         return "com.example.handler.MongoHandler";
-      case "PropertiesHandler":
-        return "com.example.handler.PropertiesHandler";
       case "TableBrowserHandler":
         return "com.example.handler.TableBrowserHandler";
       default:

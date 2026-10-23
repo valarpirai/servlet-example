@@ -33,7 +33,7 @@ public class RouterServlet extends HttpServlet {
     requestCount = new AtomicLong(0);
 
     // Initialize route registry and dispatcher
-    RouteRegistry.getInstance(); // Triggers routes.yml loading
+    RouteRegistry.getInstance(); // Triggers route loading from the routes table
     routeDispatcher = new RouteDispatcher();
   }
 

@@ -4,7 +4,6 @@ import com.example.handler.ApiHandler;
 import com.example.handler.AttachmentHandler;
 import com.example.handler.DataBrowserHandler;
 import com.example.handler.MongoHandler;
-import com.example.handler.PropertiesHandler;
 import com.example.handler.TableBrowserHandler;
 import com.example.model.ProcessorResponse;
 import com.example.model.Route;
@@ -67,6 +66,9 @@ public class RouteDispatcher {
 
       case "processor":
         return handleProcessor(route, request, response);
+
+      case "script":
+        return handleScript(route, pathParams, request, response);
 
       case "builtin":
         // Builtin handlers need to be handled in RouterServlet directly
@@ -210,6 +212,26 @@ public class RouteDispatcher {
     }
   }
 
+  /**
+   * Handle a JavaScript handler. The route names an api_scripts row and a function in it. The
+   * function receives the request and response objects, like a Java handler method does.
+   */
+  private boolean handleScript(
+      Route route,
+      Map<String, String> pathParams,
+      HttpServletRequest request,
+      HttpServletResponse response)
+      throws IOException {
+    if (route.getContentType() != null) {
+      response.setContentType(route.getContentType());
+      response.setCharacterEncoding("UTF-8");
+    }
+    ApiHandler.getInstance()
+        .handleRoutedScript(
+            request, response, route.getHandler(), route.getHandlerMethod(), pathParams);
+    return true;
+  }
+
   /** Handle processor invocation (ModuleProcessor, etc.). */
   private boolean handleProcessor(
       Route route, HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -265,8 +287,6 @@ public class RouteDispatcher {
         return DataBrowserHandler.getInstance();
       case "MongoHandler":
         return MongoHandler.getInstance();
-      case "PropertiesHandler":
-        return PropertiesHandler.getInstance();
       case "TableBrowserHandler":
         return TableBrowserHandler.getInstance();
       default:

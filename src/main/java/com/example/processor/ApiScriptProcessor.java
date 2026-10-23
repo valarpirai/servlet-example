@@ -27,6 +27,7 @@ import org.mozilla.javascript.Scriptable;
  */
 public class ApiScriptProcessor {
 
+  private static final String DEFAULT_HANDLER = "httpHandler";
   private static final Table<Record> API_SCRIPTS = table("api_scripts");
   private static final Field<String> NAME = field("name", String.class);
   private static final Field<String> CONTENT = field("content", String.class);
@@ -69,6 +70,46 @@ public class ApiScriptProcessor {
       Map<String, String> queryParams,
       Map<String, String> headers,
       JsonObject body) {
+    return run(
+        endpointName, DEFAULT_HANDLER, false, Map.of(), method, path, queryParams, headers, body);
+  }
+
+  /**
+   * Process a request routed to a named function of a stored script. The function must exist.
+   *
+   * @param scriptName name of the {@code api_scripts} row
+   * @param handlerMethod function to call with the request and response objects
+   * @param pathParams values captured from the route path
+   * @param method HTTP method (GET, POST, etc.)
+   * @param path Request path
+   * @param queryParams Query parameters
+   * @param headers Request headers
+   * @param body Request body (parsed JSON)
+   * @return Map containing response data (status, headers, body)
+   */
+  public Map<String, Object> processRoutedRequest(
+      String scriptName,
+      String handlerMethod,
+      Map<String, String> pathParams,
+      String method,
+      String path,
+      Map<String, String> queryParams,
+      Map<String, String> headers,
+      JsonObject body) {
+    return run(
+        scriptName, handlerMethod, true, pathParams, method, path, queryParams, headers, body);
+  }
+
+  private Map<String, Object> run(
+      String endpointName,
+      String handlerMethod,
+      boolean handlerRequired,
+      Map<String, String> pathParams,
+      String method,
+      String path,
+      Map<String, String> queryParams,
+      Map<String, String> headers,
+      JsonObject body) {
 
     try {
       // Load the endpoint script
@@ -81,7 +122,16 @@ public class ApiScriptProcessor {
 
       // Resolve import statements, then execute
       String prepared = moduleLoader.prepareWithModules(scriptContent);
-      return executeScript(prepared, method, path, queryParams, headers, body);
+      return executeScript(
+          prepared,
+          handlerMethod,
+          handlerRequired,
+          pathParams,
+          method,
+          path,
+          queryParams,
+          headers,
+          body);
 
     } catch (Exception e) {
       return createErrorResponse(
@@ -103,6 +153,9 @@ public class ApiScriptProcessor {
   /** Execute the JavaScript handler with request/response objects. */
   private Map<String, Object> executeScript(
       String script,
+      String handlerMethod,
+      boolean handlerRequired,
+      Map<String, String> pathParams,
       String method,
       String path,
       Map<String, String> queryParams,
@@ -113,6 +166,7 @@ public class ApiScriptProcessor {
     Map<String, Object> requestData = new HashMap<>();
     requestData.put("method", method);
     requestData.put("path", path);
+    requestData.put("pathParams", pathParams);
     requestData.put("queryParams", queryParams);
     requestData.put("headers", headers);
     requestData.put("body", JsonConverter.convertJsonToMap(body));
@@ -173,11 +227,15 @@ public class ApiScriptProcessor {
           result.getStatusCode(), result.getError(), result.getMessage(), result.getThrowable());
     }
 
-    // Call httpHandler if it exists
+    // Call the handler function if it exists
     Scriptable scope = result.getScope();
-    Object httpHandler = scope.get("httpHandler", scope);
-    if (httpHandler instanceof org.mozilla.javascript.Function) {
-      org.mozilla.javascript.Function func = (org.mozilla.javascript.Function) httpHandler;
+    Object handlerFunction = scope.get(handlerMethod, scope);
+    if (handlerRequired && !(handlerFunction instanceof org.mozilla.javascript.Function)) {
+      return createErrorResponse(
+          500, "Internal Server Error", "Handler function not found: " + handlerMethod, null);
+    }
+    if (handlerFunction instanceof org.mozilla.javascript.Function) {
+      org.mozilla.javascript.Function func = (org.mozilla.javascript.Function) handlerFunction;
       Object requestObj = scope.get("request", scope);
       Object responseObj = scope.get("response", scope);
 
@@ -185,7 +243,7 @@ public class ApiScriptProcessor {
       try {
         func.call(cx, scope, scope, new Object[] {requestObj, responseObj});
       } catch (org.mozilla.javascript.RhinoException e) {
-        // JavaScript error thrown in httpHandler - return 400
+        // JavaScript error thrown in the handler - return 400
         return createErrorResponse(
             400, "Script Error", "JavaScript execution failed: " + e.getMessage(), e);
       } finally {
