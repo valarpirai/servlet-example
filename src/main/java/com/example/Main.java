@@ -116,13 +116,16 @@ public class Main {
           .addShutdownHook(
               new Thread(
                   () -> {
+                    logger.info("Shutdown signal received (Ctrl+C or SIGTERM). Stopping Tomcat...");
                     try {
                       tomcat.stop();
                       tomcat.destroy();
+                      logger.info("Tomcat stopped. Closing the database pool...");
                     } catch (LifecycleException e) {
                       logger.error("Tomcat did not stop cleanly: {}", e.getMessage());
                     } finally {
                       DbPropertiesLoader.close();
+                      logger.info("Shutdown complete.");
                     }
                   },
                   "shutdown"));
