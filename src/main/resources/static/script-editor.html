@@ -344,6 +344,7 @@ sum; // This will be returned</textarea>
                     <option value="request">Access Request Context</option>
                     <option value="java">Java Object Creation</option>
                     <option value="modules">Using Modules (ES6 Import)</option>
+                    <option value="tablerecord">Table CRUD (TableRecord)</option>
                 </select>
             </div>
         </div>
@@ -521,7 +522,50 @@ console.log('Uppercase:', text2);
 var result = text1 + ' | ' + text2;
 console.log('Result:', result);
 
-result;`
+result;`,
+            tablerecord: `// Create, read, update, list and delete a row with TableRecord
+var table = 'app_properties';
+
+// Create
+var created = new TableRecord(table);
+created.setValue('name', 'demo.greeting');
+created.setValue('value', 'hello');
+created.setValue('type', 'STRING');
+var id = created.insert();
+
+// Read
+var found = new TableRecord(table);
+found.addQuery('name', 'demo.greeting');
+found.query();
+var before = found.next() ? found.getValue('value') : null;
+
+// Update
+var edit = new TableRecord(table);
+edit.addQuery('name', 'demo.greeting');
+edit.query();
+edit.next();
+edit.setValue('value', 'hello again');
+var updated = edit.update();
+
+// Read many, ordered by name
+var list = new TableRecord(table);
+list.addQuery('name', 'LIKE', 'demo.%');
+list.orderBy('name');
+list.setLimit(10);
+list.query();
+var names = [];
+while (list.next()) {
+  names.push(list.getValue('name') + '=' + list.getValue('value'));
+}
+
+// Delete
+var gone = new TableRecord(table);
+gone.addQuery('name', 'demo.greeting');
+gone.query();
+gone.next();
+var deleted = gone.deleteRecord();
+
+JSON.stringify({ id: id, before: before, updated: updated, names: names, deleted: deleted });`
         };
 
         function loadExample() {

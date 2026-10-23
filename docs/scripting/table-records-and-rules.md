@@ -58,6 +58,61 @@ gr.deleteRecord();          // true, or false when a rule aborted
 `update` writes only the fields that changed. If nothing changed, it skips the
 write but still runs the rules.
 
+## A full example
+
+Create, read, update, list and delete one property. Run it in `/api/script`, or
+in a module.
+
+```javascript
+var table = 'app_properties';
+
+// Create
+var created = new TableRecord(table);
+created.setValue('name', 'demo.greeting');
+created.setValue('value', 'hello');
+created.setValue('type', 'STRING');
+var id = created.insert();
+
+// Read
+var found = new TableRecord(table);
+found.addQuery('name', 'demo.greeting');
+found.query();
+var before = found.next() ? found.getValue('value') : null;
+
+// Update
+var edit = new TableRecord(table);
+edit.addQuery('name', 'demo.greeting');
+edit.query();
+edit.next();
+edit.setValue('value', 'hello again');
+var updated = edit.update();
+
+// Read many, ordered by name
+var list = new TableRecord(table);
+list.addQuery('name', 'LIKE', 'demo.%');
+list.orderBy('name');
+list.setLimit(10);
+list.query();
+var names = [];
+while (list.next()) {
+  names.push(list.getValue('name') + '=' + list.getValue('value'));
+}
+
+// Delete
+var gone = new TableRecord(table);
+gone.addQuery('name', 'demo.greeting');
+gone.query();
+gone.next();
+var deleted = gone.deleteRecord();
+
+JSON.stringify({ id: id, before: before, updated: updated, names: names, deleted: deleted });
+```
+
+It returns `{"id":"38","before":"hello","updated":true,"names":["demo.greeting=hello again"],"deleted":true}`.
+
+`insert` returns the key as text. A text key works in `addQuery` for a text
+column. For a numeric column such as `id`, query by another column, as above.
+
 ## Writing a rule
 
 Columns of `business_rules`:
