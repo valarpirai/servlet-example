@@ -3,6 +3,8 @@ package com.example.handler;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.example.processor.ApiScriptProcessor;
+import com.example.processor.FakeScriptDb;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
@@ -10,9 +12,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,18 +27,15 @@ class ApiHandlerTest {
 
   private ApiHandler handler;
   private StringWriter responseWriter;
-  private Path testScriptsDir;
+  private FakeScriptDb db;
 
   @BeforeEach
   void setUp() throws IOException {
     MockitoAnnotations.openMocks(this);
-    handler = ApiHandler.getInstance();
+    db = new FakeScriptDb();
+    handler = new ApiHandler(new ApiScriptProcessor(db));
     responseWriter = new StringWriter();
     when(response.getWriter()).thenReturn(new PrintWriter(responseWriter));
-
-    // Create test scripts directory
-    testScriptsDir = Paths.get("scripts/api");
-    Files.createDirectories(testScriptsDir);
   }
 
   @Test
@@ -53,25 +49,20 @@ class ApiHandlerTest {
         }
         """;
 
-    Path scriptPath = testScriptsDir.resolve("test.js");
-    Files.writeString(scriptPath, script);
+    db.endpoint("test", script);
 
-    try {
-      when(request.getPathInfo()).thenReturn("/test");
-      when(request.getMethod()).thenReturn("GET");
-      when(request.getRequestURI()).thenReturn("/api/v1/test");
-      when(request.getQueryString()).thenReturn(null);
-      when(request.getParameterMap()).thenReturn(new HashMap<>());
-      when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getPathInfo()).thenReturn("/test");
+    when(request.getMethod()).thenReturn("GET");
+    when(request.getRequestURI()).thenReturn("/api/v1/test");
+    when(request.getQueryString()).thenReturn(null);
+    when(request.getParameterMap()).thenReturn(new HashMap<>());
+    when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
 
-      handler.handleRequest(request, response);
+    handler.handleRequest(request, response);
 
-      verify(response).setStatus(200);
-      String responseBody = responseWriter.toString();
-      assertTrue(responseBody.contains("Test response"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    verify(response).setStatus(200);
+    String responseBody = responseWriter.toString();
+    assertTrue(responseBody.contains("Test response"));
   }
 
   @Test
@@ -85,28 +76,23 @@ class ApiHandlerTest {
         }
         """;
 
-    Path scriptPath = testScriptsDir.resolve("test-query.js");
-    Files.writeString(scriptPath, script);
+    db.endpoint("test-query", script);
 
-    try {
-      when(request.getPathInfo()).thenReturn("/test-query");
-      when(request.getMethod()).thenReturn("GET");
-      when(request.getRequestURI()).thenReturn("/api/v1/test-query");
-      when(request.getQueryString()).thenReturn("name=Alice");
+    when(request.getPathInfo()).thenReturn("/test-query");
+    when(request.getMethod()).thenReturn("GET");
+    when(request.getRequestURI()).thenReturn("/api/v1/test-query");
+    when(request.getQueryString()).thenReturn("name=Alice");
 
-      Map<String, String[]> paramMap = new HashMap<>();
-      paramMap.put("name", new String[] {"Alice"});
-      when(request.getParameterMap()).thenReturn(paramMap);
-      when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+    Map<String, String[]> paramMap = new HashMap<>();
+    paramMap.put("name", new String[] {"Alice"});
+    when(request.getParameterMap()).thenReturn(paramMap);
+    when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
 
-      handler.handleRequest(request, response);
+    handler.handleRequest(request, response);
 
-      verify(response).setStatus(200);
-      String responseBody = responseWriter.toString();
-      assertTrue(responseBody.contains("Alice"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    verify(response).setStatus(200);
+    String responseBody = responseWriter.toString();
+    assertTrue(responseBody.contains("Alice"));
   }
 
   @Test
@@ -120,29 +106,24 @@ class ApiHandlerTest {
         }
         """;
 
-    Path scriptPath = testScriptsDir.resolve("test-post.js");
-    Files.writeString(scriptPath, script);
+    db.endpoint("test-post", script);
 
-    try {
-      String requestBody = "{\"name\":\"Test User\"}";
-      BufferedReader reader = new BufferedReader(new StringReader(requestBody));
+    String requestBody = "{\"name\":\"Test User\"}";
+    BufferedReader reader = new BufferedReader(new StringReader(requestBody));
 
-      when(request.getPathInfo()).thenReturn("/test-post");
-      when(request.getMethod()).thenReturn("POST");
-      when(request.getRequestURI()).thenReturn("/api/v1/test-post");
-      when(request.getQueryString()).thenReturn(null);
-      when(request.getParameterMap()).thenReturn(new HashMap<>());
-      when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
-      when(request.getReader()).thenReturn(reader);
+    when(request.getPathInfo()).thenReturn("/test-post");
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getRequestURI()).thenReturn("/api/v1/test-post");
+    when(request.getQueryString()).thenReturn(null);
+    when(request.getParameterMap()).thenReturn(new HashMap<>());
+    when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getReader()).thenReturn(reader);
 
-      handler.handleRequest(request, response);
+    handler.handleRequest(request, response);
 
-      verify(response).setStatus(201);
-      String responseBody = responseWriter.toString();
-      assertTrue(responseBody.contains("Test User"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    verify(response).setStatus(201);
+    String responseBody = responseWriter.toString();
+    assertTrue(responseBody.contains("Test User"));
   }
 
   @Test
@@ -184,24 +165,19 @@ class ApiHandlerTest {
         }
         """;
 
-    Path scriptPath = testScriptsDir.resolve("test-headers.js");
-    Files.writeString(scriptPath, script);
+    db.endpoint("test-headers", script);
 
-    try {
-      when(request.getPathInfo()).thenReturn("/test-headers");
-      when(request.getMethod()).thenReturn("GET");
-      when(request.getRequestURI()).thenReturn("/api/v1/test-headers");
-      when(request.getQueryString()).thenReturn(null);
-      when(request.getParameterMap()).thenReturn(new HashMap<>());
-      when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getPathInfo()).thenReturn("/test-headers");
+    when(request.getMethod()).thenReturn("GET");
+    when(request.getRequestURI()).thenReturn("/api/v1/test-headers");
+    when(request.getQueryString()).thenReturn(null);
+    when(request.getParameterMap()).thenReturn(new HashMap<>());
+    when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
 
-      handler.handleRequest(request, response);
+    handler.handleRequest(request, response);
 
-      verify(response).setStatus(200);
-      verify(response).setHeader("X-Custom", "value");
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    verify(response).setStatus(200);
+    verify(response).setHeader("X-Custom", "value");
   }
 
   @Test

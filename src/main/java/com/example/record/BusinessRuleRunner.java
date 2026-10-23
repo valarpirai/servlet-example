@@ -4,8 +4,11 @@ import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
 
 import com.example.config.Database;
+import com.example.module.ModuleManager;
 import com.example.script.ScriptExecutor;
+import com.example.script.ScriptModuleLoader;
 import com.example.util.PropertiesUtil;
+import java.io.IOException;
 import java.util.List;
 import org.jooq.Field;
 import org.mozilla.javascript.Context;
@@ -101,6 +104,11 @@ class BusinessRuleRunner {
   private void execute(String name, String condition, String script, TableRecord current) {
     boolean hasCondition = condition != null && !condition.isBlank();
     String source = hasCondition ? "if (" + condition + ") {\n" + script + "\n}" : script;
+    try {
+      source = new ScriptModuleLoader(new ModuleManager(database)).prepareWithModules(source);
+    } catch (IOException e) {
+      throw new IllegalStateException("Business rule '" + name + "' failed: " + e.getMessage(), e);
+    }
     TableRecord previous = current.previousSnapshot();
 
     ScriptExecutor.ScriptExecutionResult result =

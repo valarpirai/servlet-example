@@ -4,10 +4,6 @@ import com.example.record.RecordConstructor;
 import com.example.security.ScriptSecurityManager;
 import com.example.util.JsonUtil;
 import com.example.util.PropertiesUtil;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import org.mozilla.javascript.Context;
@@ -19,8 +15,6 @@ import org.mozilla.javascript.ScriptableObject;
  * execution with timeout, memory limits, and module loading via require().
  */
 public class ScriptExecutor {
-
-  private final Map<String, String> scriptCache = new HashMap<>();
 
   /**
    * Execute JavaScript code with the given scope setup.
@@ -44,9 +38,6 @@ public class ScriptExecutor {
       cx.setInstructionObserverThreshold(ScriptSecurityManager.getInstructionThreshold());
 
       Scriptable scope = cx.initStandardObjects();
-
-      // Add require() function for module loading
-      addRequireFunction(scope, cx);
 
       // Add the TableRecord constructor for table access
       ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
@@ -79,112 +70,6 @@ public class ScriptExecutor {
     } finally {
       Context.exit();
     }
-  }
-
-  /**
-   * Load a script file from the file system with caching support.
-   *
-   * @param scriptPath Relative path from project root
-   * @return Script content or null if not found
-   */
-  public String loadScript(String scriptPath) throws IOException {
-    // Check cache first
-    if (scriptCache.containsKey(scriptPath)) {
-      return scriptCache.get(scriptPath);
-    }
-
-    Path path = Paths.get(scriptPath);
-    if (!Files.exists(path)) {
-      return null;
-    }
-
-    String content = Files.readString(path);
-
-    // Cache the script in production mode
-    if (!PropertiesUtil.isDevEnvironment()) {
-      scriptCache.put(scriptPath, content);
-    }
-
-    return content;
-  }
-
-  /** Add require() function to the scope for loading modules. */
-  private void addRequireFunction(Scriptable scope, Context cx) {
-    String requireFunction =
-        """
-        var __loadedModules = {};
-
-        function require(modulePath) {
-          var normalizedPath = modulePath;
-
-          if (modulePath.startsWith('../')) {
-            normalizedPath = modulePath.substring(3);
-          } else if (modulePath.startsWith('./')) {
-            normalizedPath = modulePath.substring(2);
-          }
-
-          if (__loadedModules[normalizedPath]) {
-            return __loadedModules[normalizedPath];
-          }
-
-          var content = __loadScriptFile(normalizedPath);
-          if (!content) {
-            throw new Error('Module not found: ' + modulePath);
-          }
-
-          var module = { exports: {} };
-          var exports = module.exports;
-
-          eval(content);
-
-          __loadedModules[normalizedPath] = module.exports;
-
-          return module.exports;
-        }
-        """;
-
-    cx.evaluateString(scope, requireFunction, "require", 1, null);
-
-    // Add Java function to load script files
-    ScriptableObject.putProperty(
-        scope,
-        "__loadScriptFile",
-        new org.mozilla.javascript.BaseFunction() {
-          @Override
-          public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-            if (args.length < 1 || !(args[0] instanceof String)) {
-              return null;
-            }
-
-            String modulePath = (String) args[0];
-
-            // Build search paths
-            // If path already starts with lib/ or vendor/, use scripts/ prefix only
-            // Otherwise, try both scripts/lib/ and scripts/vendor/
-            String[] searchPaths;
-            if (modulePath.startsWith("lib/") || modulePath.startsWith("vendor/")) {
-              searchPaths = new String[] {"scripts/" + modulePath};
-            } else {
-              searchPaths =
-                  new String[] {"scripts/lib/" + modulePath, "scripts/vendor/" + modulePath};
-            }
-
-            for (String searchPath : searchPaths) {
-              String fullPath = searchPath.endsWith(".js") ? searchPath : searchPath + ".js";
-
-              try {
-                String content = loadScript(fullPath);
-                if (content != null) {
-                  return content;
-                }
-              } catch (IOException e) {
-                // Continue to next search path
-              }
-            }
-
-            return null;
-          }
-        });
   }
 
   /** Convert JavaScript object to Java object. */

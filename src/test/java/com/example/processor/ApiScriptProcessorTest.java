@@ -3,101 +3,75 @@ package com.example.processor;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonObject;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ApiScriptProcessorTest {
 
+  private FakeScriptDb db;
   private ApiScriptProcessor processor;
-  private Path testScriptsDir;
 
-  @BeforeAll
-  void setUp() throws IOException {
-    processor = new ApiScriptProcessor();
-
-    // Create test scripts directory
-    testScriptsDir = Paths.get("scripts/api");
-    Files.createDirectories(testScriptsDir);
+  @BeforeEach
+  void setUp() {
+    db = new FakeScriptDb();
+    processor = new ApiScriptProcessor(db);
   }
 
-  @AfterAll
-  void tearDown() throws IOException {
-    // Clean up test scripts (optional, as they're useful examples)
+  private Map<String, Object> call(String endpoint, String method, JsonObject body) {
+    return processor.processRequest(
+        endpoint, method, "/api/v1/" + endpoint, new HashMap<>(), new HashMap<>(), body);
   }
 
   @Test
-  void testProcessRequest_HelloEndpoint() throws IOException {
-    // Create a simple test script
-    String script =
+  void testProcessRequest_HelloEndpoint() {
+    db.endpoint(
+        "test-hello",
         """
         function httpHandler(request, response) {
           response.setStatus(200);
           response.setBody(JSON.stringify({ message: 'Hello, World!' }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-hello.js");
-    Files.writeString(scriptPath, script);
+    Map<String, Object> result = call("test-hello", "GET", new JsonObject());
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
-
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-hello", "GET", "/api/v1/test-hello", queryParams, headers, body);
-
-      assertEquals(200, result.get("status"));
-      String responseBody = (String) result.get("body");
-      assertNotNull(responseBody);
-      assertTrue(responseBody.contains("Hello, World!"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    assertEquals(200, result.get("status"));
+    assertTrue(((String) result.get("body")).contains("Hello, World!"));
   }
 
   @Test
-  void testProcessRequest_WithQueryParams() throws IOException {
-    String script =
+  void testProcessRequest_WithQueryParams() {
+    db.endpoint(
+        "test-query",
         """
         function httpHandler(request, response) {
           var name = request.queryParams.name || 'Guest';
           response.setStatus(200);
           response.setBody(JSON.stringify({ greeting: 'Hello, ' + name }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-query.js");
-    Files.writeString(scriptPath, script);
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put("name", "Alice");
+    Map<String, Object> result =
+        processor.processRequest(
+            "test-query",
+            "GET",
+            "/api/v1/test-query",
+            queryParams,
+            new HashMap<>(),
+            new JsonObject());
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      queryParams.put("name", "Alice");
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
-
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-query", "GET", "/api/v1/test-query", queryParams, headers, body);
-
-      assertEquals(200, result.get("status"));
-      String responseBody = (String) result.get("body");
-      assertTrue(responseBody.contains("Alice"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    assertEquals(200, result.get("status"));
+    assertTrue(((String) result.get("body")).contains("Alice"));
   }
 
   @Test
-  void testProcessRequest_WithRequestBody() throws IOException {
-    String script =
+  void testProcessRequest_WithRequestBody() {
+    db.endpoint(
+        "test-post",
         """
         function httpHandler(request, response) {
           var body = request.body;
@@ -107,34 +81,23 @@ class ApiScriptProcessorTest {
             received: body
           }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-post.js");
-    Files.writeString(scriptPath, script);
+    JsonObject body = new JsonObject();
+    body.addProperty("name", "Test");
+    body.addProperty("value", 123);
+    Map<String, Object> result = call("test-post", "POST", body);
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
-      body.addProperty("name", "Test");
-      body.addProperty("value", 123);
-
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-post", "POST", "/api/v1/test-post", queryParams, headers, body);
-
-      assertEquals(201, result.get("status"));
-      String responseBody = (String) result.get("body");
-      assertTrue(responseBody.contains("Test"));
-      assertTrue(responseBody.contains("123"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    assertEquals(201, result.get("status"));
+    String responseBody = (String) result.get("body");
+    assertTrue(responseBody.contains("Test"));
+    assertTrue(responseBody.contains("123"));
   }
 
   @Test
-  void testProcessRequest_WithCustomHeaders() throws IOException {
-    String script =
+  void testProcessRequest_WithCustomHeaders() {
+    db.endpoint(
+        "test-headers",
         """
         function httpHandler(request, response) {
           response.setStatus(200);
@@ -142,128 +105,91 @@ class ApiScriptProcessorTest {
           response.setHeader('X-API-Version', '1.0');
           response.setBody(JSON.stringify({ status: 'ok' }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-headers.js");
-    Files.writeString(scriptPath, script);
+    Map<String, Object> result = call("test-headers", "GET", new JsonObject());
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
-
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-headers", "GET", "/api/v1/test-headers", queryParams, headers, body);
-
-      assertEquals(200, result.get("status"));
-
-      @SuppressWarnings("unchecked")
-      Map<String, String> responseHeaders = (Map<String, String>) result.get("headers");
-      assertEquals("test-value", responseHeaders.get("X-Custom-Header"));
-      assertEquals("1.0", responseHeaders.get("X-API-Version"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    assertEquals(200, result.get("status"));
+    @SuppressWarnings("unchecked")
+    Map<String, String> responseHeaders = (Map<String, String>) result.get("headers");
+    assertEquals("test-value", responseHeaders.get("X-Custom-Header"));
+    assertEquals("1.0", responseHeaders.get("X-API-Version"));
   }
 
   @Test
-  void testProcessRequest_RequireModule() throws IOException {
-    // Create a library module
-    Path libDir = Paths.get("scripts/lib");
-    Files.createDirectories(libDir);
-    Path libPath = libDir.resolve("test-utils.js");
-
-    String libScript =
+  void testProcessRequest_ImportModule() {
+    db.module(
+        "lib/test-utils",
         """
         function greet(name) {
           return 'Hello, ' + name + '!';
         }
         module.exports = { greet: greet };
-        """;
-    Files.writeString(libPath, libScript);
-
-    // Create API script that uses the library
-    String script =
+        """);
+    db.endpoint(
+        "test-import",
         """
-        var utils = require('../lib/test-utils.js');
+        import utils from 'lib/test-utils';
         function httpHandler(request, response) {
           var greeting = utils.greet('World');
           response.setStatus(200);
           response.setBody(JSON.stringify({ message: greeting }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-require.js");
-    Files.writeString(scriptPath, script);
+    Map<String, Object> result = call("test-import", "GET", new JsonObject());
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
+    assertEquals(200, result.get("status"));
+    assertTrue(((String) result.get("body")).contains("Hello, World!"));
+  }
 
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-require", "GET", "/api/v1/test-require", queryParams, headers, body);
+  @Test
+  void testProcessRequest_ImportOfMissingModuleFails() {
+    db.endpoint(
+        "test-missing-import",
+        """
+        import nothing from 'lib/not-there';
+        function httpHandler(request, response) {
+          response.setStatus(200);
+        }
+        """);
 
-      assertEquals(200, result.get("status"));
-      String responseBody = (String) result.get("body");
-      assertTrue(responseBody.contains("Hello, World!"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-      Files.deleteIfExists(libPath);
-    }
+    Map<String, Object> result = call("test-missing-import", "GET", new JsonObject());
+
+    assertNotEquals(200, result.get("status"));
+    assertTrue(((String) result.get("body")).contains("not-there"));
   }
 
   @Test
   void testProcessRequest_ScriptNotFound() {
-    Map<String, String> queryParams = new HashMap<>();
-    Map<String, String> headers = new HashMap<>();
-    JsonObject body = new JsonObject();
-
-    Map<String, Object> result =
-        processor.processRequest(
-            "nonexistent", "GET", "/api/v1/nonexistent", queryParams, headers, body);
+    Map<String, Object> result = call("nonexistent", "GET", new JsonObject());
 
     assertEquals(404, result.get("status"));
-    String responseBody = (String) result.get("body");
-    assertTrue(responseBody.contains("not found"));
+    assertTrue(((String) result.get("body")).contains("not found"));
   }
 
   @Test
-  void testProcessRequest_ScriptError() throws IOException {
-    String script =
+  void testProcessRequest_ScriptError() {
+    db.endpoint(
+        "test-error",
         """
         function httpHandler(request, response) {
           // This will cause an error
           throw new Error('Test error');
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-error.js");
-    Files.writeString(scriptPath, script);
+    Map<String, Object> result = call("test-error", "GET", new JsonObject());
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
-
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-error", "GET", "/api/v1/test-error", queryParams, headers, body);
-
-      assertEquals(400, result.get("status"));
-      String responseBody = (String) result.get("body");
-      assertTrue(responseBody.contains("error") || responseBody.contains("Error"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    assertEquals(400, result.get("status"));
+    String responseBody = (String) result.get("body");
+    assertTrue(responseBody.contains("error") || responseBody.contains("Error"));
   }
 
   @Test
-  void testProcessRequest_SecurityRestrictions() throws IOException {
-    // Test that scripts cannot access restricted classes
-    String script =
+  void testProcessRequest_SecurityRestrictions() {
+    db.endpoint(
+        "test-security",
         """
         function httpHandler(request, response) {
           // Try to access restricted java.io.File
@@ -271,58 +197,39 @@ class ApiScriptProcessorTest {
           response.setStatus(200);
           response.setBody(JSON.stringify({ message: 'Should not reach here' }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-security.js");
-    Files.writeString(scriptPath, script);
+    Map<String, Object> result = call("test-security", "GET", new JsonObject());
 
-    try {
-      Map<String, String> queryParams = new HashMap<>();
-      Map<String, String> headers = new HashMap<>();
-      JsonObject body = new JsonObject();
-
-      Map<String, Object> result =
-          processor.processRequest(
-              "test-security", "GET", "/api/v1/test-security", queryParams, headers, body);
-
-      // Should return an error status, not 200
-      assertNotEquals(200, result.get("status"));
-    } finally {
-      Files.deleteIfExists(scriptPath);
-    }
+    // Should return an error status, not 200
+    assertNotEquals(200, result.get("status"));
   }
 
   @Test
-  void testProcessRequest_DifferentHttpMethods() throws IOException {
-    String script =
+  void testProcessRequest_DifferentHttpMethods() {
+    db.endpoint(
+        "test-methods",
         """
         function httpHandler(request, response) {
           response.setStatus(200);
           response.setBody(JSON.stringify({ method: request.method }));
         }
-        """;
+        """);
 
-    Path scriptPath = testScriptsDir.resolve("test-methods.js");
-    Files.writeString(scriptPath, script);
-
-    try {
-      String[] methods = {"GET", "POST", "PUT", "DELETE", "PATCH"};
-
-      for (String method : methods) {
-        Map<String, String> queryParams = new HashMap<>();
-        Map<String, String> headers = new HashMap<>();
-        JsonObject body = new JsonObject();
-
-        Map<String, Object> result =
-            processor.processRequest(
-                "test-methods", method, "/api/v1/test-methods", queryParams, headers, body);
-
-        assertEquals(200, result.get("status"));
-        String responseBody = (String) result.get("body");
-        assertTrue(responseBody.contains(method));
-      }
-    } finally {
-      Files.deleteIfExists(scriptPath);
+    for (String method : new String[] {"GET", "POST", "PUT", "DELETE", "PATCH"}) {
+      Map<String, Object> result = call("test-methods", method, new JsonObject());
+      assertEquals(200, result.get("status"));
+      assertTrue(((String) result.get("body")).contains(method));
     }
+  }
+
+  @Test
+  void testProcessRequest_EndpointNameIsNotAPath() {
+    db.endpoint("secret", "function httpHandler(request, response) { response.setStatus(200); }");
+
+    // A traversal-style name is just a name that matches no row
+    Map<String, Object> result = call("../secret", "GET", new JsonObject());
+
+    assertEquals(404, result.get("status"));
   }
 }

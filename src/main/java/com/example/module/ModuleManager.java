@@ -37,7 +37,7 @@ public class ModuleManager {
    *
    * @param database database to use, or null to look up the application database on first use
    */
-  ModuleManager(Database database) {
+  public ModuleManager(Database database) {
     this.database = database;
     this.maxFileSize = PropertiesUtil.getLong("modules.maxFileSize", 1048576L);
   }

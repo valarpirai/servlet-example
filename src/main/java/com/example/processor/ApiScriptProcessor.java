@@ -1,24 +1,55 @@
 package com.example.processor;
 
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.table;
+
+import com.example.config.Database;
+import com.example.config.DbPropertiesLoader;
+import com.example.module.ModuleManager;
 import com.example.script.ScriptExecutor;
+import com.example.script.ScriptModuleLoader;
 import com.example.util.JsonConverter;
 import com.example.util.JsonUtil;
 import com.google.gson.JsonObject;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Table;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 
 /**
- * Processor for scripted REST API endpoints. Loads JavaScript files from scripts/api/ directory and
- * executes them with request/response handling. Supports require() for loading shared libraries
- * from scripts/lib/ and scripts/vendor/.
+ * Processor for scripted REST API endpoints. Loads each endpoint script from the {@code
+ * api_scripts} table and executes it with request/response handling. Supports require() for shared
+ * libraries stored in the {@code modules} table as lib/ and vendor/ modules.
  */
 public class ApiScriptProcessor {
 
-  private static final String API_DIR = "scripts/api";
+  private static final Table<Record> API_SCRIPTS = table("api_scripts");
+  private static final Field<String> NAME = field("name", String.class);
+  private static final Field<String> CONTENT = field("content", String.class);
 
+  private final Database database;
   private final ScriptExecutor scriptExecutor = new ScriptExecutor();
+  private final ScriptModuleLoader moduleLoader;
+
+  /** Creates a processor on the application database, looked up on first use. */
+  public ApiScriptProcessor() {
+    this.database = null;
+    this.moduleLoader = new ScriptModuleLoader(ModuleManager.getInstance());
+  }
+
+  /**
+   * Creates a processor on a fixed database.
+   *
+   * @param database database holding api_scripts and modules
+   */
+  public ApiScriptProcessor(Database database) {
+    this.database = database;
+    this.moduleLoader = new ScriptModuleLoader(new ModuleManager(database));
+  }
 
   /**
    * Process an API request with the given endpoint script.
@@ -41,21 +72,32 @@ public class ApiScriptProcessor {
 
     try {
       // Load the endpoint script
-      String scriptPath = API_DIR + "/" + endpointName + ".js";
-      String scriptContent = scriptExecutor.loadScript(scriptPath);
+      String scriptContent = loadEndpoint(endpointName);
 
       if (scriptContent == null) {
         return createErrorResponse(
             404, "Not Found", "Endpoint script not found: " + endpointName, null);
       }
 
-      // Execute the script
-      return executeScript(scriptContent, method, path, queryParams, headers, body);
+      // Resolve import statements, then execute
+      String prepared = moduleLoader.prepareWithModules(scriptContent);
+      return executeScript(prepared, method, path, queryParams, headers, body);
 
     } catch (Exception e) {
       return createErrorResponse(
           500, "Internal Server Error", "Error processing API request: " + e.getMessage(), e);
     }
+  }
+
+  /** Reads one endpoint script. Returns null when no row has that name. */
+  private String loadEndpoint(String endpointName) throws Exception {
+    Database db = database != null ? database : DbPropertiesLoader.getDatabase();
+    if (db == null) {
+      throw new IOException("API scripts are stored in the database, which is not ready");
+    }
+    return db.query(
+        dsl ->
+            dsl.select(CONTENT).from(API_SCRIPTS).where(NAME.eq(endpointName)).fetchOne(CONTENT));
   }
 
   /** Execute the JavaScript handler with request/response objects. */

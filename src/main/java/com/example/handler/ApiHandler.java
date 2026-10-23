@@ -14,8 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Handler for scripted REST API endpoints. Routes requests to JavaScript handlers in scripts/api/
- * directory.
+ * Handler for scripted REST API endpoints. Routes requests to JavaScript handlers stored in the
+ * api_scripts table.
  */
 public class ApiHandler {
 
@@ -24,7 +24,11 @@ public class ApiHandler {
   private final ApiScriptProcessor processor;
 
   private ApiHandler() {
-    this.processor = new ApiScriptProcessor();
+    this(new ApiScriptProcessor());
+  }
+
+  ApiHandler(ApiScriptProcessor processor) {
+    this.processor = processor;
   }
 
   public static synchronized ApiHandler getInstance() {

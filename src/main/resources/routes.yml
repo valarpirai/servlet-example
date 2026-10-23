@@ -193,7 +193,7 @@ routes:
     handler: ApiHandler
     handlerMethod: handleRequest
     contentType: application/json
-    description: Scripted REST API endpoints (loads JS from scripts/api/)
+    description: Scripted REST API endpoints (loads JS from the api_scripts table)
 
   # Content-Type Based Processing
   - path: /api/upload
