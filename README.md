@@ -697,44 +697,13 @@ Error responses follow this format:
 
 ## Development
 
-### Adding a New Processor
+### Adding an Endpoint
 
-1. Implement the `RequestProcessor` interface:
-```java
-public class XmlDataProcessor implements RequestProcessor {
-    @Override
-    public boolean supports(String contentType) {
-        return contentType != null && contentType.startsWith("application/xml");
-    }
-
-    @Override
-    public ProcessorResponse process(HttpServletRequest request)
-            throws IOException, ServletException {
-        // Process XML data
-        return ProcessorResponse.builder()
-                .statusCode(200)
-                .body(responseJson)
-                .build();
-    }
-
-    @Override
-    public String getContentType() {
-        return "application/xml";
-    }
-}
-```
-
-2. Register in `RouterServlet.init()`:
-```java
-registry.register(new XmlDataProcessor());
-```
-
-3. Add route in `RouterServlet.doPost()`:
-```java
-case "/api/xml":
-    handleProcessorRequest(request, response);
-    break;
-```
+Add a row to the `routes` table. A JavaScript endpoint needs no Java: a `script` route
+names a function in an `api_scripts` row. A Java endpoint is a handler or a processor,
+registered in both `RouteRegistry` and `RouteDispatcher`. See
+[docs/routing/adding-a-route.md](docs/routing/adding-a-route.md) for the steps and for
+choosing between the route types.
 
 ## License
 

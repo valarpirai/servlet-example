@@ -99,8 +99,7 @@ src/main/resources/
 Flyway runs pending migrations from `classpath:db` at startup. Files follow
 `V{n}__{description}.sql`. Applied versions are skipped.
 
-A failed migration logs an error and falls back to YAML. The server still
-starts, without database-backed properties.
+A failed migration stops startup. See [startup flow](./startup-flow.md).
 
 ## Related
 
