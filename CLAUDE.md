@@ -7,7 +7,7 @@ Quick guidance for Claude Code. **All detail lives in docs/ — start at
 
 **Task** | **Doc** | **Key Files**
 ---|---|---
-Routing | docs/routing/route-registry.md | routes.yml, route/
+Routing | docs/routing/table-routes.md | `routes` table, route/
 File storage | docs/storage/memory-guarantee.md | storage/
 Table browser | docs/data-browser/table-browser.md | browser/, handler/TableBrowserHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
@@ -26,7 +26,7 @@ Writing docs | .claude/rules/documentation.md | docs/
 ## Quick Decision Tree
 
 **Adding functionality?**
-- New HTTP endpoint? → `routes.yml` → register in **both** `RouteRegistry` and `RouteDispatcher` → See docs/routing/adding-a-route.md
+- New HTTP endpoint? → Java handler: row in `routes` (migration) → register in **both** `RouteRegistry` and `RouteDispatcher`. JavaScript handler: `script` route, no Java → See docs/routing/adding-a-route.md
 - JavaScript API? → Insert a row into `api_scripts` (name = endpoint) → See docs/scripting/api-scripting.md
 - Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser/datasource-strategies.md
 - File storage feature? → Modify `storage/` → Use streaming APIs → See docs/storage/memory-guarantee.md
@@ -38,7 +38,7 @@ Writing docs | .claude/rules/documentation.md | docs/
 - Test failing? → **Read docs/troubleshooting/ first**
 - JSON error? → **Use `JsonUtil` NOT `new Gson()`** → See docs/troubleshooting/json-and-serialization.md
 - Memory issue? → Check streaming usage → See docs/storage/memory-guarantee.md
-- Route 404? → Check `routes.yml` order and **both** registration points → See docs/troubleshooting/routing-issues.md
+- Route 404? → Check the `routes` row, its `sort_order` and **both** registration points → See docs/troubleshooting/routing-issues.md
 - Script timeout? → `script.timeout` in `app_properties` → See docs/troubleshooting/script-issues.md
 - Build error? → Run `mvn spotless:apply` → See docs/troubleshooting/build-issues.md
 - Enforcer failure? → A transitive dep wants a newer version → pin it in `shared-build/catalog/thirdparty/pom.xml`
@@ -90,7 +90,7 @@ Writing docs | .claude/rules/documentation.md | docs/
 **Configuration:**
 - DB credentials only: `src/main/resources/application.yml`
 - Everything else: `app_properties` table, seeded by `db/V2__seed_app_properties.sql`
-- Routes: `src/main/resources/routes.yml`
+- Routes: the `routes` table. `src/main/resources/routes.yml` is deprecated, a fallback only
 - DB migrations: `src/main/resources/db/V*.sql`
 
 **Source code (by package):**
@@ -135,7 +135,7 @@ See docs/architecture/configuration.md.
 ## Config
 
 `src/main/resources/application.yml` — **db credentials only**
-`src/main/resources/routes.yml` — 41 HTTP routes
+The `routes` table — 34 default routes, seeded by `db/V8__create_routes.sql` and trimmed by V10. `routes.yml` is a deprecated fallback
 
 Every other property lives in `app_properties`, **not** `application.yml`.
 Lookup order is LRU cache → DB → YAML.
@@ -149,7 +149,7 @@ Defaults, env var rules, and no-database behaviour: docs/architecture/configurat
 
 ## Architecture
 
-**Routing**: 41 routes in YAML → RouteRegistry → RouteDispatcher → Handler/Processor
+**Routing**: `routes` table → RouteRegistry → RouteDispatcher → Handler/Processor
 **Properties**: LRU cache → DB (`app_properties`) → YAML (three-level fallback)
 **Storage**: 1MB chunks → ChunkedOutputStream/InputStream → memory-safe; DB or filesystem backend
 **DB**: `Database` wrapper (jOOQ DSL) + Flyway auto-migrations on startup

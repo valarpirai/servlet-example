@@ -44,12 +44,12 @@ sequenceDiagram
         RD->>RD: getResourceAsStream classpath
         RD-->>Client: 200 text/html (streamed)
 
-    else Handler route  /api/properties/**  /api/attachments/**
+    else Handler route  /api/tables/**  /api/attachments/**
         RR-->>RS: RouteMatch type=handler\n+ pathParams map
         RS->>RD: dispatch(match, req, res)
         RD->>H: reflection: getInstance().method(req, res [,id])
         H->>DB: database.query(dsl → …) or transact(…)
-        DB-->>H: Result / AppProperty / Attachment
+        DB-->>H: Result / Row / Attachment
         H-->>Client: 200/201/404 JSON
 
     else Processor route  /api/v1/**  /api/upload  /api/script

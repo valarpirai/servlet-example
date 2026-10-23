@@ -1,106 +1,101 @@
 # Route Configuration
 
-The `routes.yml` format, one entry per route.
+The fields of a route, one row per route in the `routes` table.
 
-Every route needs a `path`, a `method`, and a `type`. The type decides which
-other fields apply.
+Every route needs a `path`, `methods`, and a `type`. The type decides which other
+columns apply. See [table routes](./table-routes.md) for how rows are loaded and
+protected.
 
 ## Fields
 
-| Field | Applies to | Meaning |
+| Column | Applies to | Meaning |
 |---|---|---|
 | `path` | all | Pattern, with `{param}` or `**` |
-| `method` | all | One method, or a list |
-| `type` | all | `static`, `handler`, `processor`, or `builtin` |
-| `description` | all | Free text, shown in validation errors |
-| `contentType` | all | Response content type |
+| `methods` | all | One method, or several separated by commas |
+| `type` | all | `static`, `handler`, `processor`, `builtin` or `script` |
+| `description` | all | Free text, shown in validation messages |
+| `content_type` | all | Response content type |
 | `resource` | `static` | Classpath path to the file |
-| `handler` | `handler`, `builtin` | Handler name, or builtin method name |
-| `handlerMethod` | `handler` | Method to invoke on the singleton |
+| `handler` | `handler`, `builtin`, `script` | Handler name, builtin method name, or script name |
+| `handler_method` | `handler`, `script` | Java method, or JavaScript function |
 | `processor` | `processor` | Processor class name |
-| `pathParams` | any with `{param}` | Names to extract from the path |
+| `path_params` | any with `{param}` | Names to extract from the path, comma separated |
+| `sort_order` | all | Lower matches first |
 
-## The four types
+The deprecated `routes.yml` uses the camelCase forms of the same fields:
+`method`, `handlerMethod`, `contentType` and `pathParams`.
+
+## The five types
 
 **`static`** streams a classpath resource. No Java involved.
 
-```yaml
-- path: /script-editor
-  method: GET
-  type: static
-  resource: static/script-editor.html
-  contentType: text/html
-  description: Interactive JavaScript code editor
+```sql
+INSERT INTO routes (path, methods, type, resource, content_type, description)
+VALUES ('/script-editor', 'GET', 'static', 'static/script-editor.html',
+        'text/html', 'Interactive JavaScript code editor');
 ```
 
 **`handler`** invokes a method on a singleton. The handler writes the response
-itself, so this is the only type that can stream.
+itself, so this is the only Java type that can stream.
 
-```yaml
-- path: /api/attachment/{id}/download
-  method: GET
-  type: handler
-  handler: AttachmentHandler
-  handlerMethod: handleDownload
-  pathParams:
-    - id
-  description: Download attachment by ID
+```sql
+INSERT INTO routes (path, methods, type, handler, handler_method, path_params)
+VALUES ('/api/attachment/{id}/download', 'GET', 'handler',
+        'AttachmentHandler', 'handleDownload', 'id');
 ```
 
 **`processor`** constructs a fresh instance per request. The processor returns a
 `ProcessorResponse` and the dispatcher writes it.
 
-```yaml
-- path: /api/modules/**
-  method: [GET, POST, PUT, DELETE]
-  type: processor
-  processor: ModuleProcessor
-  contentType: application/json
-  description: Module management endpoints
+```sql
+INSERT INTO routes (path, methods, type, processor, content_type)
+VALUES ('/api/modules/**', 'GET,POST,PUT,DELETE', 'processor',
+        'ModuleProcessor', 'application/json');
 ```
 
 **`builtin`** calls a `RouterServlet` method directly. Only `handleHealth` and
 `handleMetrics` are valid.
 
-```yaml
-- path: /health
-  method: GET
-  type: builtin
-  handler: handleHealth
-  contentType: application/json
-  description: Health check endpoint
+```sql
+INSERT INTO routes (path, methods, type, handler, content_type)
+VALUES ('/health', 'GET', 'builtin', 'handleHealth', 'application/json');
+```
+
+**`script`** calls a JavaScript function in an `api_scripts` row. The function
+receives the request and response objects.
+
+```sql
+INSERT INTO routes (path, methods, type, handler, handler_method)
+VALUES ('/hello', 'GET', 'script', 'greeter', 'greet');
 ```
 
 ## Path patterns
 
-`{name}` captures exactly one segment. List each name under `pathParams` or it
+`{name}` captures exactly one segment. List each name under `path_params` or it
 will not be extracted.
 
-```yaml
-- path: /api/users/{userId}/posts/{postId}
-  pathParams:
-    - userId
-    - postId
+```
+/api/users/{userId}/posts/{postId}      path_params: userId,postId
 ```
 
 `**` matches all remaining segments and captures nothing. Use it for a group of
 endpoints handled by one processor.
 
-```yaml
-- path: /api/modules/**
+```
+/api/modules/**
 ```
 
 ## Multiple methods
 
-Give `method` a list when one route serves several verbs.
+Separate the verbs with commas when one route serves several.
 
-```yaml
-- path: /api/properties/{key}
-  method: [GET, PUT, DELETE]
+```
+GET,PUT,DELETE
 ```
 
 ## Related
 
+- [Table routes](./table-routes.md) — loading, refresh and default routes
 - [Route registry](./route-registry.md) — how matching works
 - [Adding a route](./adding-a-route.md) — the steps and the ordering trap
-- [Configuration](../architecture/configuration.md) — other resource files
+- [Configuration](../architecture/configuration.md) — other configuration

@@ -46,9 +46,11 @@ it.
 
 ## Seeded properties
 
-`db/V2__seed_app_properties.sql` seeds defaults. Change a value with the
-properties REST API or with SQL. The seed uses `ON CONFLICT DO NOTHING`, so
-edits survive a restart.
+`db/V2__seed_app_properties.sql` seeds defaults. Change a value with SQL or with
+`TableRecord`. The seed uses `ON CONFLICT DO NOTHING`, so edits survive a restart.
+
+A cached value lives up to 5 seconds. After an edit the new value appears within
+that time, on every node. No reload is needed.
 
 | Property | Default | Meaning |
 |---|---|---|
@@ -68,7 +70,7 @@ edits survive a restart.
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |
 | `storage.filesystem.path` | `data/attachments` | Filesystem storage root |
 | `storage.database.table` | `attachment_chunks` | Chunk table |
-| `record.allowedTables` | `modules:name` | Tables `TableRecord` may touch, as `table:keyColumn` |
+| `record.allowedTables` | `modules:name,routes:id,app_properties:id` | Tables `TableRecord` may touch, as `table:keyColumn` |
 | `record.maxRuleDepth` | `5` | Deepest nesting of rules that fire rules |
 | `logging.level` | `INFO` | Root log level |
 | `logging.filePath` | `logs/application.log` | Log file |
@@ -80,9 +82,9 @@ The default storage backend is `database`, not the filesystem.
 ```
 src/main/resources/
 ├── application.yml          Database credentials
-├── routes.yml               All HTTP routes
+├── routes.yml               Deprecated fallback routes, used without a database
 ├── logback.xml              Appenders and third-party log levels
-├── db/                      Flyway migrations, V1 to V3
+├── db/                      Flyway migrations
 ├── META-INF/services/       DataSourceStrategy registrations
 ├── templates/               HTML templates
 └── static/                  index.html, script-editor.html, data-browser.html
@@ -99,6 +101,6 @@ starts, without database-backed properties.
 ## Related
 
 - [Startup flow](./startup-flow.md) — when each source loads
-- [Route configuration](../routing/route-configuration.md) — the routes.yml format
+- [Route configuration](../routing/route-configuration.md) — the route fields
 - [Storage backends](../storage/storage-backends.md) — choosing database or filesystem
 - [Log format](../observability/log-format.md) — logging properties

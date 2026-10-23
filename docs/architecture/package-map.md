@@ -29,7 +29,6 @@ src/main/java/com/example/
 │   ├── AttachmentHandler.java          Download, delete, list
 │   ├── DataBrowserHandler.java         Relational browsing
 │   ├── MongoHandler.java               MongoDB browsing
-│   ├── PropertiesHandler.java          Properties REST API
 │   └── TableBrowserHandler.java        Table browser JSON endpoints
 │
 ├── browser/                            Read-only view of the app database
@@ -53,8 +52,7 @@ src/main/java/com/example/
 │   ├── DbConfig.java                   Connection setup
 │   ├── Database.java                   jOOQ query and transact wrapper
 │   ├── DbPropertiesLoader.java         Flyway plus property wiring
-│   ├── PropertyRepository.java         app_properties CRUD
-│   └── AppProperty.java                Java record
+│   └── PropertyRepository.java         app_properties value lookup
 │
 ├── script/                             Rhino execution internals
 │   ├── ScriptExecutor.java             Script invocation
@@ -114,7 +112,7 @@ under `src/test/java`.
 
 | Task | Start here |
 |---|---|
-| Routing | `route/`, `src/main/resources/routes.yml` |
+| Routing | `route/`, the `routes` table |
 | Request handling | `processor/`, `handler/` |
 | File storage | `storage/AttachmentManager` |
 | Database browsing | `datasource/` |

@@ -15,10 +15,11 @@ How the app is put together.
 
 ## Routing
 
-41 routes in YAML, matched and dispatched by reflection.
+34 default routes in the `routes` table, matched and dispatched by reflection. Handlers can be Java or JavaScript.
 
 - [Route registry](./routing/route-registry.md) — matching, validation, dispatch
-- [Route configuration](./routing/route-configuration.md) — the routes.yml format
+- [Table routes](./routing/table-routes.md) — the routes table, JavaScript handlers, default routes
+- [Route configuration](./routing/route-configuration.md) — the route fields
 - [Adding a route](./routing/adding-a-route.md) — the checklist
 
 ## Storage

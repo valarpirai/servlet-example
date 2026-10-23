@@ -99,7 +99,7 @@ table, including `app_properties`. Keep it off any network you do not trust.
 - `browser/TableBrowser.java` holds the queries
 - `handler/TableBrowserHandler.java` turns them into HTTP
 - `static/table-browser.html` is the UI
-- `routes.yml` registers three static routes and three API routes
+- the `routes` table registers three static routes and three API routes
 
 ## Related
 

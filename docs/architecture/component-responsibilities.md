@@ -8,12 +8,12 @@ Who owns what. One row per class that carries real responsibility.
 | Bootstrap | `LoggingConfig` | Configures SLF4J and Logback with hardcoded defaults |
 | Bootstrap | `DbPropertiesLoader` | Runs Flyway, creates `Database` and `PropertyRepository` |
 | Properties | `PropertiesUtil` | LRU cache, then database, then YAML lookup |
-| Routing | `RouteRegistry` | Loads `routes.yml`, validates, matches method and path |
+| Routing | `RouteRegistry` | Loads the `routes` table, validates, matches method and path |
 | Routing | `RouteDispatcher` | Resolves handler or processor by name, invokes by reflection |
 | Servlet | `RouterServlet` | Wraps all requests, handles builtins inline |
 | Filter | `CorrelationIdFilter` | Injects `X-Correlation-ID` for structured logging |
 | DB wrapper | `Database` | `query()`, `transact()`, `openConnection()` over jOOQ |
-| DB | `PropertyRepository` | CRUD for `app_properties` through the jOOQ DSL |
+| DB | `PropertyRepository` | Looks up values in `app_properties` through the jOOQ DSL |
 | Storage | `AttachmentManager` | Coordinates storage backends, caches metadata |
 | Storage | `LocalFileSystemStorage` | Filesystem backend, chunked writes |
 | Storage | `DatabaseAttachmentStorage` | Chunk-streamed BYTEA storage, cursor retrieval |

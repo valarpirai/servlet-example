@@ -47,7 +47,7 @@ flowchart TD
         N[new Tomcat port] --> O
         O[addServlet RouterServlet] --> P
         P[addFilter CorrelationIdFilter] --> Q
-        Q["RouterServlet.init()\nRouteRegistry.getInstance()\nLoads routes.yml, validates routes\nnew RouteDispatcher()"] --> R
+        Q["RouterServlet.init()\nRouteRegistry.getInstance()\nLoads routes from the table, validates routes\nnew RouteDispatcher()"] --> R
         R[tomcat.start]
     end
 

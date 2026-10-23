@@ -5,11 +5,10 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 ## Features
 
 - **Beautiful Home Page**: Visit `/` for an elegant HTML dashboard with links to all endpoints
-- **Declarative Routing**: All 41 routes configured in `routes.yml` - no hardcoded routing logic
+- **Table-based Routing**: All 34 default routes live in the `routes` table. Java and JavaScript handlers. Default routes are protected by a business rule
 - **File Upload & Storage**: Upload files up to 500MB with automatic chunked storage (1MB chunks), SHA-256 hashing, and streaming downloads — stored on local filesystem or PostgreSQL
 - **DB-Backed Properties**: App configuration stored in PostgreSQL `app_properties` table with a three-level lookup: LRU cache → DB → YAML fallback
 - **Automatic DB Migrations**: Flyway runs pending `db/V*.sql` migrations on startup
-- **Properties REST API**: CRUD endpoints at `/api/properties/**` backed by jOOQ + PostgreSQL
 - **Server-Side JavaScript**: Execute JavaScript code using Rhino engine with console output and performance metrics
 - **JavaScript Modules**: Create reusable modules with ES6 imports and CommonJS exports
 - **Database Browser**: Connect to PostgreSQL, MySQL, or Snowflake and execute SQL queries
@@ -62,7 +61,6 @@ servlet-example/
 │       │           │   └── RouteDispatcher.java
 │       │           ├── handler/        (Singleton handlers)
 │       │           │   ├── ApiHandler.java
-│       │           │   ├── PropertiesHandler.java
 │       │           │   ├── AttachmentHandler.java
 │       │           │   ├── DataBrowserHandler.java
 │       │           │   └── MongoHandler.java
@@ -82,8 +80,7 @@ servlet-example/
 │       │           │   ├── DbConfig.java
 │       │           │   ├── Database.java         (jOOQ query/transact wrapper)
 │       │           │   ├── DbPropertiesLoader.java
-│       │           │   ├── PropertyRepository.java
-│       │           │   └── AppProperty.java      (Java record)
+│       │           │   └── PropertyRepository.java
 │       │           ├── datasource/     (Database browser connection strategies)
 │       │           ├── script/         (Rhino execution internals)
 │       │           ├── security/       (ClassShutter sandbox)
@@ -101,7 +98,7 @@ servlet-example/
 │       │               └── TemplateEngine.java
 │       └── resources/
 │           ├── application.yml
-│           ├── routes.yml              (All 41 routes defined here)
+│           ├── routes.yml              (Deprecated. Fallback routes, no database)
 │           ├── db/                     (Flyway migrations)
 │           │   ├── V1__create_app_properties.sql
 │           │   ├── V2__seed_app_properties.sql
@@ -318,32 +315,23 @@ curl -X DELETE http://localhost:8080/api/attachment/{attachmentId}
 
 Files are automatically split into chunks for efficient storage and streaming. SHA-256 hash is calculated for integrity verification.
 
-#### Properties API
+#### Editing properties
 
-Manage application properties stored in PostgreSQL (requires `db.*` config):
+Properties live in the `app_properties` table. Edit them with SQL, or with `TableRecord`
+from a script (requires `db.*` config). `app_properties` is on the `record.allowedTables` list.
 
-```bash
-# List all properties
-curl http://localhost:8080/api/properties
-
-# Get a single property
-curl http://localhost:8080/api/properties/1
-
-# Create a property
-curl -X POST http://localhost:8080/api/properties \
-  -H "Content-Type: application/json" \
-  -d '{"name":"my.key","value":"hello","type":"string","description":"demo"}'
-
-# Update a property
-curl -X PUT http://localhost:8080/api/properties/1 \
-  -H "Content-Type: application/json" \
-  -d '{"value":"world"}'
-
-# Delete a property
-curl -X DELETE http://localhost:8080/api/properties/1
+```javascript
+// POST this as {"script": "..."} to /api/script, or paste it into the script editor
+var p = new TableRecord('app_properties');
+p.addQuery('name', 'script.timeout');
+p.query();
+p.next();
+p.setValue('value', '8000');
+p.update();
 ```
 
-Properties are cached in an LRU cache and looked up in order: cache → DB → YAML.
+Properties are cached in an LRU cache and looked up in order: cache → DB → YAML. The cache
+empties every 5 seconds, so an edit takes effect within about that time. No reload is needed.
 
 #### JavaScript Execution
 - **URL**: `http://localhost:8080/api/script`
@@ -553,7 +541,7 @@ Module system properties in `app_properties`:
 |---|---|
 | `modules.maxFileSize` | `1048576` (1 MB) |
 
-Change these through the properties API or SQL. There is no environment
+Change these with SQL or `TableRecord`. There is no environment
 variable override for module settings.
 
 #### Interactive Script Editor
@@ -621,7 +609,7 @@ curl -X POST http://localhost:8080/api/render \
 ### Request Processing Flow
 
 ```
-HTTP Request → RouterServlet → RouteRegistry (routes.yml) → RouteDispatcher
+HTTP Request → RouterServlet → RouteRegistry (routes table) → RouteDispatcher
                                                                     ↓
                     ┌───────────────────────────────────────────────┴───────────────────────┐
                     ↓                   ↓                   ↓                ↓               ↓
@@ -644,7 +632,7 @@ HTTP Request → RouterServlet → RouteRegistry (routes.yml) → RouteDispatche
 ### Key Components
 
 1. **RouterServlet**: Minimal servlet (236 lines) handling all HTTP requests
-2. **RouteRegistry**: Loads routes.yml and performs pattern matching with validation
+2. **RouteRegistry**: Loads the routes table and performs pattern matching with validation
 3. **RouteDispatcher**: Dispatches requests to handlers/processors via reflection
 4. **IRequestProcessor**: Interface for content-type specific processing
 5. **ScriptProcessor**: JavaScript execution engine with security sandbox and performance monitoring

@@ -38,8 +38,8 @@ Javadoc calls it a bridge between `RouteRegistry` and the handler
 implementations.
 
 The tradeoff is explicit in the project CLAUDE.md: a rename compiles cleanly
-and fails at runtime. The name lives in `routes.yml`, `RouteRegistry` and
-`RouteDispatcher` as three separate string literals, not one symbol the
+and fails at runtime. The name lives in the `routes` table, `RouteRegistry` and
+`RouteDispatcher` as three separate strings, not one symbol the
 compiler can check.
 
 ## Builder: Lombok, not hand-rolled

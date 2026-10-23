@@ -32,9 +32,6 @@ Model classes in `com.example.model`:
 - `Route`, route configuration
 - `ProcessorResponse`, HTTP response builder
 
-`AppProperty` in `config` is a Java record instead. Records suit fixed value
-types; Lombok suits classes that need setters or a builder.
-
 ## IDE setup
 
 Lombok generates code during annotation processing, so an IDE that does not know

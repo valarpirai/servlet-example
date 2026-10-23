@@ -1,27 +1,32 @@
 # Adding a Route
 
-Four steps for a new handler route. Fewer if the handler already exists.
+Four steps for a route to a new Java handler. Fewer if the handler already exists.
 
-## 1. Add the route to routes.yml
+A route to a JavaScript handler needs no Java. Insert a `script` route. See
+[table routes](./table-routes.md).
 
-Place it above any wildcard that would swallow it.
+## 1. Add the route to the routes table
 
-```yaml
-- path: /api/users/{userId}/profile
-  method: GET
-  type: handler
-  handler: UserHandler
-  handlerMethod: getProfile
-  pathParams:
-    - userId
-  contentType: application/json
-  description: Get user profile
+A route that ships with code goes in a Flyway migration, as a default route.
+Give it a `sort_order` above any wildcard that would swallow it.
+
+```sql
+-- db/V9__add_user_profile_route.sql
+INSERT INTO routes
+    (path, methods, type, handler, handler_method, path_params, content_type, description,
+     sort_order, is_default)
+VALUES
+    ('/api/users/{userId}/profile', 'GET', 'handler', 'UserHandler', 'getProfile', 'userId',
+     'application/json', 'Get user profile', 15, TRUE);
 ```
+
+Default routes cannot be edited or deleted at run time. For a route you want to
+change later, leave `is_default` false and write it through `TableRecord`.
 
 ## 2. Write the handler
 
-Handlers are singletons. The method signature takes the response, then each path
-parameter in the order listed under `pathParams`.
+Handlers are singletons. The method takes the request and the response. Path
+parameters are request attributes named `pathParam.{name}`.
 
 ```java
 public class UserHandler {
@@ -34,7 +39,9 @@ public class UserHandler {
     return instance;
   }
 
-  public void getProfile(HttpServletResponse response, String userId) throws IOException {
+  public void getProfile(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    String userId = (String) request.getAttribute("pathParam.userId");
     // write the response
   }
 }
@@ -69,25 +76,26 @@ No servlet changes are needed. `RouterServlet` never names a route.
 
 ## Order matters
 
-Routes match in file order, and the first match wins. Specific paths must come
-before wildcards.
+Routes match in `sort_order`, then `id`, and the first match wins. A specific path
+needs a lower `sort_order` than any wildcard that would match it.
 
-```yaml
+```
 # Correct
-- path: /api/attachment/{id}/download
-- path: /api/attachment/{id}
-- path: /api/**
+10  /api/attachment/{id}/download
+20  /api/attachment/{id}
+30  /api/**
 
 # Wrong: the wildcard matches everything, the others never run
-- path: /api/**
-- path: /api/attachment/{id}/download
+10  /api/**
+20  /api/attachment/{id}/download
 ```
 
 ## Choosing a type
 
 Pick `handler` when the endpoint streams, or when it needs the response object.
 Pick `processor` when it returns a value and holds per-request state. A processor
-cannot stream, because it returns before anything is written.
+cannot stream, because it returns before anything is written. Pick `script` when
+JavaScript is enough. It needs no Java and no rebuild.
 
 ## Adding a processor instead
 

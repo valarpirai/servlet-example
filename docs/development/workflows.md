@@ -59,7 +59,7 @@ returning.
 
 The short version:
 
-1. Add the route to `routes.yml`
+1. Add the route to the `routes` table, in a migration
 2. Write the handler or processor
 3. Register the name in `RouteRegistry` and `RouteDispatcher`
 4. Test it
@@ -70,7 +70,7 @@ is needed.
 ## Changing a property default
 
 Properties live in `app_properties`, not `application.yml`. Change a running
-value through the properties API or SQL. Change the shipped default by adding a
+value with SQL or `TableRecord`. It takes effect within 5 seconds. Change the shipped default by adding a
 migration under `src/main/resources/db/`.
 
 Editing `V2__seed_app_properties.sql` does nothing on an existing database.

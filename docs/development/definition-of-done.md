@@ -29,7 +29,7 @@ See [memory guarantee](../storage/memory-guarantee.md).
 
 ## Changing routing
 
-- [ ] Route added to `routes.yml`, above any wildcard that would shadow it
+- [ ] Route added to the `routes` table, with a `sort_order` below any wildcard that would shadow it
 - [ ] Name registered in **both** `RouteRegistry` and `RouteDispatcher`
 - [ ] `mvn test -Dtest=Route*Test`
 - [ ] `curl` the new route and get the expected status
