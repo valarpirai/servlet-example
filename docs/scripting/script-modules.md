@@ -2,7 +2,7 @@
 
 Reusable JavaScript stored on the server and pulled into scripts by name.
 
-Modules live in the `modules` table. `ModuleManager` handles storage. `ModuleDependencyResolver` walks the dependency graph.
+Modules live in the `js_modules` table. `ModuleManager` handles storage. `ModuleDependencyResolver` walks the dependency graph.
 `ScriptModuleLoader` turns the result into one source string for Rhino.
 
 ## Importing
@@ -62,7 +62,7 @@ Because resolution happens up front, a broken graph never runs half a script.
 `createModule`, `updateModule` and `deleteModule`. The `ModuleProcessor` route at
 `/api/modules/**` puts these on HTTP, and the module manager UI uses that.
 
-Create, update and delete go through `TableRecord`, so business rules on `modules`
+Create, update and delete go through `TableRecord`, so business rules on `js_modules`
 run. A `before` rule that stops a write returns 409 and leaves the row alone. Reads
 use the database directly.
 

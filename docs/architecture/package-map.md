@@ -64,7 +64,7 @@ src/main/java/com/example/
 │   └── ScriptSecurityManager.java      ClassShutter policy
 │
 ├── module/                             JavaScript module system
-│   ├── ModuleManager.java              Module CRUD on the modules table
+│   ├── ModuleManager.java              Module CRUD on the js_modules table
 │   └── ModuleDependencyResolver.java   Dependency graph, cycle detection
 │
 ├── record/                             Table access and business rules

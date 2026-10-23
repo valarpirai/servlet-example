@@ -82,7 +82,7 @@ The [table browser](../data-browser/table-browser.md) shows the rows.
 ## Shared libraries
 
 Use `import` to keep validation and helpers out of endpoint files. Libraries are
-modules in the `modules` table, named `lib/<name>` by convention.
+modules in the `js_modules` table, named `lib/<name>` by convention.
 
 ```javascript
 // modules row: lib/validators

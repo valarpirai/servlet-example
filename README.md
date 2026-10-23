@@ -533,7 +533,7 @@ console.log(name); // "John doe"
 - **Circular Dependency Detection**: Prevents infinite loops with clear error messages
 - **ES6 Import Syntax**: Familiar syntax for modern JavaScript developers
 - **CommonJS Exports**: Compatible with Node.js module patterns
-- **Table-based Storage**: Modules stored in the `modules` table
+- **Table-based Storage**: Modules stored in the `js_modules` table
 
 **Configuration:**
 
@@ -639,7 +639,7 @@ HTTP Request → RouterServlet → RouteRegistry (routes table) → RouteDispatc
 4. **IRequestProcessor**: Interface for content-type specific processing
 5. **ScriptProcessor**: JavaScript execution engine with security sandbox and performance monitoring
 6. **ModuleProcessor**: Handles module CRUD operations via REST API
-7. **ModuleManager**: Stores and retrieves JavaScript modules in the `modules` table
+7. **ModuleManager**: Stores and retrieves JavaScript modules in the `js_modules` table
 8. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
 9. **TemplateProcessor**: HTML template rendering with variable substitution
 10. **TemplateEngine**: Custom template parser and renderer

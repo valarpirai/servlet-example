@@ -80,7 +80,7 @@ public class TableRecord {
    * @return the key column the allow-list names for the table, or null when it is not allowed
    */
   public static String keyColumnOf(String table) {
-    String allowed = PropertiesUtil.getString("record.allowedTables", "modules:name");
+    String allowed = PropertiesUtil.getString("record.allowedTables", "js_modules:name");
     for (String pair : allowed.split(",")) {
       String[] parts = pair.trim().split(":");
       if (parts.length == 2 && parts[0].equals(table)) {

@@ -9,7 +9,7 @@ class BusinessRuleRunnerTest {
   private final MockDb db = new MockDb();
 
   private TableRecord newModule() {
-    TableRecord gr = new TableRecord(db, "modules");
+    TableRecord gr = new TableRecord(db, "js_modules");
     gr.setValue("name", "a/b");
     gr.setValue("content", "x");
     return gr;
@@ -38,7 +38,7 @@ class BusinessRuleRunnerTest {
   void ruleCanChangeFieldBeforeWrite() {
     db.row("a/b", "old");
     db.rule("stamp", "current.changes('content')", "current.setValue('content', 'stamped');");
-    TableRecord gr = new TableRecord(db, "modules");
+    TableRecord gr = new TableRecord(db, "js_modules");
     gr.query();
     gr.next();
     gr.setValue("content", "new");
@@ -50,7 +50,7 @@ class BusinessRuleRunnerTest {
   void ruleSeesPreviousValueOnUpdate() {
     db.row("a/b", "old");
     db.rule("guard", "previous.getValue('content') == 'old'", "current.setAbortAction(true);");
-    TableRecord gr = new TableRecord(db, "modules");
+    TableRecord gr = new TableRecord(db, "js_modules");
     gr.query();
     gr.next();
     gr.setValue("content", "new");
@@ -71,7 +71,7 @@ class BusinessRuleRunnerTest {
     db.rule(
         "recurse",
         null,
-        "var g = new TableRecord('modules'); g.setValue('name', 'n'); g.setValue('content', 'c');"
+        "var g = new TableRecord('js_modules'); g.setValue('name', 'n'); g.setValue('content', 'c');"
             + " g.insert();");
     IllegalStateException e = assertThrows(IllegalStateException.class, () -> newModule().insert());
     assertTrue(e.getMessage().contains("nest deeper"), e.getMessage());

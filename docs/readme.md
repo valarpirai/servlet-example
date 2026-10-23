@@ -38,7 +38,7 @@ Server-side JavaScript on Rhino, sandboxed.
 - [Sandbox policy](./scripting/sandbox-policy.md) — allow and block lists
 - [Script execution](./scripting/script-execution.md) — executor, scope, modules
 - [API scripting](./scripting/api-scripting.md) — endpoints written in JavaScript
-- [Script modules](./scripting/script-modules.md) — imports, exports and the modules table
+- [Script modules](./scripting/script-modules.md) — imports, exports and the js_modules table
 - [Table records and business rules](./scripting/table-records-and-rules.md) — read, write and react to rows
 
 ## Data browser

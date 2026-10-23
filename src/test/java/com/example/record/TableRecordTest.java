@@ -9,7 +9,7 @@ class TableRecordTest {
   private final MockDb db = new MockDb();
 
   private TableRecord modules() {
-    return new TableRecord(db, "modules");
+    return new TableRecord(db, "js_modules");
   }
 
   // --- guards ---

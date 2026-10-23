@@ -18,8 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * CRUD for JavaScript modules, stored in the {@code modules} table. Reads use jOOQ. Writes go
- * through {@link TableRecord}, so business rules on {@code modules} apply.
+ * CRUD for JavaScript modules, stored in the {@code js_modules} table. Reads use jOOQ. Writes go
+ * through {@link TableRecord}, so business rules on {@code js_modules} apply.
  */
 public class ModuleManager {
 
@@ -31,7 +31,7 @@ public class ModuleManager {
   }
 
   private static final Logger logger = LoggerFactory.getLogger(ModuleManager.class);
-  private static final Table<Record> MODULES = table("modules");
+  private static final Table<Record> MODULES = table("js_modules");
   private static final Field<String> NAME = field("name", String.class);
   private static final Field<String> CONTENT = field("content", String.class);
   private static final Field<OffsetDateTime> CREATED_AT = field("created_at", OffsetDateTime.class);
@@ -151,7 +151,7 @@ public class ModuleManager {
   }
 
   private TableRecord record() throws IOException {
-    return new TableRecord(db(), "modules");
+    return new TableRecord(db(), "js_modules");
   }
 
   /** Runs a write and turns its failures into IOException. */

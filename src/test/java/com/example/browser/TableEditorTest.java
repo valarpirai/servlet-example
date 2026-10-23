@@ -35,12 +35,12 @@ class TableEditorTest {
 
   private final List<Object[]> rules = new ArrayList<>();
   private final List<Object[]> rows = new ArrayList<>();
-  private String tableName = "modules";
+  private String tableName = "js_modules";
   private TableEditor editor;
 
   @BeforeEach
   void setUp() {
-    // YAML-only: the allow-list is the built-in default, modules:name
+    // YAML-only: the allow-list is the built-in default, js_modules:name
     PropertiesUtil.setPropertyRepository(null);
     editor = new TableEditor(new FakeDb());
   }
@@ -150,7 +150,7 @@ class TableEditorTest {
 
   @Test
   void createInsertsAndReturnsTheKey() throws Exception {
-    String key = editor.create("modules", Map.of("name", "m", "hits", "3"));
+    String key = editor.create("js_modules", Map.of("name", "m", "hits", "3"));
 
     assertEquals("made", key);
     assertEquals(1, count("insert"));
@@ -158,7 +158,7 @@ class TableEditorTest {
 
   @Test
   void createLeavesOutBlankNonTextFields() throws Exception {
-    editor.create("modules", Map.of("name", "m", "hits", ""));
+    editor.create("js_modules", Map.of("name", "m", "hits", ""));
 
     String insert = sql.stream().filter(s -> s.startsWith("insert")).findFirst().orElseThrow();
     assertFalse(insert.contains("hits"), insert);
@@ -169,7 +169,7 @@ class TableEditorTest {
     rules.add(new Object[] {"stop", "true", "current.setAbortAction(true);"});
 
     assertThrows(
-        TableEditor.BlockedException.class, () -> editor.create("modules", Map.of("name", "m")));
+        TableEditor.BlockedException.class, () -> editor.create("js_modules", Map.of("name", "m")));
     assertEquals(0, count("insert"));
   }
 
@@ -186,7 +186,7 @@ class TableEditorTest {
     tableName = "other";
 
     assertThrows(
-        IllegalArgumentException.class, () -> editor.create("modules", Map.of("name", "m")));
+        IllegalArgumentException.class, () -> editor.create("js_modules", Map.of("name", "m")));
   }
 
   // --- update ---
@@ -195,14 +195,14 @@ class TableEditorTest {
   void updateWritesTheChangedFields() throws Exception {
     rows.add(new Object[] {"m", "old", 1L});
 
-    assertTrue(editor.update("modules", "m", Map.of("content", "new")));
+    assertTrue(editor.update("js_modules", "m", Map.of("content", "new")));
 
     assertEquals(1, count("update"));
   }
 
   @Test
   void updateReportsAMissingRow() throws Exception {
-    assertFalse(editor.update("modules", "gone", Map.of("content", "new")));
+    assertFalse(editor.update("js_modules", "gone", Map.of("content", "new")));
     assertEquals(0, count("update"));
   }
 
@@ -211,7 +211,8 @@ class TableEditorTest {
     rows.add(new Object[] {"m", "old", 1L});
 
     assertThrows(
-        IllegalArgumentException.class, () -> editor.update("modules", "m", Map.of("name", "x")));
+        IllegalArgumentException.class,
+        () -> editor.update("js_modules", "m", Map.of("name", "x")));
   }
 
   @Test
@@ -221,7 +222,7 @@ class TableEditorTest {
 
     assertThrows(
         TableEditor.BlockedException.class,
-        () -> editor.update("modules", "m", Map.of("content", "new")));
+        () -> editor.update("js_modules", "m", Map.of("content", "new")));
     assertEquals(0, count("update"));
   }
 
@@ -231,7 +232,7 @@ class TableEditorTest {
   void deleteRemovesEachRow() throws Exception {
     rows.add(new Object[] {"m", "old", 1L});
 
-    Map<String, Object> out = editor.delete("modules", List.of("m", "m"));
+    Map<String, Object> out = editor.delete("js_modules", List.of("m", "m"));
 
     assertEquals(2, out.get("deleted"));
     assertEquals(2, count("delete"));
@@ -242,7 +243,7 @@ class TableEditorTest {
     rows.add(new Object[] {"m", "old", 1L});
     rules.add(new Object[] {"stop", "true", "current.setAbortAction(true);"});
 
-    Map<String, Object> out = editor.delete("modules", List.of("m"));
+    Map<String, Object> out = editor.delete("js_modules", List.of("m"));
 
     assertEquals(0, out.get("deleted"));
     assertEquals(1, ((List<?>) out.get("failed")).size());
@@ -251,7 +252,7 @@ class TableEditorTest {
 
   @Test
   void deleteReportsMissingRowsAndKeepsGoing() throws Exception {
-    Map<String, Object> out = editor.delete("modules", List.of("a", "b"));
+    Map<String, Object> out = editor.delete("js_modules", List.of("a", "b"));
 
     assertEquals(0, out.get("deleted"));
     assertEquals(2, ((List<?>) out.get("failed")).size());

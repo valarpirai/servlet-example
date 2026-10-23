@@ -23,7 +23,7 @@ import org.mozilla.javascript.Scriptable;
 /**
  * Processor for scripted REST API endpoints. Loads each endpoint script from the {@code
  * api_scripts} table and executes it with request/response handling. Supports require() for shared
- * libraries stored in the {@code modules} table as lib/ and vendor/ modules.
+ * libraries stored in the {@code js_modules} table as lib/ and vendor/ modules.
  */
 public class ApiScriptProcessor {
 

@@ -36,7 +36,7 @@ Left for later by decision. Treat the app as a trusted-network tool until these 
 
 | Task | Why it matters |
 |---|---|
-| `import` from `api_scripts` rows | `import` reads the `modules` table only |
+| `import` from `api_scripts` rows | `import` reads the `js_modules` table only |
 
 ## Tests
 
