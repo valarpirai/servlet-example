@@ -56,14 +56,14 @@ sequenceDiagram
         DB-->>H: Result / Row / Attachment
         H-->>Client: 200/201/404 JSON
 
-    else Processor route  /api/upload  /api/script  /api/render  /api/modules/**
+    else Processor route  /api/upload  /api/script
         RR-->>RS: RouteMatch type=processor
         RS->>RD: dispatch(match, req, res)
         RD->>H: new Processor().process(req)
         H-->>RD: ProcessorResponse (status, headers, body)
         RD-->>Client: HTTP response
 
-    else Script route  /hello/{who}
+    else Script route  /hello/{who}  /api/modules/**
         RR-->>RS: RouteMatch type=script\n+ pathParams map
         RS->>RD: dispatch(match, req, res)
         RD->>H: ApiHandler runs the api_scripts row\ncalls handler_method(request, response)

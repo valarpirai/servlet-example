@@ -92,10 +92,16 @@ needs a lower `sort_order` than any wildcard that would match it.
 
 ## Choosing a type
 
-Pick `handler` when the endpoint streams, or when it needs the response object.
-Pick `processor` when it returns a value and holds per-request state. A processor
-cannot stream, because it returns before anything is written. Pick `script` when
-JavaScript is enough. It needs no Java and no rebuild.
+Prefer `script`. It is JavaScript in an `api_scripts` row, with no Java and no
+rebuild. The module manager API is one.
+
+Pick `handler` when JavaScript cannot do the job: the endpoint streams, or it needs
+the servlet objects. A handler writes the response itself.
+
+Pick `processor` only for a special case such as `ScriptProcessor` (it is the script
+engine) or `FileUploadProcessor` (multipart upload). A processor returns a value, so it
+cannot stream. Two processors exist today. Do not add a third without a reason a
+handler cannot meet.
 
 ## Adding a processor instead
 

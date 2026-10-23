@@ -12,7 +12,6 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 - **Server-Side JavaScript**: Execute JavaScript code using Rhino engine with console output and performance metrics
 - **JavaScript Modules**: Create reusable modules with ES6 imports and CommonJS exports
 - **Database Browser**: Connect to PostgreSQL, MySQL, or Snowflake and execute SQL queries
-- **Template Rendering**: Render HTML templates with variable substitution and loop support
 - **Form & JSON Processing**: Handle URL-encoded forms and JSON payloads
 - **Interactive Web UIs**: Built-in script editor, database browser, and module manager
 - **RESTful API**: JSON responses for all endpoints with consistent error handling
@@ -68,9 +67,7 @@ servlet-example/
 │       │           │   ├── IRequestProcessor.java
 │       │           │   ├── ScriptProcessor.java
 │       │           │   ├── ApiScriptProcessor.java
-│       │           │   ├── FileUploadProcessor.java
-│       │           │   ├── ModuleProcessor.java
-│       │           │   └── TemplateProcessor.java
+│       │           │   └── FileUploadProcessor.java
 │       │           ├── storage/        (Chunked file storage)
 │       │           │   ├── AttachmentManager.java
 │       │           │   ├── LocalFileSystemStorage.java
@@ -94,8 +91,7 @@ servlet-example/
 │       │           └── util/
 │       │               ├── JsonUtil.java
 │       │               ├── PropertiesUtil.java
-│       │               ├── StructuredLogger.java
-│       │               └── TemplateEngine.java
+│       │               └── StructuredLogger.java
 │       └── resources/
 │           ├── application.yml
 │           ├── db/                     (Flyway migrations)
@@ -186,7 +182,6 @@ GET Endpoints:
 POST Endpoints:
   - http://localhost:8080/api/upload (Content-Type: multipart/form-data)
   - http://localhost:8080/api/script (Content-Type: application/javascript)
-  - http://localhost:8080/api/render (Content-Type: text/html)
   - http://localhost:8080/api/modules/create (Create new module)
 
 PUT Endpoints:
@@ -216,7 +211,7 @@ curl http://localhost:8080/
   "version": "1.0",
   "endpoints": {
     "GET": ["/", "/health", "/metrics", "/script-editor"],
-    "POST": ["/api/upload", "/api/script", "/api/render"]
+    "POST": ["/api/upload", "/api/script"]
   },
   "timestamp": 1234567890
 }
@@ -567,45 +562,6 @@ variable override for module settings.
 - Real-time module list refresh
 - CommonJS export syntax support
 
-#### Template Rendering
-- **URL**: `http://localhost:8080/api/render`
-- **Method**: POST
-- **Content-Type**: `text/html`
-- **Description**: Custom template engine with variable substitution and loops
-
-```bash
-curl -X POST http://localhost:8080/api/render \
-  -H "Content-Type: text/html" \
-  -d '{
-    "template": "<h1>{{title}}</h1><ul>{{#for user in users}}<li>{{user.name}}</li>{{/for}}</ul>",
-    "data": {
-      "title": "Users",
-      "users": [
-        {"name": "Alice"},
-        {"name": "Bob"}
-      ]
-    }
-  }'
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "data": {
-    "html": "<h1>Users</h1><ul><li>Alice</li><li>Bob</li></ul>",
-    "size": 48
-  },
-  "timestamp": 1234567890
-}
-```
-
-**Template Syntax:**
-- Variable substitution: `{{variableName}}`
-- Dot notation: `{{user.name}}`
-- For loops: `{{#for item in items}}...{{/for}}`
-- Automatic XSS protection via HTML escaping
-
 ## Architecture
 
 ### Request Processing Flow
@@ -615,8 +571,8 @@ HTTP Request → RouterServlet → RouteRegistry (routes table) → RouteDispatc
                                                                     ↓
                     ┌───────────────────────────────────────────────┴───────────────────────┐
                     ↓                   ↓                   ↓                ↓               ↓
-          FileUploadProcessor   ScriptProcessor   TemplateProcessor   ModuleProcessor   Handlers
-            (file uploads)        (JavaScript)      (HTML templates)    (modules)    (attachments, DB)
+          FileUploadProcessor   ScriptProcessor   Script routes   Handlers
+            (file uploads)        (JavaScript)      (api_scripts)   (attachments, DB)
                     ↓                   ↓                   ↓                ↓               ↓
               ProcessorResponse ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ←
                     ↓
@@ -636,16 +592,13 @@ HTTP Request → RouterServlet → RouteRegistry (routes table) → RouteDispatc
 1. **RouterServlet**: Minimal servlet (236 lines) handling all HTTP requests
 2. **RouteRegistry**: Loads the routes table and performs pattern matching with validation
 3. **RouteDispatcher**: Dispatches requests to handlers/processors via reflection
-4. **IRequestProcessor**: Interface for content-type specific processing
+4. **IRequestProcessor**: Interface for processors, the Java special cases
 5. **ScriptProcessor**: JavaScript execution engine with security sandbox and performance monitoring
-6. **ModuleProcessor**: Handles module CRUD operations via REST API
-7. **ModuleManager**: Stores and retrieves JavaScript modules in the `js_modules` table
-8. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
-9. **TemplateProcessor**: HTML template rendering with variable substitution
-10. **TemplateEngine**: Custom template parser and renderer
-11. **AttachmentManager**: Manages chunked file storage (memory-efficient)
-12. **CorrelationIdFilter**: Adds correlation IDs to all requests for distributed tracing
-13. **StructuredLogger**: Structured logging with automatic MDC context
+6. **ModuleManager**: Reads JavaScript modules from the `js_modules` table for `import`. The module manager API is a script route (`api_scripts` row `modules-api`)
+7. **ModuleDependencyResolver**: Resolves module dependencies and detects circular references
+8. **AttachmentManager**: Manages chunked file storage (memory-efficient)
+9. **CorrelationIdFilter**: Adds correlation IDs to all requests for distributed tracing
+10. **StructuredLogger**: Structured logging with automatic MDC context
 14. **PropertiesUtil**: YAML configuration loader with environment variable support
 15. **JsonUtil**: JSON serialization/deserialization wrapper
 

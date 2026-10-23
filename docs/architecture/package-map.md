@@ -20,9 +20,7 @@ src/main/java/com/example/
 │   ├── IRequestProcessor.java          Processor interface
 │   ├── ScriptProcessor.java            JavaScript execution
 │   ├── ApiScriptProcessor.java         Script-defined HTTP APIs
-│   ├── FileUploadProcessor.java        Multipart upload
-│   ├── TemplateProcessor.java          HTML template rendering
-│   └── ModuleProcessor.java            JavaScript module CRUD
+│   └── FileUploadProcessor.java        Multipart upload
 │
 ├── handler/                            Singleton HTTP handlers
 │   ├── ApiHandler.java                 Script-backed API dispatch
@@ -95,7 +93,6 @@ src/main/java/com/example/
     ├── PropertiesUtil.java             Property lookup with env overrides
     ├── JsonUtil.java                   Gson wrapper with InstantTypeAdapter
     ├── JsonConverter.java              Java and JavaScript value conversion
-    ├── TemplateEngine.java             HTML templates
     ├── StructuredLogger.java           MDC-based logging
     ├── CorrelationIdFilter.java        Correlation ID filter
     ├── LoggingConfig.java              Programmatic Logback setup

@@ -46,8 +46,8 @@ VALUES ('/api/attachment/{id}/download', 'GET', 'handler',
 
 ```sql
 INSERT INTO routes (path, methods, type, processor, content_type)
-VALUES ('/api/modules/**', 'GET,POST,PUT,DELETE', 'processor',
-        'ModuleProcessor', 'application/json');
+VALUES ('/api/upload', 'POST', 'processor',
+        'FileUploadProcessor', 'application/json');
 ```
 
 **`builtin`** calls a `RouterServlet` method directly. Only `handleHealth` and
@@ -76,7 +76,7 @@ will not be extracted.
 ```
 
 `**` matches all remaining segments and captures nothing. Use it for a group of
-endpoints handled by one processor.
+endpoints handled by one handler, script or processor.
 
 ```
 /api/modules/**

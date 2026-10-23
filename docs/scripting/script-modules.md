@@ -58,15 +58,25 @@ Because resolution happens up front, a broken graph never runs half a script.
 
 ## Managing modules
 
-`ModuleManager` is a singleton exposing `listModules`, `getModule`,
-`createModule`, `updateModule` and `deleteModule`. The `ModuleProcessor` route at
-`/api/modules/**` puts these on HTTP, and the module manager UI uses that.
+`ModuleManager` reads modules for `import`: `listModules` and `getModule`.
 
-Create, update and delete go through `TableRecord`, so business rules on `js_modules`
-run. A `before` rule that stops a write returns 409 and leaves the row alone. Reads
-use the database directly.
+The module manager UI talks to `/api/modules/**`. That is a script route. It runs the
+`modules-api` row of `api_scripts`, a JavaScript function that reads and writes the
+`js_modules` table through `TableRecord`. Edit the script to change the API.
 
-`modules.maxFileSize` caps a single module at 1 MB by default.
+| Request | Does |
+|---|---|
+| `GET /api/modules/list` | All modules |
+| `GET /api/modules/{name}` | One module, 404 when missing |
+| `POST /api/modules/create` | Body `{path, content}`. 201 on success, 400 when invalid or present |
+| `PUT /api/modules/{name}` | Body `{content}`. 404 when missing |
+| `DELETE /api/modules/{name}` | 404 when missing |
+
+Writes run business rules on `js_modules`. A `before` rule that stops a write returns
+409 and leaves the row alone. A trigger keeps `updated_at` current.
+
+`modules.maxFileSize` caps a single module at 1 MB by default. The script reads it
+from `app_properties`.
 
 ## Storage
 
