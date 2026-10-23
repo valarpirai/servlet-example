@@ -12,7 +12,9 @@ import java.net.BindException;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Wrapper;
+import org.apache.catalina.connector.Connector;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.coyote.AbstractProtocol;
 import org.apache.tomcat.util.descriptor.web.FilterDef;
 import org.apache.tomcat.util.descriptor.web.FilterMap;
 import org.slf4j.Logger;
@@ -65,7 +67,12 @@ public class Main {
     int port = resolvePort();
     Tomcat tomcat = new Tomcat();
     tomcat.setPort(port);
-    tomcat.getConnector();
+    Connector connector = tomcat.getConnector();
+    AbstractProtocol<?> protocol = (AbstractProtocol<?>) connector.getProtocolHandler();
+    protocol.setMaxThreads(PropertiesUtil.getInt("threadPool.maxThreads", 200));
+    protocol.setMinSpareThreads(PropertiesUtil.getInt("threadPool.minSpareThreads", 10));
+    protocol.setAcceptCount(PropertiesUtil.getInt("threadPool.acceptCount", 100));
+    protocol.setConnectionTimeout(PropertiesUtil.getInt("threadPool.connectionTimeout", 20000));
 
     String contextPath = "";
     String docBase = new File(".").getAbsolutePath();

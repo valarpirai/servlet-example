@@ -65,7 +65,9 @@ that time, on every node. No reload is needed.
 | `upload.maxRequestSize` | `52428800` | Max multipart request, 50 MB |
 | `upload.fileSizeThreshold` | `1048576` | Spill to disk above 1 MB |
 | `threadPool.maxThreads` | `200` | Tomcat threads |
+| `threadPool.minSpareThreads` | `10` | Idle Tomcat threads kept ready |
 | `threadPool.acceptCount` | `100` | Accept queue |
+| `threadPool.connectionTimeout` | `20000` | Connection timeout, ms |
 | `script.timeout` | `5000` | Script timeout, ms |
 | `script.maxMemory` | `52428800` | Heap growth per script, 50 MB |
 | `script.optimizationLevel` | `-1` | Rhino interpreted mode |
