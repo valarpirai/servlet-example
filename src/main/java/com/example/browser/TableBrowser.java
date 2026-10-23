@@ -5,6 +5,7 @@ import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.table;
 
 import com.example.config.Database;
+import com.example.record.TableRecord;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,8 +17,8 @@ import org.jooq.Record;
 import org.jooq.SortField;
 
 /**
- * Read-only view of the tables in the {@code public} schema. A table name is used only after it
- * matches a name in {@code information_schema}, then it is quoted.
+ * View of the tables in the {@code public} schema. A table name is used only after it matches a
+ * name in {@code information_schema}, then it is quoted. Writes go through {@link TableEditor}.
  */
 public class TableBrowser {
 
@@ -129,6 +130,7 @@ public class TableBrowser {
           out.put("table", tableName);
           out.put("columns", columns);
           out.put("primaryKey", key);
+          out.put("writable", writable(tableName, key));
           out.put("total", total);
           out.put("page", pageNumber);
           out.put("size", pageSize);
@@ -137,6 +139,11 @@ public class TableBrowser {
           out.put("rows", rows);
           return Optional.of(out);
         });
+  }
+
+  /** A table is writable when it is allow-listed with the key the database uses. */
+  static boolean writable(String tableName, String primaryKey) {
+    return primaryKey != null && primaryKey.equals(TableRecord.keyColumnOf(tableName));
   }
 
   private static void checkSortable(List<Map<String, Object>> columns, String sort) {
@@ -183,17 +190,18 @@ public class TableBrowser {
           out.put("table", tableName);
           out.put("columns", columns);
           out.put("primaryKey", key);
+          out.put("writable", writable(tableName, key));
           out.put("row", toMap(found, 0));
           return Optional.of(out);
         });
   }
 
-  private boolean exists(String tableName) throws Exception {
+  boolean exists(String tableName) throws Exception {
     return tableName != null
         && listTables().stream().anyMatch(t -> tableName.equals(t.get("name")));
   }
 
-  private List<Map<String, Object>> columns(String tableName) throws Exception {
+  List<Map<String, Object>> columns(String tableName) throws Exception {
     return database.query(
         dsl ->
             dsl.fetch(COLUMNS_SQL, tableName).stream()
@@ -208,7 +216,7 @@ public class TableBrowser {
   }
 
   /** Returns the key column, or null when the table has none or a composite key. */
-  private String primaryKey(String tableName) throws Exception {
+  String primaryKey(String tableName) throws Exception {
     List<String> keys =
         database.query(
             dsl -> new ArrayList<>(dsl.fetch(KEY_SQL, tableName).getValues(0, String.class)));

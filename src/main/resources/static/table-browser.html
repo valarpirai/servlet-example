@@ -94,6 +94,23 @@
         .pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; font-size: 0.9rem; color: #555; }
         button:disabled { background: #cfcde8; cursor: default; }
 
+        /* List actions and the row form. */
+        .actions { display: flex; align-items: center; gap: 10px; }
+        button.secondary { background: #eceaf9; color: #4b3f8f; }
+        button.secondary:hover { background: #dcd8f3; }
+        button.danger { background: #c0392b; }
+        button.danger:hover { background: #a93226; }
+        td.check, th.check { width: 36px; padding-right: 0; text-align: center; }
+        .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+        table.fields input[type=text], table.fields textarea, table.fields select {
+            width: 100%; padding: 7px 9px; border: 1px solid #ccc; border-radius: 8px;
+            font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem;
+        }
+        table.fields textarea { min-height: 150px; resize: vertical; }
+        table.fields input:disabled, table.fields textarea:disabled, table.fields select:disabled { background: #f4f4f6; color: #666; }
+        .message { margin-top: 12px; font-size: 0.9rem; }
+        .message.ok { color: #1e7a3c; }
+        .message.fail { color: #b3261e; }
         .null { color: #aaa; font-style: italic; }
         .note { margin-top: 12px; color: #777; font-size: 0.85rem; }
         .error { color: #b3261e; padding: 20px 0; }
@@ -110,16 +127,18 @@
     </div>
 
     <script>
-        // One page, three views. The path picks the view:
+        // One page, four views. The path picks the view:
         //   /tables           all tables
-        //   /<table>_list     rows of a table
-        //   /<table>_row?id=  one row
+        //   /<table>_list     rows of a table, with actions
+        //   /<table>_row?id=  edit one row
+        //   /<table>_new      form for a new row
         const MAX_COLUMNS = 8;
         const main = document.getElementById('main');
         const path = location.pathname;
-        const view = path === '/tables' ? 'tables' : path.endsWith('_list') ? 'list' : 'row';
-        const table = view === 'list' ? path.slice(1, -'_list'.length)
-                    : view === 'row' ? path.slice(1, -'_row'.length) : null;
+        const view = path === '/tables' ? 'tables' : path.endsWith('_list') ? 'list'
+                   : path.endsWith('_new') ? 'new' : 'row';
+        const suffix = { list: '_list', row: '_row', new: '_new' }[view];
+        const table = suffix ? path.slice(1, -suffix.length) : null;
 
         // Builds an element. Children are strings (set as text, never HTML) or nodes.
         function el(tag, attrs, ...children) {
@@ -146,6 +165,16 @@
 
         async function getJson(url) {
             const response = await fetch(url);
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.error || response.statusText);
+            return body;
+        }
+
+        // Sends JSON and returns the parsed reply. Failures throw the server's message.
+        async function sendJson(method, url, payload) {
+            const response = await fetch(url, {
+                method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
             const body = await response.json();
             if (!response.ok) throw new Error(body.error || response.statusText);
             return body;
@@ -184,6 +213,7 @@
                 showAll: false
             };
             let data;
+            const selected = new Set();   // keys of the ticked rows; they stay ticked while paging
 
             async function load() {
                 const query = new URLSearchParams({ page: state.page, size: state.size });
@@ -204,6 +234,27 @@
                 load().catch(e => showError(e.message));
             }
 
+            async function deleteSelected() {
+                const ids = [...selected];
+                if (!confirm('Delete ' + ids.length + ' row' + (ids.length === 1 ? '' : 's') + ' from ' + table + '?')) {
+                    render();
+                    return;
+                }
+                try {
+                    const result = await sendJson('POST', '/api/tables/' + encodeURIComponent(table) + '/rows/delete', { ids });
+                    selected.clear();
+                    await load();
+                    const note = document.getElementById('listMessage');
+                    note.className = 'message ' + (result.failed.length ? 'fail' : 'ok');
+                    note.textContent = 'Deleted ' + result.deleted + (result.failed.length
+                        ? '. Not deleted: ' + result.failed.map(f => f.id + ' (' + f.reason + ')').join(', ') : '.');
+                } catch (e) {
+                    const note = document.getElementById('listMessage');
+                    note.className = 'message fail';
+                    note.textContent = e.message;
+                }
+            }
+
             // Click cycles: ascending, descending, then back to the default order.
             function sortBy(column) {
                 if (state.sort !== column) go({ sort: column, desc: false, page: 1 });
@@ -219,7 +270,19 @@
                     ? 'Rows ' + first + '\u2013' + (first + data.rows.length - 1) + ' of ' + data.total
                     : data.total + ' rows';
 
-                const head = el('tr', {}, ...columns.map(c => {
+                const checkHead = el('th', { class: 'check' });
+                const checkAll = el('input', { type: 'checkbox', title: 'Select all rows on this page' });
+                checkAll.checked = data.rows.length > 0 && data.rows.every(r => selected.has(String(r[data.primaryKey])));
+                checkAll.onchange = () => {
+                    data.rows.forEach(r => {
+                        const key = String(r[data.primaryKey]);
+                        if (checkAll.checked) selected.add(key); else selected.delete(key);
+                    });
+                    render();
+                };
+                if (data.writable) checkHead.append(checkAll);
+
+                const head = el('tr', {}, ...(data.writable ? [checkHead] : []), ...columns.map(c => {
                     const sortable = !UNSORTABLE.includes(c.type);
                     const th = el('th', { title: c.name, class: sortable ? 'sortable' : '' }, c.name);
                     if (state.sort === c.name) th.append(el('span', { class: 'arrow' }, state.desc ? '\u25BC' : '\u25B2'));
@@ -229,7 +292,13 @@
                 }));
 
                 const body = data.rows.map(row => {
+                    const key = String(row[data.primaryKey]);
+                    const box = el('input', { type: 'checkbox' });
+                    box.checked = selected.has(key);
+                    box.onclick = e => e.stopPropagation();
+                    box.onchange = () => { if (box.checked) selected.add(key); else selected.delete(key); render(); };
                     const tr = el('tr', data.primaryKey ? { class: 'clickable' } : {},
+                        ...(data.writable ? [el('td', { class: 'check' }, box)] : []),
                         ...columns.map(c => {
                             const td = el('td', {}, valueNode(row[c.name]));
                             if (row[c.name] !== null) td.title = String(row[c.name]);
@@ -254,8 +323,23 @@
                     toggle.onclick = () => { state.showAll = !state.showAll; render(); };
                     controls.append(toggle);
                 }
+                // Actions sit at the top. Delete is the only one today; add options here.
                 const toolbar = el('div', { class: 'toolbar' },
                     el('span', {}, columns.length + ' of ' + data.columns.length + ' columns'), controls);
+                const top = el('div', { class: 'toolbar' });
+                if (data.writable) {
+                    const create = el('button', {}, '+ New');
+                    create.onclick = () => { location.href = '/' + table + '_new'; };
+                    const actions = el('select', { title: 'Actions on the ticked rows' },
+                        el('option', { value: '' }, 'Actions' + (selected.size ? ' (' + selected.size + ' selected)' : '')),
+                        el('option', { value: 'delete' }, 'Delete'));
+                    actions.disabled = selected.size === 0;
+                    actions.onchange = () => { if (actions.value === 'delete') deleteSelected(); else actions.value = ''; };
+                    top.append(el('div', { class: 'actions' }, create, actions));
+                } else {
+                    top.append(el('span', { class: 'null' }, 'Read-only table'));
+                }
+                top.append(el('span', { id: 'listMessage', class: 'message' }));
 
                 const prev = el('button', {}, '\u2190 Previous');
                 prev.disabled = data.page <= 1;
@@ -266,7 +350,7 @@
                 const pager = el('div', { class: 'pager' }, prev, el('span', {}, 'Page ' + data.page + ' of ' + pages), next);
 
                 const note = data.primaryKey ? '' : 'This table has no single-column key, so rows cannot be opened.';
-                main.replaceChildren(toolbar,
+                main.replaceChildren(top, toolbar,
                     el('div', { class: 'scroll' }, el('table', { class: 'list' }, el('thead', {}, head), el('tbody', {}, ...body))),
                     pager, el('div', { class: 'note' }, note));
             }
@@ -275,18 +359,101 @@
             await load();
         }
 
-        // ---- /<table>_row?id=<pk> ----
-        async function showRow() {
-            const id = new URLSearchParams(location.search).get('id');
-            const data = await getJson('/api/tables/' + encodeURIComponent(table) + '/row?id=' + encodeURIComponent(id));
-            setHeader(table, data.primaryKey + ' = ' + id, '/' + table + '_list', '← ' + table);
-            const rows = data.columns.map(c => el('tr', {},
-                el('td', { class: 'name' }, c.name, el('small', {}, c.type)),
-                el('td', { class: 'value' }, valueNode(data.row[c.name]))));
-            main.replaceChildren(el('div', { class: 'scroll' }, el('table', { class: 'fields' }, el('tbody', {}, ...rows))));
+        // ---- /<table>_row?id=<pk> and /<table>_new ----
+        // Column types the server can write. Anything else shows but cannot change.
+        const EDITABLE = ['smallint', 'integer', 'bigint', 'numeric', 'real', 'double precision', 'boolean',
+            'text', 'character varying', 'character', 'timestamp with time zone', 'timestamp without time zone', 'date'];
+        const LONG_TEXT = ['content', 'script', 'condition', 'value'];
+
+        function inputFor(column, value, disabled) {
+            const text = value === null || value === undefined ? '' : String(value);
+            let input;
+            if (column.type === 'boolean') {
+                input = el('select', {}, el('option', { value: '' }, ''),
+                    el('option', { value: 'true' }, 'true'), el('option', { value: 'false' }, 'false'));
+            } else if (text.includes('\n') || text.length > 80 || LONG_TEXT.includes(column.name)) {
+                input = el('textarea', {});
+            } else {
+                input = el('input', { type: 'text' });
+            }
+            input.value = text;
+            input.disabled = disabled;
+            return input;
         }
 
-        (view === 'tables' ? showTables : view === 'list' ? showList : showRow)().catch(e => showError(e.message));
+        async function showForm(editing) {
+            const base = '/api/tables/' + encodeURIComponent(table);
+            const id = new URLSearchParams(location.search).get('id');
+            // A new row needs only the column list, so ask for one row.
+            const data = editing ? await getJson(base + '/row?id=' + encodeURIComponent(id))
+                                 : await getJson(base + '/rows?size=1');
+            setHeader(table, editing ? data.primaryKey + ' = ' + id : 'New row', '/' + table + '_list', '\u2190 ' + table);
+
+            const fields = data.columns.map(c => {
+                const original = editing ? data.row[c.name] : null;
+                const locked = !data.writable || !EDITABLE.includes(c.type) || (editing && c.name === data.primaryKey);
+                const input = inputFor(c, original, locked);
+                if (!editing && !locked) input.placeholder = 'default';
+                return { column: c, input, original: original === null ? '' : String(original), locked };
+            });
+            const rows = fields.map(f => el('tr', {},
+                el('td', { class: 'name' }, f.column.name, el('small', {}, f.column.type)),
+                el('td', { class: 'value' }, f.input)));
+
+            const message = el('div', { class: 'message' });
+            const say = (ok, text) => { message.className = 'message ' + (ok ? 'ok' : 'fail'); message.textContent = text; };
+            const buttons = el('div', { class: 'form-actions' });
+
+            if (!data.writable) {
+                say(false, 'This table is read-only.');
+            } else {
+                const save = el('button', {}, editing ? 'Save' : 'Create');
+                save.onclick = async () => {
+                    const values = {};
+                    fields.forEach(f => {
+                        const text = f.input.value;
+                        // Edit sends what changed. Create sends what was filled in.
+                        if (!f.locked && (editing ? text !== f.original : text !== '')) values[f.column.name] = text;
+                    });
+                    if (editing && Object.keys(values).length === 0) { say(true, 'Nothing changed.'); return; }
+                    try {
+                        if (editing) {
+                            await sendJson('PUT', base + '/row?id=' + encodeURIComponent(id), { values });
+                            fields.forEach(f => { if (f.column.name in values) f.original = values[f.column.name]; });
+                            say(true, 'Saved.');
+                        } else {
+                            const created = await sendJson('POST', base + '/row', { values });
+                            location.href = '/' + table + '_row?id=' + encodeURIComponent(created.key);
+                        }
+                    } catch (e) {
+                        say(false, e.message);
+                    }
+                };
+                buttons.append(save);
+                if (editing) {
+                    const remove = el('button', { class: 'danger' }, 'Delete');
+                    remove.onclick = async () => {
+                        if (!confirm('Delete ' + data.primaryKey + ' = ' + id + ' from ' + table + '?')) return;
+                        try {
+                            const result = await sendJson('POST', base + '/rows/delete', { ids: [id] });
+                            if (result.deleted) location.href = '/' + table + '_list';
+                            else say(false, result.failed.map(f => f.reason).join(', '));
+                        } catch (e) {
+                            say(false, e.message);
+                        }
+                    };
+                    buttons.append(remove);
+                }
+            }
+            const cancel = el('button', { class: 'secondary' }, editing ? 'Back' : 'Cancel');
+            cancel.onclick = () => { location.href = '/' + table + '_list'; };
+            buttons.append(cancel);
+
+            main.replaceChildren(el('div', { class: 'scroll' }, el('table', { class: 'fields' }, el('tbody', {}, ...rows))),
+                buttons, message);
+        }
+
+        (view === 'tables' ? showTables : view === 'list' ? showList : () => showForm(view === 'row'))().catch(e => showError(e.message));
     </script>
 </body>
 </html>

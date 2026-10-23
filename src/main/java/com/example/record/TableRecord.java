@@ -49,7 +49,13 @@ public class TableRecord {
     this(DbPropertiesLoader.getDatabase(), table);
   }
 
-  TableRecord(Database database, String table) {
+  /**
+   * Creates a record handle on a given database.
+   *
+   * @param database database to use
+   * @param table name of an allow-listed table
+   */
+  public TableRecord(Database database, String table) {
     if (database == null) {
       throw new IllegalStateException("TableRecord needs the database, which is not ready");
     }
@@ -60,6 +66,20 @@ public class TableRecord {
 
   /** Reads {@code record.allowedTables}, a list of {@code table:keyColumn} pairs. */
   private static String allowedKey(String table) {
+    String key = keyColumnOf(table);
+    if (key == null) {
+      throw new IllegalArgumentException("Table is not allowed: " + table);
+    }
+    return key;
+  }
+
+  /**
+   * Looks up a table on the allow-list.
+   *
+   * @param table table name
+   * @return the key column the allow-list names for the table, or null when it is not allowed
+   */
+  public static String keyColumnOf(String table) {
     String allowed = PropertiesUtil.getString("record.allowedTables", "modules:name");
     for (String pair : allowed.split(",")) {
       String[] parts = pair.trim().split(":");
@@ -67,7 +87,7 @@ public class TableRecord {
         return parts[1];
       }
     }
-    throw new IllegalArgumentException("Table is not allowed: " + table);
+    return null;
   }
 
   // ---- query ----
