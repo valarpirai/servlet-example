@@ -20,14 +20,9 @@ public class RequestHelper {
    * @throws IOException if reading fails
    */
   public static String readRequestBody(HttpServletRequest request) throws IOException {
-    StringBuilder sb = new StringBuilder();
     try (BufferedReader reader = request.getReader()) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        sb.append(line);
-      }
+      return reader.lines().collect(java.util.stream.Collectors.joining("\n"));
     }
-    return sb.toString();
   }
 
   /**

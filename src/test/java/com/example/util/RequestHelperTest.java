@@ -28,6 +28,12 @@ class RequestHelperTest {
   // --- readRequestBody ---
 
   @Test
+  void readRequestBody_lineCommentDoesNotSwallowNextLine() throws IOException {
+    givenBody("// note\nvar x = 1;");
+    assertEquals("// note\nvar x = 1;", RequestHelper.readRequestBody(request));
+  }
+
+  @Test
   void readRequestBody_returnsBodyText() throws IOException {
     givenBody("hello world");
     assertEquals("hello world", RequestHelper.readRequestBody(request));
@@ -40,9 +46,9 @@ class RequestHelperTest {
   }
 
   @Test
-  void readRequestBody_concatenatesMultipleLines() throws IOException {
+  void readRequestBody_keepsLineBreaks() throws IOException {
     givenBody("line1\nline2");
-    assertEquals("line1line2", RequestHelper.readRequestBody(request));
+    assertEquals("line1\nline2", RequestHelper.readRequestBody(request));
   }
 
   // --- readJsonBody ---
