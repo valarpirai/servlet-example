@@ -1,11 +1,9 @@
 package com.example.processor;
 
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
-
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
 import com.example.module.ModuleManager;
+import com.example.record.TableRecord;
 import com.example.script.ScriptExecutor;
 import com.example.script.ScriptModuleLoader;
 import com.example.util.JsonConverter;
@@ -14,9 +12,6 @@ import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.Table;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 
@@ -28,9 +23,7 @@ import org.mozilla.javascript.Scriptable;
 public class ApiScriptProcessor {
 
   private static final String DEFAULT_HANDLER = "httpHandler";
-  private static final Table<Record> API_SCRIPTS = table("api_scripts");
-  private static final Field<String> NAME = field("name", String.class);
-  private static final Field<String> CONTENT = field("content", String.class);
+  private static final String API_SCRIPTS = "api_scripts";
 
   private final Database database;
   private final ScriptExecutor scriptExecutor = new ScriptExecutor();
@@ -145,9 +138,11 @@ public class ApiScriptProcessor {
     if (db == null) {
       throw new IOException("API scripts are stored in the database, which is not ready");
     }
-    return db.query(
-        dsl ->
-            dsl.select(CONTENT).from(API_SCRIPTS).where(NAME.eq(endpointName)).fetchOne(CONTENT));
+    TableRecord script = new TableRecord(db, API_SCRIPTS);
+    script.addQuery("name", endpointName);
+    script.setLimit(1);
+    script.query();
+    return script.next() ? script.getValue("content") : null;
   }
 
   /** Execute the JavaScript handler with request/response objects. */
