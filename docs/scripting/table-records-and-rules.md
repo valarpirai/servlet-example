@@ -17,7 +17,7 @@ in the script sandbox.
 a table with its key column.
 
 ```
-js_modules:name,routes:id,app_properties:id,business_rules:id
+js_modules:name,routes:id,app_properties:id,business_rules:id,scheduled_jobs:id,scheduled_job_runs:id
 ```
 
 Any other table throws `Table is not allowed`. The key column picks the row for
@@ -57,6 +57,29 @@ gr.deleteRecord();          // true, or false when a rule aborted
 
 `update` writes only the fields that changed. If nothing changed, it skips the
 write but still runs the rules.
+
+## Counting and bulk writes
+
+```javascript
+var gr = new TableRecord('scheduled_jobs');
+gr.addQuery('state', 3);
+var failed = gr.count();           // rows that match
+
+gr.setValue('state', 0);
+var n = gr.updateMultiple();       // rows this call updated
+gr.deleteMultiple();               // rows deleted
+```
+
+`updateMultiple` writes the fields you set to every matching row. `deleteMultiple`
+removes every matching row. Both need at least one `addQuery`.
+
+Each row runs its business rules, before and after. A before rule that aborts skips
+that row. The write repeats the query conditions, so a row that changed since it was
+read is skipped. The returned count says how many rows this call won. That makes
+`updateMultiple` a safe compare-and-set: query for `state = 0`, set `state = 1`, and
+a count of 1 means you claimed the row.
+
+`orderBy` and `orderByDesc` add sort columns in call order.
 
 ## A full example
 

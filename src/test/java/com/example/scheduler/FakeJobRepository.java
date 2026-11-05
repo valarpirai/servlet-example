@@ -76,9 +76,7 @@ public class FakeJobRepository implements JobRepository {
   @Override
   public synchronized boolean acquire(Job job, String node, String runId, Instant now) {
     Job row = rows.get(job.id);
-    if (row == null
-        || (row.state != Job.READY && row.state != Job.QUEUED)
-        || (row.owner != null && !row.owner.equals(node))) {
+    if (row == null || row.state != Job.QUEUED || !node.equals(row.owner)) {
       return false;
     }
     row.state = Job.RUNNING;

@@ -1,12 +1,10 @@
 package com.example.scheduler;
 
-import static org.jooq.impl.DSL.count;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
-
 import com.example.config.Database;
+import com.example.record.TableRecord;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -15,40 +13,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.jooq.Condition;
-import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.Table;
 
-/** {@link JobRepository} on the {@code scheduled_jobs} table. Times are stored in UTC. */
+/**
+ * {@link JobRepository} on the {@code scheduled_jobs} and {@code scheduled_job_runs} tables, read
+ * and written through {@link TableRecord}. Both tables must be on {@code record.allowedTables}.
+ * Times are stored in UTC.
+ *
+ * <p>Every state change uses {@link TableRecord#updateMultiple}, which repeats its query conditions
+ * in the write. A row that changed in between is skipped, so the returned count is the lock.
+ */
 public class SqlJobRepository implements JobRepository {
 
-  private static final Table<Record> JOBS = table("scheduled_jobs");
-  private static final Table<Record> RUNS = table("scheduled_job_runs");
-  private static final Field<OffsetDateTime> STARTED_AT = field("started_at", OffsetDateTime.class);
-  private static final Field<String> ID = field("id", String.class);
-  private static final Field<String> NAME = field("name", String.class);
-  private static final Field<String> HANDLER = field("handler", String.class);
-  private static final Field<String> HANDLER_TYPE = field("handler_type", String.class);
-  private static final Field<Integer> MAX_RETRIES = field("max_retries", Integer.class);
-  private static final Field<Integer> RETRY_DELAY = field("retry_delay_seconds", Integer.class);
-  private static final Field<Boolean> RETRY_EXPONENTIAL = field("retry_exponential", Boolean.class);
-  private static final Field<Integer> RETRY_MAX_DELAY =
-      field("retry_max_delay_seconds", Integer.class);
-  private static final Field<java.math.BigDecimal> RETRY_JITTER =
-      field("retry_jitter", java.math.BigDecimal.class);
-  private static final Field<Integer> RETRY_COUNT = field("retry_count", Integer.class);
-  private static final Field<String> TRIGGER_TYPE = field("trigger_type", String.class);
-  private static final Field<String> TRIGGER_SPEC = field("trigger_spec", String.class);
-  private static final Field<OffsetDateTime> NEXT_RUN = field("next_run", OffsetDateTime.class);
-  private static final Field<Integer> STATE = field("state", Integer.class);
-  private static final Field<Integer> PRIORITY = field("priority", Integer.class);
-  private static final Field<String> OWNER = field("owner", String.class);
-  private static final Field<String> RUN_ID = field("run_id", String.class);
-  private static final Field<String> CONTEXT = field("context", String.class);
-  private static final Field<String> LAST_ERROR = field("last_error", String.class);
-  private static final Field<OffsetDateTime> RUN_END = field("run_end", OffsetDateTime.class);
-  private static final Field<OffsetDateTime> UPDATED_AT = field("updated_at", OffsetDateTime.class);
+  private static final String JOBS = "scheduled_jobs";
+  private static final String RUNS = "scheduled_job_runs";
 
   private final Database database;
 
@@ -57,117 +34,103 @@ public class SqlJobRepository implements JobRepository {
   }
 
   @Override
-  public void recordRun(JobRun run) throws Exception {
-    database.query(
-        dsl ->
-            dsl.insertInto(RUNS)
-                .set(field("job_id", String.class), run.jobId)
-                .set(field("job_name", String.class), run.jobName)
-                .set(field("handler_type", String.class), run.handlerType)
-                .set(field("handler", String.class), run.handler)
-                .set(field("node", String.class), run.node)
-                .set(field("run_id", String.class), run.runId)
-                .set(field("status", String.class), run.status)
-                .set(field("error", String.class), run.error)
-                .set(STARTED_AT, utc(run.startedAt))
-                .set(field("ended_at", OffsetDateTime.class), utc(run.endedAt))
-                .set(field("duration_ms", Long.class), run.durationMillis)
-                .execute());
+  public void recordRun(JobRun run) {
+    TableRecord r = new TableRecord(database, RUNS);
+    r.setValue("job_id", run.jobId);
+    r.setValue("job_name", run.jobName);
+    r.setValue("handler_type", run.handlerType);
+    r.setValue("handler", run.handler);
+    r.setValue("node", run.node);
+    r.setValue("run_id", run.runId);
+    r.setValue("status", run.status);
+    r.setValue("error", run.error);
+    r.setValue("started_at", utc(run.startedAt));
+    r.setValue("ended_at", utc(run.endedAt));
+    r.setValue("duration_ms", run.durationMillis);
+    r.insert();
   }
 
   @Override
-  public int purgeRuns(Instant before) throws Exception {
-    return database.query(dsl -> dsl.deleteFrom(RUNS).where(STARTED_AT.lt(utc(before))).execute());
+  public int purgeRuns(Instant before) {
+    TableRecord r = new TableRecord(database, RUNS);
+    r.addQuery("started_at", "<", utc(before));
+    return r.deleteMultiple();
   }
 
   @Override
-  public Map<Integer, Long> countByState() throws Exception {
-    return database.query(
-        dsl -> {
-          Map<Integer, Long> counts = new HashMap<>();
-          dsl.select(STATE, count())
-              .from(JOBS)
-              .groupBy(STATE)
-              .fetch()
-              .forEach(r -> counts.put(r.value1(), r.value2().longValue()));
-          return counts;
-        });
+  public Map<Integer, Long> countByState() {
+    Map<Integer, Long> counts = new HashMap<>();
+    for (int state : new int[] {Job.READY, Job.QUEUED, Job.RUNNING, Job.ERROR}) {
+      TableRecord r = new TableRecord(database, JOBS);
+      r.addQuery("state", state);
+      counts.put(state, (long) r.count());
+    }
+    return counts;
   }
 
   @Override
-  public void insert(Job job, Instant now) throws Exception {
-    database.query(
-        dsl ->
-            dsl.insertInto(JOBS)
-                .set(ID, job.id)
-                .set(NAME, job.name)
-                .set(HANDLER_TYPE, job.handlerType)
-                .set(HANDLER, job.handler)
-                .set(MAX_RETRIES, job.maxRetries)
-                .set(RETRY_DELAY, job.retryDelaySeconds)
-                .set(RETRY_EXPONENTIAL, job.retryExponential)
-                .set(RETRY_MAX_DELAY, job.retryMaxDelaySeconds)
-                .set(RETRY_JITTER, java.math.BigDecimal.valueOf(job.retryJitter))
-                .set(TRIGGER_TYPE, job.triggerType)
-                .set(TRIGGER_SPEC, job.triggerSpec.toString())
-                .set(NEXT_RUN, utc(job.nextRun))
-                .set(STATE, Job.READY)
-                .set(PRIORITY, job.priority)
-                .set(CONTEXT, job.context.toString())
-                .set(RUN_END, utc(job.runEnd))
-                .set(UPDATED_AT, utc(now))
-                .execute());
+  public void insert(Job job, Instant now) {
+    TableRecord r = new TableRecord(database, JOBS);
+    r.setValue("id", job.id);
+    r.setValue("name", job.name);
+    r.setValue("handler_type", job.handlerType);
+    r.setValue("handler", job.handler);
+    r.setValue("trigger_type", job.triggerType);
+    r.setValue("trigger_spec", job.triggerSpec.toString());
+    r.setValue("next_run", utc(job.nextRun != null ? job.nextRun : now));
+    r.setValue("state", Job.READY);
+    r.setValue("priority", job.priority);
+    r.setValue("context", job.context.toString());
+    r.setValue("max_retries", job.maxRetries);
+    r.setValue("retry_delay_seconds", job.retryDelaySeconds);
+    r.setValue("retry_exponential", job.retryExponential);
+    r.setValue("retry_max_delay_seconds", job.retryMaxDelaySeconds);
+    r.setValue("retry_jitter", BigDecimal.valueOf(job.retryJitter));
+    if (job.runEnd != null) {
+      r.setValue("run_end", utc(job.runEnd));
+    }
+    r.setValue("updated_at", utc(now));
+    r.insert();
   }
 
   @Override
-  public List<Job> claim(int limit, String node, Instant now) throws Exception {
-    return database.query(
-        dsl -> {
-          OffsetDateTime due = utc(now);
-          List<Job> claimed = new ArrayList<>();
-          for (Record row :
-              dsl.select()
-                  .from(JOBS)
-                  .where(STATE.eq(Job.READY))
-                  .and(TRIGGER_TYPE.ne("on_demand"))
-                  .and(NEXT_RUN.isNull().or(NEXT_RUN.le(due)))
-                  .and(OWNER.isNull().or(OWNER.eq(node)))
-                  .orderBy(PRIORITY.asc(), NEXT_RUN.asc().nullsFirst())
-                  .limit(limit)
-                  .fetch()) {
-            Job job = toJob(row);
-            int won =
-                dsl.update(JOBS)
-                    .set(STATE, Job.QUEUED)
-                    .set(OWNER, node)
-                    .set(UPDATED_AT, due)
-                    .where(ID.eq(job.id))
-                    .and(STATE.eq(Job.READY))
-                    .execute();
-            if (won == 1) {
-              job.state = Job.QUEUED;
-              job.owner = node;
-              claimed.add(job);
-            }
-          }
-          return claimed;
-        });
+  public List<Job> claim(int limit, String node, Instant now) {
+    TableRecord due = new TableRecord(database, JOBS);
+    due.addQuery("state", Job.READY);
+    due.addQuery("trigger_type", "!=", "on_demand");
+    due.addQuery("next_run", "<=", utc(now));
+    due.orderBy("priority");
+    due.orderBy("next_run");
+    due.setLimit(limit);
+    due.query();
+    List<Job> claimed = new ArrayList<>();
+    while (due.next()) {
+      Job job = toJob(due);
+      TableRecord won = new TableRecord(database, JOBS);
+      won.addQuery("id", job.id);
+      won.addQuery("state", Job.READY);
+      won.setValue("state", Job.QUEUED);
+      won.setValue("owner", node);
+      won.setValue("updated_at", utc(now));
+      if (won.updateMultiple() == 1) {
+        job.state = Job.QUEUED;
+        job.owner = node;
+        claimed.add(job);
+      }
+    }
+    return claimed;
   }
 
   @Override
-  public boolean acquire(Job job, String node, String runId, Instant now) throws Exception {
-    return database.query(
-            dsl ->
-                dsl.update(JOBS)
-                    .set(STATE, Job.RUNNING)
-                    .set(OWNER, node)
-                    .set(RUN_ID, runId)
-                    .set(UPDATED_AT, utc(now))
-                    .where(ID.eq(job.id))
-                    .and(STATE.in(Job.READY, Job.QUEUED))
-                    .and(OWNER.isNull().or(OWNER.eq(node)))
-                    .execute())
-        == 1;
+  public boolean acquire(Job job, String node, String runId, Instant now) {
+    TableRecord r = new TableRecord(database, JOBS);
+    r.addQuery("id", job.id);
+    r.addQuery("state", Job.QUEUED);
+    r.addQuery("owner", node);
+    r.setValue("state", Job.RUNNING);
+    r.setValue("run_id", runId);
+    r.setValue("updated_at", utc(now));
+    return r.updateMultiple() == 1;
   }
 
   @Override
@@ -178,133 +141,128 @@ public class SqlJobRepository implements JobRepository {
       JsonObject context,
       String error,
       int retryCount,
-      Instant now)
-      throws Exception {
-    database.query(
-        dsl ->
-            dsl.update(JOBS)
-                .set(STATE, Job.READY)
-                .set(NEXT_RUN, utc(nextRun))
-                .set(RETRY_COUNT, retryCount)
-                .set(CONTEXT, context.toString())
-                .set(LAST_ERROR, error)
-                .set(OWNER, (String) null)
-                .set(RUN_ID, (String) null)
-                .set(UPDATED_AT, utc(now))
-                .where(ID.eq(job.id))
-                .and(RUN_ID.eq(runId))
-                .execute());
+      Instant now) {
+    TableRecord r = ofRun(job, runId);
+    r.setValue("state", Job.READY);
+    r.setValue("next_run", utc(nextRun));
+    r.setValue("retry_count", retryCount);
+    r.setValue("context", context.toString());
+    r.setValue("last_error", error);
+    clearRun(r, now);
+    r.updateMultiple();
   }
 
   @Override
-  public void fail(Job job, String runId, String error, JsonObject context, Instant now)
-      throws Exception {
-    database.query(
-        dsl ->
-            dsl.update(JOBS)
-                .set(STATE, Job.ERROR)
-                .set(RETRY_COUNT, 0)
-                .set(CONTEXT, context.toString())
-                .set(LAST_ERROR, error)
-                .set(OWNER, (String) null)
-                .set(RUN_ID, (String) null)
-                .set(UPDATED_AT, utc(now))
-                .where(ID.eq(job.id))
-                .and(RUN_ID.eq(runId))
-                .execute());
+  public void fail(Job job, String runId, String error, JsonObject context, Instant now) {
+    TableRecord r = ofRun(job, runId);
+    r.setValue("state", Job.ERROR);
+    r.setValue("retry_count", 0);
+    r.setValue("context", context.toString());
+    r.setValue("last_error", error);
+    clearRun(r, now);
+    r.updateMultiple();
   }
 
   @Override
-  public void delete(Job job, String runId) throws Exception {
-    database.query(
-        dsl -> dsl.deleteFrom(JOBS).where(ID.eq(job.id)).and(RUN_ID.eq(runId)).execute());
+  public void delete(Job job, String runId) {
+    ofRun(job, runId).deleteMultiple();
   }
 
   @Override
-  public void park(Job job, String runId, String error, Instant now) throws Exception {
-    database.query(
-        dsl ->
-            dsl.update(JOBS)
-                .set(STATE, Job.READY)
-                .set(TRIGGER_TYPE, "on_demand")
-                .set(LAST_ERROR, error)
-                .set(OWNER, (String) null)
-                .set(RUN_ID, (String) null)
-                .set(UPDATED_AT, utc(now))
-                .where(ID.eq(job.id))
-                .and(RUN_ID.eq(runId))
-                .execute());
+  public void park(Job job, String runId, String error, Instant now) {
+    TableRecord r = ofRun(job, runId);
+    r.setValue("state", Job.READY);
+    r.setValue("trigger_type", "on_demand");
+    r.setValue("last_error", error);
+    clearRun(r, now);
+    r.updateMultiple();
   }
 
   @Override
-  public void release(List<Job> jobs, String node, Instant now) throws Exception {
-    if (jobs.isEmpty()) {
-      return;
+  public void release(List<Job> jobs, String node, Instant now) {
+    for (Job job : jobs) {
+      TableRecord r = new TableRecord(database, JOBS);
+      r.addQuery("id", job.id);
+      r.addQuery("state", Job.QUEUED);
+      r.addQuery("owner", node);
+      r.setValue("state", Job.READY);
+      r.setValue("owner", null);
+      r.setValue("updated_at", utc(now));
+      r.updateMultiple();
     }
-    List<String> ids = jobs.stream().map(j -> j.id).toList();
-    database.query(
-        dsl ->
-            dsl.update(JOBS)
-                .set(STATE, Job.READY)
-                .set(OWNER, (String) null)
-                .set(UPDATED_AT, utc(now))
-                .where(ID.in(ids))
-                .and(STATE.eq(Job.QUEUED))
-                .and(OWNER.eq(node))
-                .execute());
   }
 
   @Override
-  public int recoverStuck(String node, Set<String> known, Instant idleBefore, Instant now)
-      throws Exception {
-    return database.query(
-        dsl -> {
-          Condition where =
-              OWNER
-                  .eq(node)
-                  .and(STATE.in(Job.QUEUED, Job.RUNNING))
-                  .and(UPDATED_AT.lt(utc(idleBefore)));
-          if (!known.isEmpty()) {
-            where = where.and(ID.notIn(known));
-          }
-          return dsl.update(JOBS)
-              .set(STATE, Job.READY)
-              .set(OWNER, (String) null)
-              .set(RUN_ID, (String) null)
-              .set(UPDATED_AT, utc(now))
-              .where(where)
-              .execute();
-        });
+  public int recoverStuck(String node, Set<String> known, Instant idleBefore, Instant now) {
+    int reset = 0;
+    for (int state : new int[] {Job.QUEUED, Job.RUNNING}) {
+      TableRecord stuck = new TableRecord(database, JOBS);
+      stuck.addQuery("owner", node);
+      stuck.addQuery("state", state);
+      stuck.addQuery("updated_at", "<", utc(idleBefore));
+      stuck.query();
+      while (stuck.next()) {
+        String id = stuck.getValue("id");
+        if (known.contains(id)) {
+          continue;
+        }
+        TableRecord r = new TableRecord(database, JOBS);
+        r.addQuery("id", id);
+        r.addQuery("state", state);
+        r.addQuery("owner", node);
+        r.setValue("state", Job.READY);
+        clearRun(r, now);
+        reset += r.updateMultiple();
+      }
+    }
+    return reset;
+  }
+
+  /** A handle that matches one job by id and the run that owns it. */
+  private TableRecord ofRun(Job job, String runId) {
+    TableRecord r = new TableRecord(database, JOBS);
+    r.addQuery("id", job.id);
+    r.addQuery("run_id", runId);
+    return r;
+  }
+
+  /** Ends ownership: no owner, no run id. */
+  private static void clearRun(TableRecord r, Instant now) {
+    r.setValue("owner", null);
+    r.setValue("run_id", null);
+    r.setValue("updated_at", utc(now));
   }
 
   private static OffsetDateTime utc(Instant t) {
     return t == null ? null : t.atOffset(ZoneOffset.UTC);
   }
 
-  private static Job toJob(Record r) {
+  private static Instant instant(String text) {
+    return text == null ? null : OffsetDateTime.parse(text).toInstant();
+  }
+
+  private static Job toJob(TableRecord r) {
     Job job = new Job();
-    job.id = r.get(ID);
-    job.name = r.get(NAME);
-    job.handlerType = r.get(HANDLER_TYPE);
-    job.handler = r.get(HANDLER);
-    job.maxRetries = r.get(MAX_RETRIES);
-    job.retryDelaySeconds = r.get(RETRY_DELAY);
-    job.retryExponential = r.get(RETRY_EXPONENTIAL);
-    job.retryMaxDelaySeconds = r.get(RETRY_MAX_DELAY);
-    job.retryJitter = r.get(RETRY_JITTER).doubleValue();
-    job.retryCount = r.get(RETRY_COUNT);
-    job.triggerType = r.get(TRIGGER_TYPE);
-    job.triggerSpec = parse(r.get(TRIGGER_SPEC));
-    OffsetDateTime next = r.get(NEXT_RUN);
-    job.nextRun = next == null ? null : next.toInstant();
-    job.state = r.get(STATE);
-    job.priority = r.get(PRIORITY);
-    job.owner = r.get(OWNER);
-    job.runId = r.get(RUN_ID);
-    job.context = parse(r.get(CONTEXT));
-    job.lastError = r.get(LAST_ERROR);
-    OffsetDateTime end = r.get(RUN_END);
-    job.runEnd = end == null ? null : end.toInstant();
+    job.id = r.getValue("id");
+    job.name = r.getValue("name");
+    job.handlerType = r.getValue("handler_type");
+    job.handler = r.getValue("handler");
+    job.maxRetries = Integer.parseInt(r.getValue("max_retries"));
+    job.retryDelaySeconds = Integer.parseInt(r.getValue("retry_delay_seconds"));
+    job.retryExponential = Boolean.parseBoolean(r.getValue("retry_exponential"));
+    job.retryMaxDelaySeconds = Integer.parseInt(r.getValue("retry_max_delay_seconds"));
+    job.retryJitter = Double.parseDouble(r.getValue("retry_jitter"));
+    job.retryCount = Integer.parseInt(r.getValue("retry_count"));
+    job.triggerType = r.getValue("trigger_type");
+    job.triggerSpec = parse(r.getValue("trigger_spec"));
+    job.nextRun = instant(r.getValue("next_run"));
+    job.state = Integer.parseInt(r.getValue("state"));
+    job.priority = Integer.parseInt(r.getValue("priority"));
+    job.owner = r.getValue("owner");
+    job.runId = r.getValue("run_id");
+    job.context = parse(r.getValue("context"));
+    job.lastError = r.getValue("last_error");
+    job.runEnd = instant(r.getValue("run_end"));
     return job;
   }
 

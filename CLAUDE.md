@@ -21,6 +21,7 @@ Issues/fixes | docs/troubleshooting/ | -
 Dev setup | docs/development/workflows.md | pom.xml
 Build system / versions | docs/build/build-system.md | shared-build/
 Writing docs | .claude/rules/documentation.md | docs/
+Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.java
 
 ---
 
@@ -58,7 +59,8 @@ Writing docs | .claude/rules/documentation.md | docs/
 
 **3. NEVER mix writers** → Downloads use `getOutputStream()`, JSON uses `getWriter()`
 
-**4. DB access goes through `Database.query()` / `transact()`** — never raw JDBC except `openConnection()` for cursors
+**4. Table access goes through `TableRecord`** — never the jOOQ DSL directly in new code, never raw JDBC except `openConnection()` for cursors
+- Why: one layer checks names and runs business rules. If it lacks a capability, extend it — see .claude/rules/data-access.md
 
 **5. NEVER hardcode a dependency version in `pom.xml`** → Pin it in `shared-build/catalog/thirdparty/pom.xml`, then declare it version-free
 - Why: one version of each library, changed in one reviewed place — see docs/build/build-system.md

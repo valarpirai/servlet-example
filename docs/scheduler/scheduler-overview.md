@@ -56,7 +56,8 @@ Failed repeating jobs keep their schedule. The error stays in `last_error`.
 ## Safety rules
 
 - **No lock.** Every state change filters on the state it expects. A stale
-  writer changes zero rows.
+  writer changes zero rows. `SqlJobRepository` does this with
+  `TableRecord.updateMultiple`, which repeats its query conditions in the write.
 - **Cap in flight.** Queued plus running never exceeds `scheduler.maxInFlight`.
 - **Sweep.** Every `scheduler.sweepMinutes`, rows this node owns as queued or
   running but holds in no memory go back to ready. Startup runs the same reset.

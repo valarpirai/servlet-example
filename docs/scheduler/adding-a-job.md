@@ -17,14 +17,15 @@ VALUES ('nightly-cleanup', 'script', 'cleanup', 'daily', '{"time": "02:30"}');
 | `handler` | A `@JobName` for `java`. An `api_scripts` name for `script` |
 | `trigger_type` | `once`, `interval`, `daily`, `on_demand` |
 | `trigger_spec` | JSON for the trigger type |
-| `next_run` | First due time. `NULL` means due now |
+| `next_run` | First due time. Defaults to now. Never null |
 | `priority` | Lower runs first. Default 100 |
 | `context` | JSON state handed to the handler and saved after each run |
 | `run_end` | Optional. Stop repeating after this time |
 | `last_error` | Last failure. Cleared by the next success |
 
-Retry columns are in [Job retries](./job-retries.md). Times are UTC. The Table
-browser can edit the rows.
+Retry columns are in [Job retries](./job-retries.md). Times are UTC. Both
+scheduler tables are on `record.allowedTables`, so the Table browser and scripts
+can edit the rows through `TableRecord`.
 
 ## A Java handler
 
@@ -97,7 +98,7 @@ id and the `once` trigger. Every other field keeps your value.
 
 ## Run it sooner
 
-Set `next_run` to now, or `NULL`. The scheduler sees it within
+Set `next_run` to now. The scheduler sees it within
 `scheduler.pollSeconds`. `on_demand` jobs never run on their own.
 
 ## When a job does not run

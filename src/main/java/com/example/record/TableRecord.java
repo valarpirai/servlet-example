@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.SelectConditionStep;
+import org.jooq.impl.DSL;
 
 /**
  * Query and write rows of an allow-listed table, and run business rules around each write. Scripts
@@ -32,7 +33,7 @@ public class TableRecord {
   private final String table;
   private final String keyColumn;
   private final List<Condition> conditions = new ArrayList<>();
-  private String orderByColumn;
+  private final List<org.jooq.OrderField<?>> ordering = new ArrayList<>();
   private int limit;
   private List<Map<String, Object>> rows = List.of();
   private int index = -1;
@@ -129,13 +130,21 @@ public class TableRecord {
   }
 
   /**
-   * Sorts the result ascending.
+   * Sorts the result ascending. Call again to add a lower-priority sort column.
    *
    * @param column column name
    */
   public void orderBy(String column) {
-    column(column);
-    this.orderByColumn = column;
+    ordering.add(column(column).asc());
+  }
+
+  /**
+   * Sorts the result descending. Call again to add a lower-priority sort column.
+   *
+   * @param column column name
+   */
+  public void orderByDesc(String column) {
+    ordering.add(column(column).desc());
   }
 
   /**
@@ -150,15 +159,7 @@ public class TableRecord {
   /** Runs the query. Call {@link #next()} to walk the rows. */
   public void query() {
     try {
-      rows =
-          database.query(
-              dsl -> {
-                SelectConditionStep<?> select =
-                    dsl.select().from(table(name(table))).where(conditions);
-                var ordered =
-                    orderByColumn == null ? select : select.orderBy(column(orderByColumn));
-                return (limit > 0 ? ordered.limit(limit) : ordered).fetch().intoMaps();
-              });
+      rows = fetchRows();
     } catch (Exception e) {
       throw new IllegalStateException("Query on " + table + " failed: " + e.getMessage(), e);
     }
@@ -321,6 +322,145 @@ public class TableRecord {
     }
     rules.run(table, BusinessRuleRunner.Operation.DELETE, "after", this);
     return true;
+  }
+
+  // ---- bulk writes ----
+
+  /**
+   * Counts the rows that match the conditions.
+   *
+   * @return the row count
+   */
+  public int count() {
+    try {
+      return database.query(
+          dsl -> dsl.fetchCount(dsl.selectFrom(table(name(table))).where(conditions)));
+    } catch (Exception e) {
+      throw new IllegalStateException("Count on " + table + " failed: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Writes the fields set with {@link #setValue} to every row that matches the conditions. Each row
+   * runs its business rules. The write repeats the conditions, so a row that changed since it was
+   * read is skipped. That makes the call a safe compare-and-set: the returned count says how many
+   * rows this caller won.
+   *
+   * @return rows updated; rows skipped by a before rule or a lost race are not counted
+   */
+  public int updateMultiple() {
+    requireConditions("updateMultiple");
+    Map<String, Object> values = new LinkedHashMap<>(current);
+    BusinessRuleRunner rules = new BusinessRuleRunner(database);
+    int updated = 0;
+    for (Map<String, Object> row : matchingRows()) {
+      TableRecord one = loaded(row);
+      values.forEach(one::setValue);
+      if (!rules.run(table, BusinessRuleRunner.Operation.UPDATE, "before", one)) {
+        continue;
+      }
+      Map<String, Object> changed = one.changedFields();
+      if (!changed.isEmpty() && writeIfStillMatching(row, changed) == 0) {
+        continue;
+      }
+      rules.run(table, BusinessRuleRunner.Operation.UPDATE, "after", one);
+      updated++;
+    }
+    return updated;
+  }
+
+  /**
+   * Deletes every row that matches the conditions. Each row runs its business rules. The delete
+   * repeats the conditions, so a row that changed since it was read is skipped.
+   *
+   * @return rows deleted
+   */
+  public int deleteMultiple() {
+    requireConditions("deleteMultiple");
+    BusinessRuleRunner rules = new BusinessRuleRunner(database);
+    int deleted = 0;
+    for (Map<String, Object> row : matchingRows()) {
+      TableRecord one = loaded(row);
+      if (!rules.run(table, BusinessRuleRunner.Operation.DELETE, "before", one)) {
+        continue;
+      }
+      int n;
+      try {
+        n =
+            database.query(
+                dsl ->
+                    dsl.deleteFrom(table(name(table)))
+                        .where(column(keyColumn).eq(row.get(keyColumn)))
+                        .and(DSL.and(conditions))
+                        .execute());
+      } catch (Exception e) {
+        throw new IllegalStateException("Delete from " + table + " failed: " + e.getMessage(), e);
+      }
+      if (n == 0) {
+        continue;
+      }
+      rules.run(table, BusinessRuleRunner.Operation.DELETE, "after", one);
+      deleted++;
+    }
+    return deleted;
+  }
+
+  private void requireConditions(String method) {
+    if (conditions.isEmpty()) {
+      throw new IllegalStateException(method + " needs at least one addQuery condition");
+    }
+  }
+
+  private List<Map<String, Object>> matchingRows() {
+    try {
+      return fetchRows();
+    } catch (Exception e) {
+      throw new IllegalStateException("Query on " + table + " failed: " + e.getMessage(), e);
+    }
+  }
+
+  private List<Map<String, Object>> fetchRows() throws Exception {
+    return database.query(
+        dsl -> {
+          SelectConditionStep<?> select = dsl.select().from(table(name(table))).where(conditions);
+          var ordered = ordering.isEmpty() ? select : select.orderBy(ordering);
+          return (limit > 0 ? ordered.limit(limit) : ordered).fetch().intoMaps();
+        });
+  }
+
+  /** A record positioned on a row, as if {@link #next()} had just returned it. */
+  private TableRecord loaded(Map<String, Object> row) {
+    TableRecord one = new TableRecord(database, table);
+    one.current = new LinkedHashMap<>(row);
+    one.previous = new HashMap<>(row);
+    return one;
+  }
+
+  /** Fields whose value now differs from the row as it was read. */
+  private Map<String, Object> changedFields() {
+    Map<String, Object> changed = new LinkedHashMap<>();
+    current.forEach(
+        (k, v) -> {
+          if (!Objects.equals(text(v), text(previous.get(k)))) {
+            changed.put(k, v);
+          }
+        });
+    return changed;
+  }
+
+  /** Updates one row by key and repeats the query conditions, so the write is a compare-and-set. */
+  private int writeIfStillMatching(Map<String, Object> row, Map<String, Object> changed) {
+    try {
+      return database.query(
+          dsl ->
+              dsl.update(table(name(table)))
+                  .set(fields(changed))
+                  .where(column(keyColumn).eq(row.get(keyColumn)))
+                  .and(DSL.and(conditions))
+                  .execute());
+    } catch (Exception e) {
+      throw new IllegalStateException("Update of " + table + " failed: " + e.getMessage(), e);
+    }
   }
 
   // ---- internals ----
