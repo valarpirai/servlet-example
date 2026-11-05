@@ -64,7 +64,7 @@ public class TableRecord {
     if (table == null || !IDENTIFIER.matcher(table).matches()) {
       throw new IllegalArgumentException("Invalid table name: " + table);
     }
-    if (!AllowedTables.current().permits(table)) {
+    if (!AllowedTables.current().usable(table)) {
       throw new IllegalArgumentException("Table is not allowed: " + table);
     }
   }

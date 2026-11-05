@@ -80,7 +80,7 @@ class BusinessRuleRunnerTest {
   @Test
   void ruleCannotReachTablesOutsideAllowList() {
     AllowedTables.override(AllowedTables.parse("js_modules:name"));
-    db.rule("sneaky", null, "new TableRecord('app_properties');");
+    db.rule("sneaky", null, "new TableRecord('sys_secrets');");
     IllegalStateException e = assertThrows(IllegalStateException.class, () -> newModule().insert());
     assertTrue(e.getMessage().contains("not allowed"), e.getMessage());
   }

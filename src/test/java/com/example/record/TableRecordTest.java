@@ -35,6 +35,24 @@ class TableRecordTest {
   }
 
   @Test
+  void appTablesStayUsableWhenRestricted() {
+    AllowedTables.override(AllowedTables.parse("orders"));
+    for (String t :
+        new String[] {
+          "app_properties",
+          "js_modules",
+          "api_scripts",
+          "routes",
+          "business_rules",
+          "scheduled_jobs",
+          "scheduled_job_runs"
+        }) {
+      assertDoesNotThrow(() -> new TableRecord(db, t), t);
+    }
+    assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "sys_secrets"));
+  }
+
+  @Test
   void badTableNameRejectedBeforeAnySql() {
     assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "a\"b"));
     assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "a b"));

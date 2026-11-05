@@ -12,6 +12,17 @@ import java.util.Optional;
  */
 public final class AllowedTables {
 
+  /** Tables the application itself reads and writes. A restriction never blocks them. */
+  private static final java.util.Set<String> APP_TABLES =
+      java.util.Set.of(
+          "app_properties",
+          "js_modules",
+          "api_scripts",
+          "routes",
+          "business_rules",
+          "scheduled_jobs",
+          "scheduled_job_runs");
+
   private static volatile AllowedTables current;
 
   private final boolean all;
@@ -84,6 +95,17 @@ public final class AllowedTables {
    */
   public boolean permits(String table) {
     return all || keys.containsKey(table);
+  }
+
+  /**
+   * Tells whether {@link TableRecord} may open a table: permitted by the setting, or one of the
+   * application's own tables.
+   *
+   * @param table table name
+   * @return true when the table may be used
+   */
+  public boolean usable(String table) {
+    return permits(table) || APP_TABLES.contains(table);
   }
 
   /**

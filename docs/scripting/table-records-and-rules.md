@@ -21,6 +21,9 @@ To restrict it, set `record.allowedTables` in `application.yml`, or set the
 `table` or `table:keyColumn` entries. Any other table throws `Table is not
 allowed`. The setting is read once at startup and never comes from
 `app_properties`.
+The application's own tables stay usable under any restriction:
+`app_properties`, `js_modules`, `api_scripts`, `routes`, `business_rules`,
+`scheduled_jobs` and `scheduled_job_runs`.
 
 ## Keys
 
