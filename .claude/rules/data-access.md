@@ -26,14 +26,23 @@ as a script API.
 
 ## Allow-list
 
-`TableRecord` touches only the tables in the `record.allowedTables` property, as
-`table:keyColumn` pairs. A new table needs a migration that appends its pair.
+`TableRecord` works on any table. `record.allowedTables` in `application.yml` (env
+`RECORD_ALLOWED_TABLES`) is an optional restriction. Unset means every table. It never
+lives in `app_properties`.
+
+ACL checks will live in a `TableRecordSecure` wrapper that delegates to `TableRecord`.
+Do not add them to `TableRecord`.
 
 ## Scope
 
 The rule covers new code. It does not require migrating existing direct jOOQ use.
 The data-access layer itself is exempt: `TableRecord`, `Database` and
-`BusinessRuleRunner`.
+`BusinessRuleRunner`. Two more classes stay on jOOQ for a stated reason:
+
+- `DatabaseAttachmentStorage` writes binary chunks in one transaction.
+  `TableRecord` returns strings and has no transaction API.
+- `TableApi` browses any table through `information_schema`. A restricted
+  `TableRecord` could not serve it.
 
 ## Related
 

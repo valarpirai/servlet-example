@@ -91,7 +91,7 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 - App dependencies (no versions): `pom.xml`
 
 **Configuration:**
-- DB credentials only: `src/main/resources/application.yml`
+- DB credentials and `record.allowedTables`: `src/main/resources/application.yml`
 - Everything else: `app_properties` table, seeded by `db/V2__seed_app_properties.sql`
 - Routes: the `routes` table
 - DB migrations: `src/main/resources/db/V*.sql`
@@ -137,14 +137,14 @@ See docs/architecture/configuration.md.
 
 ## Config
 
-`src/main/resources/application.yml` — **db credentials only**
+`src/main/resources/application.yml` — **db credentials and `record.allowedTables`**
 The `routes` table — 38 default routes, seeded by `db/V8__create_routes.sql` and changed by later migrations.
 
 Every other property lives in `app_properties`, **not** `application.yml`.
 Lookup order is LRU cache → DB → YAML.
 
 Env vars are **not** a general override — only `${VAR}` placeholders in
-`application.yml` plus `SERVER_PORT`.
+`application.yml` (`DB_*`, `RECORD_ALLOWED_TABLES`) plus `SERVER_PORT`.
 
 Defaults, env var rules, and the connection pool: docs/architecture/configuration.md.
 

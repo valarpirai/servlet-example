@@ -2,7 +2,8 @@
 
 Where settings live and which source wins.
 
-`application.yml` holds database credentials and nothing else. Every other
+`application.yml` holds database credentials and the optional `record.allowedTables`
+restriction. Every other
 property lives in the `app_properties` table, seeded by a Flyway migration.
 
 ## application.yml
@@ -13,7 +14,14 @@ db:
   url:      ${DB_URL:jdbc:postgresql://localhost:5432/appdb}
   username: ${DB_USERNAME:postgres}
   password: ${DB_PASSWORD:postgres}
+
+# Optional. Empty means TableRecord may use every table.
+record:
+  allowedTables: ${RECORD_ALLOWED_TABLES:}
 ```
+
+`TableRecord` needs `record.allowedTables` before the database is readable, so it
+lives in the file and is read once at startup.
 
 This is deliberate. Properties that live in a table can change without a
 redeploy. Credentials cannot come from the database that needs them, so they
@@ -91,7 +99,6 @@ that time, on every node. No reload is needed.
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |
 | `storage.filesystem.path` | `data/attachments` | Filesystem storage root |
 | `storage.database.table` | `attachment_chunks` | Chunk table |
-| `record.allowedTables` | `js_modules:name,routes:id,app_properties:id,business_rules:id` | Tables `TableRecord` may touch, as `table:keyColumn` |
 | `record.maxRuleDepth` | `5` | Deepest nesting of rules that fire rules |
 | `logging.level` | `INFO` | Root log level |
 | `logging.filePath` | `logs/application.log` | Log file |

@@ -13,16 +13,23 @@ in the script sandbox.
 
 ## Allowed tables
 
-`record.allowedTables` lists the tables `TableRecord` may touch. Each entry pairs
-a table with its key column.
+`TableRecord` works on any table. Table and column names must match
+`[A-Za-z_][A-Za-z0-9_]*`. Operators are `=`, `!=`, `>`, `<`, `>=`, `<=` and `LIKE`.
 
-```
-js_modules:name,routes:id,app_properties:id,business_rules:id,scheduled_jobs:id,scheduled_job_runs:id
-```
+To restrict it, set `record.allowedTables` in `application.yml`, or set the
+`RECORD_ALLOWED_TABLES` env var. The value is a comma separated list of
+`table` or `table:keyColumn` entries. Any other table throws `Table is not
+allowed`. The setting is read once at startup and never comes from
+`app_properties`.
 
-Any other table throws `Table is not allowed`. The key column picks the row for
-`update` and `deleteRecord`. Column names must match `[A-Za-z_][A-Za-z0-9_]*`.
-Operators are `=`, `!=`, `>`, `<`, `>=`, `<=` and `LIKE`.
+## Keys
+
+Writes find a row by key. The key is the one `table:keyColumn` names, else the
+table's single-column primary key. `getKeyColumn()` returns it.
+
+A table with no primary key, or a composite one, is read-only. `query`, `next`,
+`count` and `getColumnNames()` work. Every write throws a message naming the
+table. `getColumnNames()` lists the columns of the current row.
 
 ## Reading rows
 
