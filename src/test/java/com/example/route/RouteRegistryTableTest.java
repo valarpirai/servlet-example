@@ -52,7 +52,7 @@ class RouteRegistryTableTest {
     db.route("/one", "GET", "script", "s", "f");
     registry();
 
-    String select = db.sql.stream().filter(s -> !s.contains("md5(")).findFirst().orElseThrow();
+    String select = db.sql.stream().filter(s -> s.contains("sort_order")).findFirst().orElseThrow();
     assertTrue(select.contains("order by"), select);
     assertTrue(select.contains("sort_order"), select);
     assertTrue(select.contains("active"), select);

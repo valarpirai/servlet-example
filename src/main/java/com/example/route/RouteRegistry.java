@@ -1,16 +1,13 @@
 package com.example.route;
 
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
-
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
 import com.example.model.Route;
+import com.example.record.TableRecord;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.jooq.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +24,6 @@ public class RouteRegistry {
 
   /** How often the table is checked for changes. */
   static final long REFRESH_MILLIS = 5000;
-
-  private static final String FINGERPRINT_SQL =
-      "select md5(coalesce(string_agg(cast(r as text), ',' order by r.id), '')) from routes r";
 
   private static final String DEFAULT_SCRIPT_METHOD = "httpHandler";
 
@@ -134,26 +128,36 @@ public class RouteRegistry {
     }
   }
 
+  /** Hashes every column of every row, so a change to any route changes the fingerprint. */
   private String readFingerprint(Database db) throws Exception {
-    return db.query(dsl -> String.valueOf(dsl.fetchValue(FINGERPRINT_SQL)));
+    TableRecord all = new TableRecord(db, "routes");
+    all.orderBy("id");
+    all.query();
+    StringBuilder text = new StringBuilder();
+    while (all.next()) {
+      for (String column : all.getColumnNames()) {
+        text.append(column).append('=').append(all.getValue(column)).append('\u001f');
+      }
+      text.append('\u001e');
+    }
+    java.security.MessageDigest md5 = java.security.MessageDigest.getInstance("MD5");
+    return java.util.HexFormat.of()
+        .formatHex(md5.digest(text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
   }
 
   /** Reads the active rows in match order. Rows that fail validation are skipped. */
   private List<Route> loadFromTable(Database db) throws Exception {
     List<Route> loaded = new ArrayList<>();
-    List<Record> rows =
-        db.query(
-            dsl ->
-                dsl.select()
-                    .from(table("routes"))
-                    .where(field("active", Boolean.class).isTrue())
-                    .orderBy(field("sort_order"), field("id"))
-                    .fetch());
+    TableRecord rows = new TableRecord(db, "routes");
+    rows.addQuery("active", true);
+    rows.orderBy("sort_order");
+    rows.orderBy("id");
+    rows.query();
 
-    for (Record row : rows) {
-      Long id = row.get("id", Long.class);
+    while (rows.next()) {
+      String id = rows.getValue("id");
       try {
-        Route route = toRoute(row);
+        Route route = toRoute(rows);
         List<String> errors = new ArrayList<>();
         validateRoute(route, "Route id " + id + " (" + route.getPath() + ")", errors);
         if (errors.isEmpty()) {
@@ -168,21 +172,20 @@ public class RouteRegistry {
     return loaded;
   }
 
-  private Route toRoute(Record row) {
+  private Route toRoute(TableRecord row) {
     Route route = new Route();
-    route.setId(row.get("id", Long.class));
-    route.setPath(row.get("path", String.class));
-    route.setMethods(
-        split(row.get("methods", String.class)).stream().map(String::toUpperCase).toList());
-    route.setType(row.get("type", String.class));
-    route.setHandler(row.get("handler", String.class));
-    route.setHandlerMethod(row.get("handler_method", String.class));
-    route.setProcessor(row.get("processor", String.class));
-    route.setResource(row.get("resource", String.class));
-    route.setContentType(row.get("content_type", String.class));
-    route.setDescription(row.get("description", String.class));
-    route.setPathParams(split(row.get("path_params", String.class)));
-    route.setDefaultRoute(Boolean.TRUE.equals(row.get("is_default", Boolean.class)));
+    route.setId(Long.valueOf(row.getValue("id")));
+    route.setPath(row.getValue("path"));
+    route.setMethods(split(row.getValue("methods")).stream().map(String::toUpperCase).toList());
+    route.setType(row.getValue("type"));
+    route.setHandler(row.getValue("handler"));
+    route.setHandlerMethod(row.getValue("handler_method"));
+    route.setProcessor(row.getValue("processor"));
+    route.setResource(row.getValue("resource"));
+    route.setContentType(row.getValue("content_type"));
+    route.setDescription(row.getValue("description"));
+    route.setPathParams(split(row.getValue("path_params")));
+    route.setDefaultRoute(Boolean.parseBoolean(row.getValue("is_default")));
     if ("script".equals(route.getType())
         && (route.getHandlerMethod() == null || route.getHandlerMethod().isBlank())) {
       route.setHandlerMethod(DEFAULT_SCRIPT_METHOD);

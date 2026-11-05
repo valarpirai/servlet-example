@@ -4,7 +4,6 @@ import com.example.config.Database;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Result;
@@ -14,8 +13,8 @@ import org.jooq.tools.jdbc.MockConnection;
 import org.jooq.tools.jdbc.MockResult;
 
 /**
- * In-memory stand-in for the routes table. {@link #route} adds a row. The fake answers the
- * fingerprint query and the route select, counts the selects, and can be told to fail.
+ * In-memory stand-in for the routes table. {@link #route} adds a row. The fake answers every select
+ * with all rows, counts the selects, and can be told to fail.
  */
 class FakeRoutesDb extends Database {
 
@@ -39,7 +38,7 @@ class FakeRoutesDb extends Database {
   private final List<Object[]> rows = new ArrayList<>();
   private long nextId = 1;
 
-  /** Number of times the route rows were read. */
+  /** Number of times the active route rows were loaded; the fingerprint read does not count. */
   int tableReads;
 
   /** When true every statement fails, as if the database were down. */
@@ -139,21 +138,12 @@ class FakeRoutesDb extends Database {
                   }
                   String s = ctx.sql().toLowerCase();
                   sql.add(s);
-                  if (s.contains("md5(")) {
-                    return result(
-                        List.<Object[]>of(new Object[] {Map.of("rows", rowsAsText()).toString()}),
-                        "md5");
+                  if (s.contains("sort_order")) {
+                    tableReads++;
                   }
-                  tableReads++;
                   return result(rows, COLUMNS);
                 }),
             SQLDialect.POSTGRES));
-  }
-
-  private String rowsAsText() {
-    StringBuilder text = new StringBuilder();
-    rows.forEach(r -> text.append(java.util.Arrays.toString(r)));
-    return text.toString();
   }
 
   @SuppressWarnings("unchecked")
