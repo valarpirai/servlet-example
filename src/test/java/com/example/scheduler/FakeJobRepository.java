@@ -29,6 +29,32 @@ public class FakeJobRepository implements JobRepository {
     return rows.get(id);
   }
 
+  public final List<JobRun> runs = new ArrayList<>();
+
+  @Override
+  public synchronized void recordRun(JobRun run) {
+    runs.add(run);
+  }
+
+  @Override
+  public synchronized int purgeRuns(Instant before) {
+    int n = (int) runs.stream().filter(r -> r.startedAt.isBefore(before)).count();
+    runs.removeIf(r -> r.startedAt.isBefore(before));
+    return n;
+  }
+
+  @Override
+  public synchronized Map<Integer, Long> countByState() {
+    Map<Integer, Long> counts = new java.util.HashMap<>();
+    rows.values().forEach(j -> counts.merge(j.state, 1L, Long::sum));
+    return counts;
+  }
+
+  @Override
+  public synchronized void insert(Job job, Instant now) {
+    rows.put(job.id, copy(job));
+  }
+
   @Override
   public synchronized List<Job> claim(int limit, String node, Instant now) {
     List<Job> out = new ArrayList<>();
@@ -63,10 +89,17 @@ public class FakeJobRepository implements JobRepository {
 
   @Override
   public synchronized void reschedule(
-      Job job, String runId, Instant nextRun, JsonObject context, String error, Instant now) {
+      Job job,
+      String runId,
+      Instant nextRun,
+      JsonObject context,
+      String error,
+      int retryCount,
+      Instant now) {
     Job row = rows.get(job.id);
     if (row != null && runId.equals(row.runId)) {
       row.state = Job.READY;
+      row.retryCount = retryCount;
       row.nextRun = nextRun;
       row.context = context;
       row.lastError = error;
@@ -81,6 +114,7 @@ public class FakeJobRepository implements JobRepository {
     Job row = rows.get(job.id);
     if (row != null && runId.equals(row.runId)) {
       row.state = Job.ERROR;
+      row.retryCount = 0;
       row.lastError = error;
       row.context = context;
       row.owner = null;
@@ -140,7 +174,14 @@ public class FakeJobRepository implements JobRepository {
     Job c = new Job();
     c.id = j.id;
     c.name = j.name;
+    c.handlerType = j.handlerType;
     c.handler = j.handler;
+    c.maxRetries = j.maxRetries;
+    c.retryDelaySeconds = j.retryDelaySeconds;
+    c.retryExponential = j.retryExponential;
+    c.retryMaxDelaySeconds = j.retryMaxDelaySeconds;
+    c.retryJitter = j.retryJitter;
+    c.retryCount = j.retryCount;
     c.triggerType = j.triggerType;
     c.triggerSpec = j.triggerSpec;
     c.nextRun = j.nextRun;

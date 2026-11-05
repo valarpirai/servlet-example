@@ -28,7 +28,7 @@ public final class SchedulerBootstrap {
     }
     ApiScriptProcessor processor = new ApiScriptProcessor();
     HandlerRegistry handlers = new HandlerRegistry(name -> new ScriptJobHandler(processor, name));
-    handlers.register("hello-world", new HelloWorldJobHandler());
+    JobHandlerScanner.scanAndRegister(handlers, "com.example");
     return new Scheduler(
         new SqlJobRepository(database),
         handlers,

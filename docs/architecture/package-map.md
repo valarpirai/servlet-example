@@ -26,6 +26,7 @@ src/main/java/com/example/
 │   ├── ApiHandler.java                 Script-backed API dispatch
 │   ├── AttachmentHandler.java          Download, delete, list
 │   ├── DataBrowserHandler.java         Relational browsing
+│   ├── SchedulerHandler.java           Scheduler stats endpoint
 │   ├── MongoHandler.java               MongoDB browsing
 │   └── TableApiHandler.java            Table API JSON endpoints
 │
@@ -44,14 +45,19 @@ src/main/java/com/example/
 │   ├── Scheduler.java                  Scheduler thread, workers, sweep, shutdown
 │   ├── SchedulerBootstrap.java         Builds the scheduler from app_properties
 │   ├── SchedulerConfig.java            scheduler.* settings
+│   ├── SchedulerMetrics.java           Counters, lateness, per-handler times
 │   ├── Job.java                        One row of scheduled_jobs
+│   ├── JobRun.java                     One row of scheduled_job_runs
 │   ├── JobQueue.java                   Blocking priority queue
 │   ├── JobRepository.java              Table access interface
 │   ├── SqlJobRepository.java           jOOQ implementation
 │   ├── Recurrence.java                 Next-run interface
 │   ├── Recurrences.java                once, interval, daily
+│   ├── RetryPolicy.java                Retry wait: backoff and jitter
 │   ├── JobHandler.java                 Code a job runs
-│   ├── HandlerRegistry.java            Handler key to code
+│   ├── JobName.java                    Annotation that names a handler
+│   ├── JobHandlerScanner.java          ClassGraph scan for @JobName classes
+│   ├── HandlerRegistry.java            Handler type and key to code
 │   ├── ScriptJobHandler.java           Runs an api_scripts row as a job
 │   └── HelloWorldJobHandler.java       Sample Java handler
 │

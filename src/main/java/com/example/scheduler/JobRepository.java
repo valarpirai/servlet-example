@@ -3,6 +3,7 @@ package com.example.scheduler;
 import com.google.gson.JsonObject;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -10,6 +11,30 @@ import java.util.Set;
  * writer changes nothing.
  */
 public interface JobRepository {
+
+  /** Writes one history row. The job row may already be gone, so the history keeps its own copy. */
+  void recordRun(JobRun run) throws Exception;
+
+  /**
+   * Deletes history rows that started before a time.
+   *
+   * @param before cutoff
+   * @return rows deleted
+   */
+  int purgeRuns(Instant before) throws Exception;
+
+  /**
+   * Counts job rows by state value ({@link Job#READY} and so on). States with no rows are absent.
+   */
+  Map<Integer, Long> countByState() throws Exception;
+
+  /**
+   * Adds a job in ready state.
+   *
+   * @param job the job; {@code id} must be set
+   * @param now the current time
+   */
+  void insert(Job job, Instant now) throws Exception;
 
   /**
    * Claims up to {@code limit} due jobs for this node: ready, due, lowest priority value first.
@@ -41,10 +66,17 @@ public interface JobRepository {
    * @param nextRun next due time
    * @param context state to keep for the next run
    * @param error failure text, or null on success
+   * @param retryCount retries used so far; 0 after a success or when retries ran out
    * @param now the current time
    */
   void reschedule(
-      Job job, String runId, Instant nextRun, JsonObject context, String error, Instant now)
+      Job job,
+      String runId,
+      Instant nextRun,
+      JsonObject context,
+      String error,
+      int retryCount,
+      Instant now)
       throws Exception;
 
   /** Ends a run that failed and does not repeat. The job stays in the table in error state. */

@@ -85,6 +85,7 @@ that time, on every node. No reload is needed.
 | `scheduler.pollSeconds` | `1` | Seconds between polls |
 | `scheduler.sweepMinutes` | `5` | Minutes between stuck-job sweeps |
 | `scheduler.stopSeconds` | `30` | Seconds running jobs get at shutdown |
+| `scheduler.historyDays` | `30` | Days of run history kept |
 | `scheduler.nodeId` | host name | Optional. Keep it stable across restarts |
 | `storage.type` | `database` | `database` or `filesystem` |
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |

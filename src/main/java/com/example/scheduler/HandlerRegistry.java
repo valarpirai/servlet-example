@@ -5,17 +5,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
- * Maps a job's {@code handler} text to code. A key {@code script:<name>} runs the {@code
- * api_scripts} row of that name. Any other key must be registered with {@link #register}.
+ * Maps a job's handler type and key to code. Type {@code script} runs the {@code api_scripts} row
+ * of that name. Type {@code java} needs a handler registered with {@link #register}.
  */
 public class HandlerRegistry {
-
-  private static final String SCRIPT_PREFIX = "script:";
 
   private final Map<String, JobHandler> handlers = new ConcurrentHashMap<>();
   private final Function<String, JobHandler> scriptHandlers;
 
   /**
+   * Creates a registry with no Java handlers.
+   *
    * @param scriptHandlers builds the handler for one script name
    */
   public HandlerRegistry(Function<String, JobHandler> scriptHandlers) {
@@ -28,15 +28,16 @@ public class HandlerRegistry {
   }
 
   /**
-   * Finds the code for a handler key.
+   * Finds the code for a job.
    *
+   * @param handlerType {@link Job#JAVA} or {@link Job#SCRIPT}
    * @param key value of the {@code handler} column
-   * @return the handler, or null when nothing is registered under the key
+   * @return the handler, or null when the type is unknown or nothing is registered under the key
    */
-  public JobHandler find(String key) {
-    if (key.startsWith(SCRIPT_PREFIX)) {
-      return scriptHandlers.apply(key.substring(SCRIPT_PREFIX.length()));
+  public JobHandler find(String handlerType, String key) {
+    if (Job.SCRIPT.equals(handlerType)) {
+      return scriptHandlers.apply(key);
     }
-    return handlers.get(key);
+    return Job.JAVA.equals(handlerType) ? handlers.get(key) : null;
   }
 }

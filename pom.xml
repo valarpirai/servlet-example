@@ -51,6 +51,12 @@
             <artifactId>gson</artifactId>
         </dependency>
 
+        <!-- ClassGraph finds @JobName handlers at startup -->
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+        </dependency>
+
         <!-- SnakeYAML for YAML configuration -->
         <dependency>
             <groupId>org.yaml</groupId>

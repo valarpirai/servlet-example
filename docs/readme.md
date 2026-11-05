@@ -46,7 +46,9 @@ Server-side JavaScript on Rhino, sandboxed.
 Jobs live in the `scheduled_jobs` table and run on a worker pool. Handlers can be Java or JavaScript.
 
 - [Scheduler overview](./scheduler/scheduler-overview.md) — parts, states, safety rules
-- [Adding a job](./scheduler/adding-a-job.md) — rows, handlers, troubleshooting
+- [Adding a job](./scheduler/adding-a-job.md) — rows, `@JobName` handlers, script handlers, troubleshooting
+- [Job retries](./scheduler/job-retries.md) — retry, backoff and jitter
+- [Monitoring](./scheduler/monitoring.md) — run history, stats endpoint, metrics
 
 ## Data browser
 

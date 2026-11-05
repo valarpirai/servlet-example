@@ -36,6 +36,10 @@ public final class RuntimeMetrics {
     metrics.put("threads", threads());
     metrics.put("workers", workers());
     metrics.put("db", db());
+    com.example.scheduler.Scheduler scheduler = com.example.scheduler.Scheduler.get();
+    if (scheduler != null) {
+      metrics.put("scheduler", scheduler.stats());
+    }
     metrics.put("timestamp", System.currentTimeMillis());
     return metrics;
   }

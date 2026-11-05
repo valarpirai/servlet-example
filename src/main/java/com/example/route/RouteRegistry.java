@@ -451,6 +451,8 @@ public class RouteRegistry {
         return "com.example.handler.MongoHandler";
       case "TableApiHandler":
         return "com.example.handler.TableApiHandler";
+      case "SchedulerHandler":
+        return "com.example.handler.SchedulerHandler";
       default:
         return null;
     }

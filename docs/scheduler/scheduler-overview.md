@@ -27,6 +27,8 @@ memory, never a job.
 4. A worker takes the job and moves the row to running with a fresh run id.
 5. The worker looks up the handler and runs it.
 6. One update writes the next due time, context, error and clears the owner.
+   A failed job with retries left gets a retry time instead.
+7. A history row records the run.
 
 ## States
 
@@ -70,6 +72,8 @@ Failed repeating jobs keep their schedule. The error stays in `last_error`.
 ## Related
 
 - [Adding a job](./adding-a-job.md) — rows, Java handlers, script handlers
+- [Job retries](./job-retries.md) — retry, backoff and jitter
+- [Monitoring](./monitoring.md) — run history, stats endpoint, metrics
 - [Package map](../architecture/package-map.md) — where the code lives
 - [Configuration](../architecture/configuration.md) — the `scheduler.*` properties
 - [Startup flow](../architecture/startup-flow.md) — where the scheduler starts

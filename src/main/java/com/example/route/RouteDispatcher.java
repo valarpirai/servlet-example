@@ -4,6 +4,7 @@ import com.example.handler.ApiHandler;
 import com.example.handler.AttachmentHandler;
 import com.example.handler.DataBrowserHandler;
 import com.example.handler.MongoHandler;
+import com.example.handler.SchedulerHandler;
 import com.example.handler.TableApiHandler;
 import com.example.model.ProcessorResponse;
 import com.example.model.Route;
@@ -287,6 +288,8 @@ public class RouteDispatcher {
         return MongoHandler.getInstance();
       case "TableApiHandler":
         return TableApiHandler.getInstance();
+      case "SchedulerHandler":
+        return SchedulerHandler.getInstance();
       default:
         return null;
     }

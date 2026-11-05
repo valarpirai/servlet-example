@@ -4,7 +4,8 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Sample Java handler, registered as {@code hello-world}. Logs a greeting and counts its runs. */
+/** Sample Java handler. Logs a greeting and counts its runs. */
+@JobName("hello-world")
 public class HelloWorldJobHandler implements JobHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(HelloWorldJobHandler.class);

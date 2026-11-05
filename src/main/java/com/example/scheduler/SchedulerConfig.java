@@ -15,6 +15,9 @@ public class SchedulerConfig {
   /** Stuck rows must sit idle this long before a sweep resets them. Covers the claim race. */
   public long sweepGraceMillis = 60_000L;
 
+  /** How long run history is kept. */
+  public long historyMillis = 30 * 24 * 3_600_000L;
+
   /** How far a job with no handler is pushed out. */
   public long missingHandlerDelayMillis = 60 * 60_000L;
 
@@ -27,6 +30,7 @@ public class SchedulerConfig {
     c.pollMillis = PropertiesUtil.getInt("scheduler.pollSeconds", 1) * 1000L;
     c.sweepMillis = PropertiesUtil.getInt("scheduler.sweepMinutes", 5) * 60_000L;
     c.stopMillis = PropertiesUtil.getInt("scheduler.stopSeconds", 30) * 1000L;
+    c.historyMillis = PropertiesUtil.getInt("scheduler.historyDays", 30) * 24 * 3_600_000L;
     return c;
   }
 }
