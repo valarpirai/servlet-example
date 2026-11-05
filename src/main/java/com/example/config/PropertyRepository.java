@@ -1,20 +1,10 @@
 package com.example.config;
 
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
-
+import com.example.record.TableRecord;
 import java.util.Optional;
-import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.Table;
 
-/** jOOQ-backed lookup of a value in the app_properties table. */
+/** Lookup of a value in the app_properties table, read through {@link TableRecord}. */
 public class PropertyRepository {
-
-  private static final Table<Record> PROPS = table("app_properties");
-  private static final Field<String> NAME = field("name", String.class);
-  private static final Field<String> VALUE = field("value", String.class);
-  private static final Field<Boolean> ACTIVE = field("active", Boolean.class);
 
   private final Database database;
 
@@ -22,13 +12,18 @@ public class PropertyRepository {
     this.database = database;
   }
 
-  /** Fetch the value of a single active property by its dot-notation name. */
+  /**
+   * Fetches the value of a single active property by its dot-notation name.
+   *
+   * @param name property name
+   * @return the value, or empty when no active row has the name or its value is null
+   */
   public Optional<String> findValueByName(String name) throws Exception {
-    return database.query(
-        dsl ->
-            dsl.select(VALUE)
-                .from(PROPS)
-                .where(NAME.eq(name).and(ACTIVE.isTrue()))
-                .fetchOptional(VALUE));
+    TableRecord properties = new TableRecord(database, "app_properties");
+    properties.addQuery("name", name);
+    properties.addQuery("active", true);
+    properties.setLimit(1);
+    properties.query();
+    return properties.next() ? Optional.ofNullable(properties.getValue("value")) : Optional.empty();
   }
 }
