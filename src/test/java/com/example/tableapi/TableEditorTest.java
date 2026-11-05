@@ -176,6 +176,8 @@ class TableEditorTest {
   @Test
   void createRefusesATableThatIsNotAllowListed() {
     tableName = "notes";
+    com.example.record.AllowedTables.override(
+        com.example.record.AllowedTables.parse("js_modules:name"));
 
     assertThrows(
         TableEditor.NotWritableException.class, () -> editor.create("notes", Map.of("name", "m")));
@@ -256,5 +258,10 @@ class TableEditorTest {
 
     assertEquals(0, out.get("deleted"));
     assertEquals(2, ((List<?>) out.get("failed")).size());
+  }
+
+  @org.junit.jupiter.api.AfterEach
+  void resetAllowedTables() {
+    com.example.record.AllowedTables.reset();
   }
 }

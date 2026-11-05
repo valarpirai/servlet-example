@@ -62,6 +62,15 @@ public final class AllowedTables {
     return value;
   }
 
+  /**
+   * Replaces the cached setting. Tests call this; {@link #reset()} undoes it.
+   *
+   * @param value the restriction to use
+   */
+  public static void override(AllowedTables value) {
+    current = value;
+  }
+
   /** Forgets the cached setting. Tests call this. */
   public static void reset() {
     current = null;

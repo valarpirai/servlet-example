@@ -6,7 +6,6 @@ import static org.jooq.impl.DSL.table;
 
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
-import com.example.util.PropertiesUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,8 +20,8 @@ import org.jooq.SelectConditionStep;
 import org.jooq.impl.DSL;
 
 /**
- * Query and write rows of an allow-listed table, and run business rules around each write. Scripts
- * reach it as {@code new TableRecord('table')}. Values read and written are strings or numbers.
+ * Query and write rows of a table, and run business rules around each write. Scripts reach it as
+ * {@code new TableRecord('table')}. Values read and written are strings or numbers.
  */
 public class TableRecord {
 
@@ -31,7 +30,7 @@ public class TableRecord {
 
   private final Database database;
   private final String table;
-  private final String keyColumn;
+  private String keyColumn;
   private final List<Condition> conditions = new ArrayList<>();
   private final List<org.jooq.OrderField<?>> ordering = new ArrayList<>();
   private int limit;
@@ -44,7 +43,7 @@ public class TableRecord {
   /**
    * Creates a record handle on the application database.
    *
-   * @param table name of an allow-listed table
+   * @param table name of a table; when {@code record.allowedTables} is set it must be listed
    */
   public TableRecord(String table) {
     this(DbPropertiesLoader.getDatabase(), table);
@@ -54,7 +53,7 @@ public class TableRecord {
    * Creates a record handle on a given database.
    *
    * @param database database to use
-   * @param table name of an allow-listed table
+   * @param table name of a table; when {@code record.allowedTables} is set it must be listed
    */
   public TableRecord(Database database, String table) {
     if (database == null) {
@@ -62,33 +61,30 @@ public class TableRecord {
     }
     this.database = database;
     this.table = table;
-    this.keyColumn = allowedKey(table);
-  }
-
-  /** Reads {@code record.allowedTables}, a list of {@code table:keyColumn} pairs. */
-  private static String allowedKey(String table) {
-    String key = keyColumnOf(table);
-    if (key == null) {
+    if (table == null || !IDENTIFIER.matcher(table).matches()) {
+      throw new IllegalArgumentException("Invalid table name: " + table);
+    }
+    if (!AllowedTables.current().permits(table)) {
       throw new IllegalArgumentException("Table is not allowed: " + table);
     }
-    return key;
   }
 
   /**
-   * Looks up a table on the allow-list.
-   *
-   * @param table table name
-   * @return the key column the allow-list names for the table, or null when it is not allowed
+   * Finds the key column on first use: the one the setting lists, else the table's primary key.
+   * Reads never call this.
    */
-  public static String keyColumnOf(String table) {
-    String allowed = PropertiesUtil.getString("record.allowedTables", "js_modules:name");
-    for (String pair : allowed.split(",")) {
-      String[] parts = pair.trim().split(":");
-      if (parts.length == 2 && parts[0].equals(table)) {
-        return parts[1];
-      }
+  private String key() {
+    if (keyColumn == null) {
+      keyColumn =
+          AllowedTables.current()
+              .keyFor(table)
+              .or(() -> database.primaryKey(table))
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Table " + table + " has no single-column primary key; it is read-only"));
     }
-    return null;
+    return keyColumn;
   }
 
   // ---- query ----
@@ -184,6 +180,25 @@ public class TableRecord {
   // ---- fields ----
 
   /**
+   * Names the key column writes use for this table.
+   *
+   * @return the column the setting lists, else the table's single-column primary key
+   * @throws IllegalStateException when the table has no single-column primary key
+   */
+  public String getKeyColumn() {
+    return key();
+  }
+
+  /**
+   * Lists the columns of the current row.
+   *
+   * @return column names in query order; empty before the first {@link #next()}
+   */
+  public List<String> getColumnNames() {
+    return new ArrayList<>(current.keySet());
+  }
+
+  /**
    * Reads a field of the current row.
    *
    * @param column column name
@@ -243,6 +258,7 @@ public class TableRecord {
    * @return the new key, or null when a before rule aborted
    */
   public String insert() {
+    key();
     previous = null;
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
     if (!rules.run(table, BusinessRuleRunner.Operation.INSERT, "before", this)) {
@@ -254,15 +270,15 @@ public class TableRecord {
               dsl ->
                   dsl.insertInto(table(name(table)))
                       .set(fields(current))
-                      .returningResult(column(keyColumn))
+                      .returningResult(column(key()))
                       .fetchOne()
                       .value1());
-      current.put(keyColumn, key);
+      current.put(key(), key);
     } catch (Exception e) {
       throw new IllegalStateException("Insert into " + table + " failed: " + e.getMessage(), e);
     }
     rules.run(table, BusinessRuleRunner.Operation.INSERT, "after", this);
-    return String.valueOf(current.get(keyColumn));
+    return String.valueOf(current.get(key()));
   }
 
   /**
@@ -271,6 +287,7 @@ public class TableRecord {
    * @return true when written, false when a before rule aborted
    */
   public boolean update() {
+    key();
     requireLoadedRow();
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
     if (!rules.run(table, BusinessRuleRunner.Operation.UPDATE, "before", this)) {
@@ -289,7 +306,7 @@ public class TableRecord {
             dsl ->
                 dsl.update(table(name(table)))
                     .set(fields(changed))
-                    .where(column(keyColumn).eq(previous.get(keyColumn)))
+                    .where(column(key()).eq(previous.get(key())))
                     .execute());
       } catch (Exception e) {
         throw new IllegalStateException("Update of " + table + " failed: " + e.getMessage(), e);
@@ -306,6 +323,7 @@ public class TableRecord {
    * @return true when deleted, false when a before rule aborted
    */
   public boolean deleteRecord() {
+    key();
     requireLoadedRow();
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
     if (!rules.run(table, BusinessRuleRunner.Operation.DELETE, "before", this)) {
@@ -315,7 +333,7 @@ public class TableRecord {
       database.query(
           dsl ->
               dsl.deleteFrom(table(name(table)))
-                  .where(column(keyColumn).eq(previous.get(keyColumn)))
+                  .where(column(key()).eq(previous.get(key())))
                   .execute());
     } catch (Exception e) {
       throw new IllegalStateException("Delete from " + table + " failed: " + e.getMessage(), e);
@@ -349,6 +367,7 @@ public class TableRecord {
    * @return rows updated; rows skipped by a before rule or a lost race are not counted
    */
   public int updateMultiple() {
+    key();
     requireConditions("updateMultiple");
     Map<String, Object> values = new LinkedHashMap<>(current);
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
@@ -376,6 +395,7 @@ public class TableRecord {
    * @return rows deleted
    */
   public int deleteMultiple() {
+    key();
     requireConditions("deleteMultiple");
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
     int deleted = 0;
@@ -390,7 +410,7 @@ public class TableRecord {
             database.query(
                 dsl ->
                     dsl.deleteFrom(table(name(table)))
-                        .where(column(keyColumn).eq(row.get(keyColumn)))
+                        .where(column(key()).eq(row.get(key())))
                         .and(DSL.and(conditions))
                         .execute());
       } catch (Exception e) {
@@ -455,7 +475,7 @@ public class TableRecord {
           dsl ->
               dsl.update(table(name(table)))
                   .set(fields(changed))
-                  .where(column(keyColumn).eq(row.get(keyColumn)))
+                  .where(column(key()).eq(row.get(key())))
                   .and(DSL.and(conditions))
                   .execute());
     } catch (Exception e) {

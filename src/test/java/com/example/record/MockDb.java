@@ -26,6 +26,7 @@ class MockDb extends Database {
 
   private final List<Object[]> rules = new ArrayList<>();
   private final List<Object[]> rows = new ArrayList<>();
+  private final List<Object[]> keys = new ArrayList<>(List.<Object[]>of(new Object[] {"name"}));
 
   MockDb() {
     super(null);
@@ -41,6 +42,14 @@ class MockDb extends Database {
     rows.add(new Object[] {name, content});
   }
 
+  /** Sets the primary key columns the mock reports. The default is the single column name. */
+  void key(String... columns) {
+    keys.clear();
+    for (String column : columns) {
+      keys.add(new Object[] {column});
+    }
+  }
+
   long count(String prefix) {
     return sql.stream().filter(s -> s.startsWith(prefix)).count();
   }
@@ -53,6 +62,9 @@ class MockDb extends Database {
                 ctx -> {
                   String s = ctx.sql().toLowerCase();
                   sql.add(s);
+                  if (s.contains("information_schema")) {
+                    return result(keys, "column_name");
+                  }
                   if (s.startsWith("select") && s.contains("business_rules")) {
                     return result(rules, "name", "condition", "script");
                   }

@@ -82,7 +82,7 @@ public class TableEditor {
    */
   public boolean update(String table, String id, Map<String, Object> values) throws Exception {
     Map<String, String> types = types(table);
-    String keyColumn = TableRecord.keyColumnOf(table);
+    String keyColumn = new TableRecord(database, table).getKeyColumn();
     TableRecord record = find(table, keyColumn, types, id);
     if (record == null) {
       return false;
@@ -109,7 +109,7 @@ public class TableEditor {
    */
   public Map<String, Object> delete(String table, List<String> ids) throws Exception {
     Map<String, String> types = types(table);
-    String keyColumn = TableRecord.keyColumnOf(table);
+    String keyColumn = new TableRecord(database, table).getKeyColumn();
     int deleted = 0;
     List<Map<String, String>> failed = new ArrayList<>();
     for (String id : ids) {

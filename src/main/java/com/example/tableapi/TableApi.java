@@ -5,7 +5,7 @@ import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.table;
 
 import com.example.config.Database;
-import com.example.record.TableRecord;
+import com.example.record.AllowedTables;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -141,9 +141,12 @@ public class TableApi {
         });
   }
 
-  /** A table is writable when it is allow-listed with the key the database uses. */
+  /** A table is writable when it is permitted and any key the setting lists is the database's. */
   static boolean writable(String tableName, String primaryKey) {
-    return primaryKey != null && primaryKey.equals(TableRecord.keyColumnOf(tableName));
+    AllowedTables allowed = AllowedTables.current();
+    return primaryKey != null
+        && allowed.permits(tableName)
+        && allowed.keyFor(tableName).map(primaryKey::equals).orElse(true);
   }
 
   private static void checkSortable(List<Map<String, Object>> columns, String sort) {

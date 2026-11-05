@@ -2,6 +2,7 @@ package com.example.record;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class TableRecordTest {
@@ -14,9 +15,84 @@ class TableRecordTest {
 
   // --- guards ---
 
+  @AfterEach
+  void resetAllowedTables() {
+    AllowedTables.reset();
+  }
+
   @Test
-  void rejectsTableOutsideAllowList() {
-    assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "sys_secrets"));
+  void anyTableWorksWhenSettingUnset() {
+    assertDoesNotThrow(() -> new TableRecord(db, "sys_secrets"));
+  }
+
+  @Test
+  void unlistedTableRejectedWhenSettingSet() {
+    AllowedTables.override(AllowedTables.parse("js_modules"));
+    assertDoesNotThrow(() -> new TableRecord(db, "js_modules"));
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "sys_secrets"));
+    assertTrue(e.getMessage().contains("sys_secrets"));
+  }
+
+  @Test
+  void badTableNameRejectedBeforeAnySql() {
+    assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "a\"b"));
+    assertThrows(IllegalArgumentException.class, () -> new TableRecord(db, "a b"));
+    assertTrue(db.sql.isEmpty());
+  }
+
+  @Test
+  void readsNeedNoKey() {
+    db.row("a", "x");
+    TableRecord gr = modules();
+    gr.query();
+    assertTrue(gr.next());
+    assertEquals(0, db.sql.stream().filter(q -> q.contains("information_schema")).count());
+  }
+
+  @Test
+  void listedKeyOverridesDiscovery() {
+    AllowedTables.override(AllowedTables.parse("js_modules:slug"));
+    TableRecord gr = modules();
+    gr.setValue("name", "n");
+    gr.insert();
+    assertEquals(0, db.sql.stream().filter(q -> q.contains("information_schema")).count());
+    assertTrue(db.sql.stream().anyMatch(q -> q.contains("slug")));
+  }
+
+  @Test
+  void writeWithoutSingleKeyThrowsNamingTheTable() {
+    db.key();
+    db.row("a", "x");
+    TableRecord gr = modules();
+    gr.setValue("name", "n");
+    assertTrue(
+        assertThrows(IllegalStateException.class, gr::insert).getMessage().contains("js_modules"));
+    gr.addQuery("name", "a");
+    assertThrows(IllegalStateException.class, gr::updateMultiple);
+    assertThrows(IllegalStateException.class, gr::deleteMultiple);
+    gr.query();
+    gr.next();
+    assertThrows(IllegalStateException.class, gr::update);
+    assertThrows(IllegalStateException.class, gr::deleteRecord);
+  }
+
+  @Test
+  void compositeKeyIsReadOnlyToo() {
+    db.key("a", "b");
+    TableRecord gr = modules();
+    gr.setValue("name", "n");
+    assertThrows(IllegalStateException.class, gr::insert);
+  }
+
+  @Test
+  void getColumnNamesListsRowColumns() {
+    db.row("a", "x");
+    TableRecord gr = modules();
+    assertEquals(java.util.List.of(), gr.getColumnNames());
+    gr.query();
+    gr.next();
+    assertEquals(java.util.List.of("name", "content"), gr.getColumnNames());
   }
 
   @Test
