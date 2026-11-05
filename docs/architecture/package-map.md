@@ -40,6 +40,21 @@ src/main/java/com/example/
 │   ├── DatabaseAttachmentStorage.java  PostgreSQL backend
 │   └── ChunkedOutputStream.java        Chunked writer
 │
+├── scheduler/                          Jobs from the scheduled_jobs table
+│   ├── Scheduler.java                  Scheduler thread, workers, sweep, shutdown
+│   ├── SchedulerBootstrap.java         Builds the scheduler from app_properties
+│   ├── SchedulerConfig.java            scheduler.* settings
+│   ├── Job.java                        One row of scheduled_jobs
+│   ├── JobQueue.java                   Blocking priority queue
+│   ├── JobRepository.java              Table access interface
+│   ├── SqlJobRepository.java           jOOQ implementation
+│   ├── Recurrence.java                 Next-run interface
+│   ├── Recurrences.java                once, interval, daily
+│   ├── JobHandler.java                 Code a job runs
+│   ├── HandlerRegistry.java            Handler key to code
+│   ├── ScriptJobHandler.java           Runs an api_scripts row as a job
+│   └── HelloWorldJobHandler.java       Sample Java handler
+│
 ├── datasource/                         Database connection strategies
 │   ├── DataSourceStrategy.java         Strategy interface, a ServiceLoader SPI
 │   ├── DataSourceRegistry.java         Strategy registry

@@ -51,6 +51,7 @@ always been that way.
 | `routing/` | Routes, matching, dispatch |
 | `storage/` | Attachments, chunking, backends |
 | `scripting/` | Rhino sandbox, execution, modules |
+| `scheduler/` | Scheduled jobs, workers, handlers |
 | `data-browser/` | Database browsing and connection strategies |
 | `observability/` | Logging, correlation IDs, log format |
 | `build/` | shared-build, catalogs, conventions |

@@ -2,6 +2,8 @@ package com.example;
 
 import com.example.config.DbPropertiesLoader;
 import com.example.route.RouteRegistry;
+import com.example.scheduler.Scheduler;
+import com.example.scheduler.SchedulerBootstrap;
 import com.example.servlet.RouterServlet;
 import com.example.util.CorrelationIdFilter;
 import com.example.util.LoggingConfig;
@@ -112,7 +114,12 @@ public class Main {
 
     try {
       tomcat.start();
-      // One hook, in order: Tomcat drains in-flight requests, then the DB pool closes.
+      Scheduler scheduler = SchedulerBootstrap.create();
+      if (scheduler != null) {
+        scheduler.start();
+      }
+      // One hook, in order: Tomcat drains in-flight requests, the scheduler hands back its jobs,
+      // then the DB pool closes.
       Runtime.getRuntime()
           .addShutdownHook(
               new Thread(
@@ -121,10 +128,14 @@ public class Main {
                     try {
                       tomcat.stop();
                       tomcat.destroy();
-                      logger.info("Tomcat stopped. Closing the database pool...");
+                      logger.info("Tomcat stopped. Stopping the scheduler...");
                     } catch (LifecycleException e) {
                       logger.error("Tomcat did not stop cleanly: {}", e.getMessage());
                     } finally {
+                      if (scheduler != null) {
+                        scheduler.stop();
+                      }
+                      logger.info("Closing the database pool...");
                       DbPropertiesLoader.close();
                       logger.info("Shutdown complete.");
                     }

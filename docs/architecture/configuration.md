@@ -78,6 +78,14 @@ that time, on every node. No reload is needed.
 | `script.optimizationLevel` | `-1` | Rhino interpreted mode |
 | `script.instructionThreshold` | `10000` | Instructions between limit checks |
 | `modules.maxFileSize` | `1048576` | Max module file, 1 MB |
+| `scheduler.enabled` | `true` | Start the job scheduler at boot |
+| `scheduler.workers` | `4` | Worker threads that run jobs |
+| `scheduler.maxInFlight` | `100` | Most jobs queued plus running |
+| `scheduler.claimBatch` | `20` | Most jobs claimed per poll |
+| `scheduler.pollSeconds` | `1` | Seconds between polls |
+| `scheduler.sweepMinutes` | `5` | Minutes between stuck-job sweeps |
+| `scheduler.stopSeconds` | `30` | Seconds running jobs get at shutdown |
+| `scheduler.nodeId` | host name | Optional. Keep it stable across restarts |
 | `storage.type` | `database` | `database` or `filesystem` |
 | `storage.chunkSize` | `1048576` | Streaming chunk, 1 MB |
 | `storage.filesystem.path` | `data/attachments` | Filesystem storage root |

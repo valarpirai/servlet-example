@@ -41,6 +41,13 @@ Server-side JavaScript on Rhino, sandboxed.
 - [Script modules](./scripting/script-modules.md) — imports, exports and the js_modules table
 - [Table records and business rules](./scripting/table-records-and-rules.md) — read, write and react to rows
 
+## Scheduler
+
+Jobs live in the `scheduled_jobs` table and run on a worker pool. Handlers can be Java or JavaScript.
+
+- [Scheduler overview](./scheduler/scheduler-overview.md) — parts, states, safety rules
+- [Adding a job](./scheduler/adding-a-job.md) — rows, handlers, troubleshooting
+
 ## Data browser
 
 Browse PostgreSQL, MySQL, Snowflake or MongoDB from the browser.

@@ -32,7 +32,7 @@ flowchart TD
     H -->|Yes| J
 
     subgraph WIRE["Wire DB-backed properties"]
-        J[new Database config\nHikariCP pool starts on first use\nMain shutdown hook closes it after Tomcat stops] --> K
+        J[new Database config\nHikariCP pool starts on first use\nMain shutdown hook stops Tomcat, then the scheduler, then closes the pool] --> K
         K[new PropertyRepository database] --> L
         L[PropertiesUtil.setPropertyRepository\nClears LRU cache]
     end
@@ -49,11 +49,12 @@ flowchart TD
         O[addServlet RouterServlet] --> P
         P[addFilter CorrelationIdFilter] --> R
         R[tomcat.start] --> T
-        T[RuntimeMetrics.setWorkerExecutor\nso /metrics shows worker threads]
+        T[RuntimeMetrics.setWorkerExecutor\nso /metrics shows worker threads] --> U
+        U[SchedulerBootstrap.create then Scheduler.start\nskipped when scheduler.enabled is false]
     end
 
     X[/"Print Cannot start: reason\nexit code 1"/]
-    T --> S([Listening on :port])
+    U --> S([Listening on :port])
 ```
 
 ## What stops startup

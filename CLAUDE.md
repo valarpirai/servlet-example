@@ -11,6 +11,7 @@ Routing | docs/routing/table-routes.md | `routes` table, route/
 File storage | docs/storage/memory-guarantee.md | storage/
 Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | tableapi/, handler/TableApiHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
+Scheduled jobs | docs/scheduler/adding-a-job.md | scheduler/, `scheduled_jobs` table
 Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
 Code structure | docs/architecture/package-map.md | All packages
@@ -157,7 +158,7 @@ Defaults, env var rules, and the connection pool: docs/architecture/configuratio
 **Build**: catalog-thirdparty → catalog-internal → shared-build-parent → app (Maven parent chain)
 
 **Packages**: `com.example.*` — servlet/, route/, processor/, handler/, storage/, datasource/, config/,
-script/, security/, module/, extlib/, mongo/, model/, exception/, util/
+script/, scheduler/, security/, module/, extlib/, mongo/, model/, exception/, util/
 
 **See docs/architecture/ for full details**
 
