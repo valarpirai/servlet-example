@@ -68,6 +68,25 @@ script. A thrown error, or a response status of 400 or more, fails the run.
 
 The script cannot change the context. The context passes through unchanged.
 
+## Make handlers idempotent
+
+Every handler, Java or script, must be safe to run twice for the same due time.
+The scheduler guarantees a job is claimed once. It cannot guarantee a run
+finishes once.
+
+A job runs again when:
+
+- A run fails and retries are left. See [Job retries](./job-retries.md).
+- A node stops mid-run. At startup and in each sweep, `recoverStuck` returns
+  that node's running jobs to ready.
+
+The first run may have done part of the work before it stopped. Write the
+handler so the second run reaches the same end state.
+
+- Key writes on a stable value, such as the job id or a date. Prefer upsert over insert.
+- Check before you act. Skip work that is already done.
+- Store progress in the returned context, not in memory.
+
 ## Sample jobs
 
 Migration `V18__seed_sample_jobs.sql` seeds two jobs that run every minute.
