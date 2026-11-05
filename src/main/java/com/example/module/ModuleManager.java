@@ -1,17 +1,13 @@
 package com.example.module;
 
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
-
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
 import com.example.model.Module;
+import com.example.record.TableRecord;
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.Table;
 
 /**
  * Reads JavaScript modules from the {@code js_modules} table for the {@code import} loader. The
@@ -19,11 +15,7 @@ import org.jooq.Table;
  */
 public class ModuleManager {
 
-  private static final Table<Record> MODULES = table("js_modules");
-  private static final Field<String> NAME = field("name", String.class);
-  private static final Field<String> CONTENT = field("content", String.class);
-  private static final Field<OffsetDateTime> CREATED_AT = field("created_at", OffsetDateTime.class);
-  private static final Field<OffsetDateTime> UPDATED_AT = field("updated_at", OffsetDateTime.class);
+  private static final String MODULES = "js_modules";
 
   private static ModuleManager instance;
   private final Database database;
@@ -45,32 +37,42 @@ public class ModuleManager {
   }
 
   public List<Module> listModules() throws IOException {
-    return run(dsl -> dsl.select().from(MODULES).orderBy(NAME).fetch(ModuleManager::toModule));
+    return read(null);
   }
 
   public Module getModule(String modulePath) throws IOException {
-    String name = normalizeName(modulePath);
-    return run(
-        dsl -> dsl.select().from(MODULES).where(NAME.eq(name)).fetchOne(ModuleManager::toModule));
+    List<Module> found = read(normalizeName(modulePath));
+    return found.isEmpty() ? null : found.get(0);
   }
 
-  private <T> T run(Database.Work<T> work) throws IOException {
+  /** Reads modules ordered by name; one named module when {@code name} is set. */
+  private List<Module> read(String name) throws IOException {
     Database db = database != null ? database : DbPropertiesLoader.getDatabase();
     if (db == null) {
       throw new IOException("Modules are stored in the database, which is not ready");
     }
     try {
-      return db.query(work);
-    } catch (Exception e) {
+      TableRecord modules = new TableRecord(db, MODULES);
+      if (name != null) {
+        modules.addQuery("name", name);
+      }
+      modules.orderBy("name");
+      modules.query();
+      List<Module> result = new ArrayList<>();
+      while (modules.next()) {
+        result.add(toModule(modules));
+      }
+      return result;
+    } catch (RuntimeException e) {
       throw new IOException("Module storage failed: " + e.getMessage(), e);
     }
   }
 
-  private static Module toModule(Record r) {
-    String name = r.get(NAME);
-    Module module = new Module(name, name + ".js", r.get(CONTENT));
-    module.setCreatedAt(r.get(CREATED_AT).toInstant());
-    module.setUpdatedAt(r.get(UPDATED_AT).toInstant());
+  private static Module toModule(TableRecord r) {
+    String name = r.getValue("name");
+    Module module = new Module(name, name + ".js", r.getValue("content"));
+    module.setCreatedAt(OffsetDateTime.parse(r.getValue("created_at")).toInstant());
+    module.setUpdatedAt(OffsetDateTime.parse(r.getValue("updated_at")).toInstant());
     return module;
   }
 
