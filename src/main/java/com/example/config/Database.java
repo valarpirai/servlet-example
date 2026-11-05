@@ -2,6 +2,9 @@ package com.example.config;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -18,7 +21,16 @@ public class Database {
     T run(DSLContext dsl) throws Exception;
   }
 
+  private static final String KEY_SQL =
+      "select kcu.column_name from information_schema.table_constraints tc"
+          + " join information_schema.key_column_usage kcu"
+          + " on kcu.constraint_name = tc.constraint_name"
+          + " and kcu.constraint_schema = tc.constraint_schema"
+          + " where tc.constraint_type = 'PRIMARY KEY'"
+          + " and tc.table_schema = current_schema() and tc.table_name = ?";
+
   private final DbConfig config;
+  private final ConcurrentHashMap<String, Optional<String>> primaryKeys = new ConcurrentHashMap<>();
 
   public Database(DbConfig config) {
     this.config = config;
@@ -61,5 +73,28 @@ public class Database {
   /** Connection pool load, or null before the pool starts. */
   public java.util.Map<String, Object> poolStats() {
     return config == null ? null : config.poolStats();
+  }
+
+  /**
+   * Finds the primary key column of a table. The answer is cached per table.
+   *
+   * @param table table name
+   * @return the key column, or empty when the table has no primary key or a composite one
+   * @throws IllegalStateException when the lookup fails; failures are not cached
+   */
+  public Optional<String> primaryKey(String table) {
+    Optional<String> cached = primaryKeys.get(table);
+    if (cached != null) {
+      return cached;
+    }
+    try {
+      List<String> columns = query(dsl -> dsl.fetch(KEY_SQL, table).getValues(0, String.class));
+      Optional<String> key = columns.size() == 1 ? Optional.of(columns.get(0)) : Optional.empty();
+      primaryKeys.put(table, key);
+      return key;
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "Cannot read the primary key of " + table + ": " + e.getMessage(), e);
+    }
   }
 }
