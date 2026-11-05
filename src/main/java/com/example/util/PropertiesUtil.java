@@ -85,6 +85,19 @@ public class PropertiesUtil {
     return value != null ? String.valueOf(value) : defaultValue;
   }
 
+  /**
+   * Reads a value from the config file only, with placeholders resolved. The database is never
+   * asked, so the call is safe where the database is not ready.
+   *
+   * @param key dotted property name
+   * @param defaultValue value when the key is absent
+   * @return the file value, or the default
+   */
+  public static String getFileString(String key, String defaultValue) {
+    Object value = getYamlProperty(key);
+    return value != null ? String.valueOf(value) : defaultValue;
+  }
+
   public static int getInt(String key, int defaultValue) {
     Object value = getProperty(key);
     if (value == null) return defaultValue;

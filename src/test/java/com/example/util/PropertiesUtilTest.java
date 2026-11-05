@@ -234,4 +234,10 @@ class PropertiesUtilTest {
 
     assertTrue(PropertiesUtil.isDevEnvironment());
   }
+
+  @Test
+  void getFileString_readsYamlOnly() {
+    assertEquals("fallback", PropertiesUtil.getFileString("no.such.key", "fallback"));
+    assertEquals("", PropertiesUtil.getFileString("record.allowedTables", "x"));
+  }
 }

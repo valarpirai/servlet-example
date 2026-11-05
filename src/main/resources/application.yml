@@ -1,6 +1,11 @@
-# Bootstrap configuration - only DB connection credentials.
+# Bootstrap configuration - DB connection credentials and the table restriction.
 # All other application properties are stored in the app_properties table.
 db:
   url:      ${DB_URL:jdbc:postgresql://localhost:5432/appdb}
   username: ${DB_USERNAME:postgres}
   password: ${DB_PASSWORD:postgres}
+
+# Optional restriction on the tables TableRecord may touch: table or table:keyColumn, comma
+# separated. Empty means every table.
+record:
+  allowedTables: ${RECORD_ALLOWED_TABLES:}
