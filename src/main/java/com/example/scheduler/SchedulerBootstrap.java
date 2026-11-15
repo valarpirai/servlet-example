@@ -3,6 +3,7 @@ package com.example.scheduler;
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
 import com.example.processor.ApiScriptProcessor;
+import com.example.repository.SqlJobRepository;
 import com.example.util.PropertiesUtil;
 import java.net.InetAddress;
 import java.time.Clock;

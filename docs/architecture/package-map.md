@@ -49,8 +49,6 @@ src/main/java/com/example/
 │   ├── Job.java                        One row of scheduled_jobs
 │   ├── JobRun.java                     One row of scheduled_job_runs
 │   ├── JobQueue.java                   Blocking priority queue
-│   ├── JobRepository.java              Table access interface
-│   ├── SqlJobRepository.java           jOOQ implementation
 │   ├── Recurrence.java                 Next-run interface
 │   ├── Recurrences.java                once, interval, daily
 │   ├── RetryPolicy.java                Retry wait: backoff and jitter
@@ -71,8 +69,12 @@ src/main/java/com/example/
 ├── config/                             Database config and properties
 │   ├── DbConfig.java                   Connection setup
 │   ├── Database.java                   jOOQ query and transact wrapper
-│   ├── DbPropertiesLoader.java         Flyway plus property wiring
-│   └── PropertyRepository.java         app_properties value lookup
+│   └── DbPropertiesLoader.java         Flyway plus property wiring
+│
+├── repository/                         Table access for app state
+│   ├── PropertyRepository.java         app_properties value lookup
+│   ├── JobRepository.java              scheduled_jobs access interface
+│   └── SqlJobRepository.java           jOOQ implementation
 │
 ├── script/                             Rhino execution internals
 │   ├── ScriptExecutor.java             Script invocation

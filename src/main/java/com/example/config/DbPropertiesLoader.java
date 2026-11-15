@@ -1,5 +1,6 @@
 package com.example.config;
 
+import com.example.repository.PropertyRepository;
 import com.example.util.PropertiesUtil;
 import org.flywaydb.core.Flyway;
 

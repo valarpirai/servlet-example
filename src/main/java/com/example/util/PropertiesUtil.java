@@ -1,6 +1,6 @@
 package com.example.util;
 
-import com.example.config.PropertyRepository;
+import com.example.repository.PropertyRepository;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;

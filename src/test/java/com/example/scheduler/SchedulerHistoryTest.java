@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.repository.FakeJobRepository;
 import com.google.gson.JsonObject;
 import java.time.Clock;
 import java.time.Instant;

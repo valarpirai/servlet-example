@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import com.example.config.PropertyRepository;
+import com.example.repository.PropertyRepository;
 import java.sql.SQLException;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;

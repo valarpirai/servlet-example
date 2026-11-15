@@ -1,7 +1,8 @@
-package com.example.config;
+package com.example.repository;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.config.Database;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

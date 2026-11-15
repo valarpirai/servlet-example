@@ -1,5 +1,6 @@
-package com.example.config;
+package com.example.repository;
 
+import com.example.config.Database;
 import com.example.record.TableRecord;
 import java.util.Optional;
 
