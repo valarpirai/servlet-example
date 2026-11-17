@@ -60,6 +60,36 @@ class TableRecordTest {
   }
 
   @Test
+  void pagesWithLimitAndOffset() {
+    db.row("a", "x");
+    TableRecord gr = modules();
+    gr.orderBy("name");
+    gr.setLimit(5);
+    gr.setOffset(10);
+    gr.query();
+    assertTrue(db.sql.stream().anyMatch(q -> q.contains("offset ?") && q.contains("fetch next ?")));
+  }
+
+  @Test
+  void queryAsTextCastsTheColumn() {
+    db.row("a", "x");
+    TableRecord gr = modules();
+    gr.addQueryAsText("name", "a");
+    gr.query();
+    assertTrue(db.sql.stream().anyMatch(q -> q.contains("cast(") && q.contains("varchar")));
+  }
+
+  @Test
+  void typedValueKeepsTheJavaType() {
+    db.row("a", "x");
+    TableRecord gr = modules();
+    gr.query();
+    assertTrue(gr.next());
+    assertEquals("a", gr.getTypedValue("name"));
+    assertNull(gr.getTypedValue("missing"));
+  }
+
+  @Test
   void readsNeedNoKey() {
     db.row("a", "x");
     TableRecord gr = modules();

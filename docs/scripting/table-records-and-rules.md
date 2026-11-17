@@ -47,8 +47,15 @@ while (gr.next()) {
 }
 ```
 
-`getValue` returns a string, or null. `next` moves to the next row and returns
-false at the end.
+`getValue` returns a string, or null. `getTypedValue` returns the value with its
+Java type, such as a number or a boolean. `next` moves to the next row and
+returns false at the end.
+
+`addQueryAsText` compares a column as text, so a number or uuid column matches its
+text form.
+
+To page, sort, then call `setLimit` and `setOffset`. `setOffset` skips rows at
+the start of the result.
 
 ## Writing rows
 
