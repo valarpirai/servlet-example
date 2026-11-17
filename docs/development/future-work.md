@@ -38,12 +38,6 @@ Left for later by decision. Treat the app as a trusted-network tool until these 
 |---|---|
 | `import` from `api_scripts` rows | `import` reads the `js_modules` table only |
 
-## Tests
-
-| Task | Why it matters |
-|---|---|
-| Fix three `RouteDispatcherTest` errors | `testDeleteHandlerRoute`, `testHandlerRouteDownload` and `testHandlerRouteWithPathParams` fail with "Handler invocation failed". Routes work at runtime |
-
 ## Related
 
 - [Definition of done](./definition-of-done.md) — the commit gate

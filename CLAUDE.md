@@ -80,7 +80,6 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 
 | Component | Status | Issue | Workaround |
 |-----------|--------|-------|------------|
-| RouteDispatcher | Minor | 3/371 tests error: `testDeleteHandlerRoute`, `testHandlerRouteDownload`, `testHandlerRouteWithPathParams` ("Handler invocation failed") | Pre-existing. Routes work at runtime — verified via `/api/properties`, `/health`, `/metrics` |
 | Storage tests | Minor | `StorageTestHelper` deletes `data/attachments` recursively, so running the suite wipes locally stored attachments | By design, but it will surprise you once |
 
 ---

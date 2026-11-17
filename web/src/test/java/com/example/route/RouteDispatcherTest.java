@@ -1,6 +1,8 @@
 package com.example.route;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import com.example.model.Route;
@@ -27,6 +29,18 @@ public class RouteDispatcherTest {
     dispatcher = new RouteDispatcher();
     request = mock(HttpServletRequest.class);
     response = mock(HttpServletResponse.class);
+    // The dispatcher stores path params as request attributes and handlers read them back.
+    // A plain mock forgets them, so keep what setAttribute stores.
+    Map<String, Object> attributes = new HashMap<>();
+    doAnswer(
+            call -> {
+              attributes.put(call.getArgument(0), call.getArgument(1));
+              return null;
+            })
+        .when(request)
+        .setAttribute(anyString(), any());
+    when(request.getAttribute(anyString()))
+        .thenAnswer(call -> attributes.get(call.<String>getArgument(0)));
   }
 
   @Test
