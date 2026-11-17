@@ -65,7 +65,8 @@ class ArchitectureTest {
         .whereLayer(Layers.VIEW)
         .mayOnlyAccessLayers(Layers.MODEL)
         .whereLayer(Layers.MODEL)
-        .mayOnlyAccessLayers(Layers.MODEL);
+        .mayOnlyAccessLayers(Layers.MODEL)
+        .as("MVC layer dependencies");
   }
 
   @ArchTest
