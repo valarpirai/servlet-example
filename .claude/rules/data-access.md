@@ -37,12 +37,10 @@ Do not add them to `TableRecord`.
 
 The rule covers new code. It does not require migrating existing direct jOOQ use.
 The data-access layer itself is exempt: `TableRecord`, `Database` and
-`BusinessRuleRunner`. Two more classes stay on jOOQ for a stated reason:
+`BusinessRuleRunner`. One more class stays on jOOQ for a stated reason:
 
 - `DatabaseAttachmentStorage` writes binary chunks in one transaction.
   `TableRecord` returns strings and has no transaction API.
-- `TableApi` browses any table through `information_schema`. A restricted
-  `TableRecord` could not serve it.
 
 ## Related
 
