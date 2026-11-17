@@ -1,6 +1,8 @@
 package com.example.scheduler;
 
 import com.example.config.DbPropertiesLoader;
+import com.example.model.Job;
+import com.example.model.JobRun;
 import com.example.record.TableRecord;
 import com.example.repository.JobRepository;
 import com.example.repository.SqlJobRepository;

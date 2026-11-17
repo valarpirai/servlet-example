@@ -1,9 +1,9 @@
 package com.example.repository;
 
 import com.example.config.Database;
+import com.example.model.Job;
+import com.example.model.JobRun;
 import com.example.record.TableRecord;
-import com.example.scheduler.Job;
-import com.example.scheduler.JobRun;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.math.BigDecimal;

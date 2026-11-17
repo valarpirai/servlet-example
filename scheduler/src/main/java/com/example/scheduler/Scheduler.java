@@ -1,5 +1,7 @@
 package com.example.scheduler;
 
+import com.example.model.Job;
+import com.example.model.JobRun;
 import com.example.repository.JobRepository;
 import com.example.util.StructuredLogger;
 import com.google.gson.JsonObject;

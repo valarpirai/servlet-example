@@ -2,6 +2,7 @@ package com.example.scheduler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.example.model.Job;
 import org.junit.jupiter.api.Test;
 
 class RetryPolicyTest {

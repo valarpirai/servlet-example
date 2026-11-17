@@ -1,4 +1,4 @@
-package com.example.scheduler;
+package com.example.model;
 
 import com.google.gson.JsonObject;
 import java.time.Instant;

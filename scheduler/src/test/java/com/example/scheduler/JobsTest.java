@@ -2,6 +2,8 @@ package com.example.scheduler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.model.Job;
+import com.example.model.JobRun;
 import com.example.repository.FakeJobRepository;
 import com.example.script.ScriptExecutor;
 import com.example.security.ScriptGlobals;

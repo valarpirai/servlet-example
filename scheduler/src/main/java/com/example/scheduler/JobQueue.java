@@ -1,5 +1,6 @@
 package com.example.scheduler;
 
+import com.example.model.Job;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

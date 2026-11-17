@@ -1,7 +1,7 @@
 package com.example.repository;
 
-import com.example.scheduler.Job;
-import com.example.scheduler.JobRun;
+import com.example.model.Job;
+import com.example.model.JobRun;
 import com.google.gson.JsonObject;
 import java.time.Instant;
 import java.util.List;

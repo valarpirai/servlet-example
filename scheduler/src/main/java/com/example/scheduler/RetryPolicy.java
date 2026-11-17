@@ -1,5 +1,7 @@
 package com.example.scheduler;
 
+import com.example.model.Job;
+
 /** How long a failed job waits before its next attempt. Reads the retry fields of the job. */
 public final class RetryPolicy {
 

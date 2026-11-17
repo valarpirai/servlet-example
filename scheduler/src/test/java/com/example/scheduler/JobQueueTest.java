@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
+import com.example.model.Job;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;

@@ -1,5 +1,6 @@
 package com.example.scheduler;
 
+import com.example.model.Job;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;

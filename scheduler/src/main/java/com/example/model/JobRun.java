@@ -1,4 +1,4 @@
-package com.example.scheduler;
+package com.example.model;
 
 import java.time.Instant;
 

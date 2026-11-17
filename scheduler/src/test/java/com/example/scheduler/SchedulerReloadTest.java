@@ -2,6 +2,7 @@ package com.example.scheduler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.model.Job;
 import com.example.repository.FakeJobRepository;
 import com.google.gson.JsonObject;
 import java.time.Clock;

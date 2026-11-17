@@ -2,6 +2,7 @@ package com.example.scheduler;
 
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
+import com.example.model.JobRun;
 import com.example.processor.ApiScriptProcessor;
 import com.example.record.AsyncRules;
 import com.example.repository.SqlJobRepository;

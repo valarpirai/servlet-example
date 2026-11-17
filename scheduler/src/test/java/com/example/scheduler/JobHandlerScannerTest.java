@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.model.Job;
 import com.google.gson.JsonObject;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
