@@ -1,5 +1,6 @@
 package com.example.script;
 
+import com.example.record.BusinessRules;
 import com.example.record.RecordConstructor;
 import com.example.security.ScriptSecurityManager;
 import com.example.util.JsonUtil;
@@ -41,6 +42,8 @@ public class ScriptExecutor {
 
       // Add the TableRecord constructor for table access
       ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
+      ScriptableObject.putProperty(
+          scope, "BusinessRules", Context.javaToJS(new BusinessRules(), scope));
 
       // Let caller setup scope variables
       if (scopeSetup != null) {

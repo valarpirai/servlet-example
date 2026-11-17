@@ -73,7 +73,9 @@ public class ScriptSecurityManager {
             "java.math.BigInteger",
 
             // Table access for scripts and business rules
-            "com.example.record.TableRecord");
+            "com.example.record.TableRecord",
+            "com.example.record.BusinessRules",
+            "com.example.model.BusinessRule");
 
     // Blacklist: Dangerous classes and package prefixes
     private static final java.util.Set<String> BLOCKED_CLASSES =

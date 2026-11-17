@@ -41,6 +41,7 @@ Server-side JavaScript on Rhino, sandboxed.
 - [API scripting](./scripting/api-scripting.md) — endpoints written in JavaScript
 - [Script modules](./scripting/script-modules.md) — imports, exports and the js_modules table
 - [Table records and business rules](./scripting/table-records-and-rules.md) — read, write and react to rows
+- [Managing business rules](./scripting/managing-business-rules.md) — create, change and delete rules from Java and scripts
 
 ## Scheduler
 

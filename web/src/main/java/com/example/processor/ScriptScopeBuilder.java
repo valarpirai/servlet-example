@@ -1,5 +1,6 @@
 package com.example.processor;
 
+import com.example.record.BusinessRules;
 import com.example.record.RecordConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
@@ -14,7 +15,8 @@ public class ScriptScopeBuilder {
 
   /**
    * Adds params, a {@code request} global (method, path, queryParams), a {@code console.log}
-   * capture function, and the {@code TableRecord} constructor to the given scope.
+   * capture function, and the {@code TableRecord} constructor and the {@code BusinessRules} manager
+   * to the given scope.
    */
   public void populate(
       Scriptable scope,
@@ -26,6 +28,8 @@ public class ScriptScopeBuilder {
     addRequestContext(scope, request);
     addConsole(scope, consoleLogs);
     ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
+    ScriptableObject.putProperty(
+        scope, "BusinessRules", Context.javaToJS(new BusinessRules(), scope));
   }
 
   private void addParams(Scriptable scope, Map<String, Object> params) {

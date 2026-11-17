@@ -179,6 +179,9 @@ VALUES
    'current.setAbortAction(true);');
 ```
 
+Manage rules from Java or scripts with
+[`BusinessRules`](./managing-business-rules.md).
+
 ## Aborting a write
 
 A before rule calls `current.setAbortAction(true)`. The write does not happen,
