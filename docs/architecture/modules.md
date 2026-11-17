@@ -29,9 +29,10 @@ Everything that needs the database, the properties or the script sandbox.
 | Tables | `record/TableRecord`, `BusinessRuleRunner` |
 | Scripting | `script/`, `module/`, `security/`, `processor/ApiScriptProcessor` |
 | Logging | `util/StructuredLogger`, `util/LoggingConfig` |
-| Resources | `db/V*.sql`, `application.yml`, `logback.xml` |
+| Resources | `db/V*.sql`, `application-default.yml`, `logback.xml` |
 
-Core imports no servlet type. All Flyway migrations live here, including the
+Core imports no servlet type. A web app overrides the defaults with its own
+`application.yml`. All Flyway migrations live here, including the
 scheduler tables. One schema history covers every module.
 
 ## scheduler

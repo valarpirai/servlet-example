@@ -46,7 +46,7 @@ servlet-example/
 │       │   ├── processor/      (ApiScriptProcessor)
 │       │   └── util/           (StructuredLogger, PropertiesUtil, LoggingConfig)
 │       └── resources/
-│           ├── application.yml
+│           ├── application-default.yml
 │           ├── logback.xml
 │           └── db/             (Flyway migrations)
 ├── scheduler/                  (scheduler/, job repositories)
@@ -78,7 +78,7 @@ See [docs/architecture/modules.md](docs/architecture/modules.md).
 
 ## Configuration
 
-`core/src/main/resources/application.yml` holds database credentials and nothing else:
+`core/src/main/resources/application-default.yml` holds the default database credentials. A web app or top-level app overrides any key with its own `application.yml` on the classpath:
 
 ```yaml
 db:

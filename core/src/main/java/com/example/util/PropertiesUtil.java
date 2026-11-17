@@ -13,6 +13,7 @@ import org.yaml.snakeyaml.Yaml;
 public class PropertiesUtil {
 
   private static Logger logger;
+  private static final String DEFAULT_CONFIG_FILE = "application-default.yml";
   private static final String CONFIG_FILE = "application.yml";
   private static Map<String, Object> yamlProperties;
 
@@ -46,22 +47,47 @@ public class PropertiesUtil {
     return logger;
   }
 
+  /**
+   * Loads the bundled defaults, then overlays the application.yml a web app or top-level app puts
+   * on the classpath. Keys in the overlay replace the defaults. Other keys stay.
+   */
   private static void loadYaml() {
-    try (InputStream in = PropertiesUtil.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
+    Map<String, Object> merged = new LinkedHashMap<>(readYaml(DEFAULT_CONFIG_FILE));
+    yamlProperties = merge(merged, readYaml(CONFIG_FILE));
+  }
+
+  private static Map<String, Object> readYaml(String file) {
+    try (InputStream in = PropertiesUtil.class.getClassLoader().getResourceAsStream(file)) {
       if (in == null) {
-        System.err.println("Warning: " + CONFIG_FILE + " not found. Using defaults.");
-        yamlProperties = Map.of();
-        return;
+        return Map.of();
       }
-      Yaml yaml = new Yaml();
-      yamlProperties = yaml.load(in);
-      if (yamlProperties == null) {
-        yamlProperties = Map.of();
-      }
+      Map<String, Object> loaded = new Yaml().load(in);
+      return loaded == null ? Map.of() : loaded;
     } catch (Exception e) {
-      System.err.println("Error loading " + CONFIG_FILE + ": " + e.getMessage());
-      yamlProperties = Map.of();
+      System.err.println("Error loading " + file + ": " + e.getMessage());
+      return Map.of();
     }
+  }
+
+  /**
+   * Copies the override into the base, one nested map at a time.
+   *
+   * @param base the defaults, changed in place
+   * @param override the values that win
+   * @return the base map
+   */
+  @SuppressWarnings("unchecked")
+  static Map<String, Object> merge(Map<String, Object> base, Map<String, Object> override) {
+    for (Map.Entry<String, Object> entry : override.entrySet()) {
+      Object current = base.get(entry.getKey());
+      if (current instanceof Map && entry.getValue() instanceof Map) {
+        Map<String, Object> child = new LinkedHashMap<>((Map<String, Object>) current);
+        base.put(entry.getKey(), merge(child, (Map<String, Object>) entry.getValue()));
+      } else {
+        base.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return base;
   }
 
   /**

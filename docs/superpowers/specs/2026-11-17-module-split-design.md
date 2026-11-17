@@ -111,6 +111,11 @@ Servlet-aware utilities stay in `web`. Core and scheduler never import
 - **ClassGraph scan.** `JobHandlerScanner` scans for `@JobName`. It must scan
   the web app's classpath too, not only the scheduler JAR.
 
+## Configuration
+
+Core ships `application-default.yml`. A web app or top-level app supplies
+`application.yml`. `PropertiesUtil` merges it over the defaults, key by key.
+
 ## Scoped web apps
 
 Future web apps run in the same server. The split supports that:

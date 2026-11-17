@@ -8,6 +8,11 @@ property lives in the `app_properties` table, seeded by a Flyway migration.
 
 ## application.yml
 
+`core` bundles the defaults as `application-default.yml`. A web app, or the
+top-level app that packages the modules, supplies its own `application.yml` on
+the classpath. Its keys replace the defaults, key by key. Keys it leaves out keep
+their default. The defaults:
+
 ```yaml
 # Bootstrap only - just enough to reach the database
 db:
@@ -109,11 +114,12 @@ The default storage backend is `database`, not the filesystem.
 
 ```
 core/src/main/resources/
-├── application.yml          Database credentials
+├── application-default.yml  Default database credentials
 ├── logback.xml              Appenders and third-party log levels
 └── db/                      Flyway migrations
 
 web/src/main/resources/
+├── application.yml          Optional. Overrides the core defaults
 ├── META-INF/services/       DataSourceStrategy registrations
 ├── templates/               HTML templates
 └── static/                  index.html, script-editor.html, data-browser.html

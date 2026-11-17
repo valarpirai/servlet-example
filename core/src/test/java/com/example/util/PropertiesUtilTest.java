@@ -6,6 +6,8 @@ import static org.mockito.Mockito.*;
 
 import com.example.repository.PropertyRepository;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -239,5 +241,22 @@ class PropertiesUtilTest {
   void getFileString_readsYamlOnly() {
     assertEquals("fallback", PropertiesUtil.getFileString("no.such.key", "fallback"));
     assertEquals("", PropertiesUtil.getFileString("record.allowedTables", "x"));
+  }
+
+  @Test
+  void merge_overrideWinsAndUntouchedKeysStay() {
+    Map<String, Object> base = new HashMap<>();
+    base.put("db", new HashMap<>(Map.of("url", "default-url", "username", "default-user")));
+    base.put("record", new HashMap<>(Map.of("allowedTables", "")));
+
+    Map<String, Object> override = Map.of("db", Map.of("url", "app-url"));
+
+    Map<String, Object> merged = PropertiesUtil.merge(base, override);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> db = (Map<String, Object>) merged.get("db");
+    assertEquals("app-url", db.get("url"));
+    assertEquals("default-user", db.get("username"));
+    assertTrue(merged.containsKey("record"));
   }
 }
