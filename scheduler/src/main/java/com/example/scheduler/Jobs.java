@@ -1,6 +1,7 @@
 package com.example.scheduler;
 
 import com.example.config.DbPropertiesLoader;
+import com.example.record.TableRecord;
 import com.example.repository.JobRepository;
 import com.example.repository.SqlJobRepository;
 import com.example.util.JsonUtil;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -24,32 +26,66 @@ public class Jobs {
 
   private static final Set<String> TRIGGERS = Set.of("once", "interval", "daily", "on_demand");
 
+  /** Tells whether a handler exists. Jobs asks before it saves a new or changed handler. */
+  @FunctionalInterface
+  public interface HandlerCheck {
+
+    /**
+     * Looks for a handler.
+     *
+     * @param handlerType {@link Job#JAVA} or {@link Job#SCRIPT}
+     * @param handler the Java key or the {@code api_scripts} name
+     * @return true when the handler exists, or when this node cannot tell
+     * @throws Exception when the lookup fails
+     */
+    boolean exists(String handlerType, String handler) throws Exception;
+  }
+
   private final JobRepository repository;
   private final Clock clock;
+  private final HandlerCheck handlerCheck;
 
-  /** Uses the application database, found on first call. */
+  /** Uses the application database, found on first call. Checks that handlers exist. */
   public Jobs() {
-    this(null, Clock.systemUTC());
+    this(null, Clock.systemUTC(), Jobs::handlerExists);
   }
 
   /**
-   * Uses a given repository.
+   * Uses a given repository and does not check that handlers exist.
    *
    * @param repository where jobs live, or null for the application database
    * @param clock the time source
    */
   public Jobs(JobRepository repository, Clock clock) {
-    this.repository = repository;
-    this.clock = clock;
+    this(repository, clock, (type, handler) -> true);
   }
 
   /**
-   * Checks a job without saving it.
+   * Uses a given repository and handler check.
+   *
+   * @param repository where jobs live, or null for the application database
+   * @param clock the time source
+   * @param handlerCheck says whether a handler exists
+   */
+  public Jobs(JobRepository repository, Clock clock, HandlerCheck handlerCheck) {
+    this.repository = repository;
+    this.clock = clock;
+    this.handlerCheck = handlerCheck;
+  }
+
+  /**
+   * Checks a job without saving it, including that its handler exists.
    *
    * @param job the job to check
-   * @throws IllegalArgumentException when a field is missing or invalid
+   * @throws IllegalArgumentException when a field is missing or invalid, or the handler is missing
    */
   public void validate(Job job) {
+    check(job);
+    requireHandler(job);
+  }
+
+  /** Checks the fields. Does not look for the handler. */
+  private void check(Job job) {
     if (isBlank(job.name)) {
       throw new IllegalArgumentException("Job needs a name");
     }
@@ -77,7 +113,7 @@ public class Jobs {
    * Checks a job given as a script object, without saving it.
    *
    * @param fields job fields by bean name
-   * @throws IllegalArgumentException when a field is missing or invalid
+   * @throws IllegalArgumentException when a field is missing or invalid, or the handler is missing
    */
   public void validate(Map<String, Object> fields) {
     validate(apply(blank(), fields));
@@ -194,7 +230,8 @@ public class Jobs {
 
   /**
    * Changes fields of a job. The result must still be valid. The job returns to ready, with its
-   * last error and retry count cleared, so editing is also how an errored job is retried.
+   * last error and retry count cleared, so editing is also how an errored job is retried. The
+   * handler is looked up only when the change sets a different handler type or handler.
    *
    * @param id the job id
    * @param changes fields to change, by bean name
@@ -203,8 +240,13 @@ public class Jobs {
    */
   public boolean update(String id, Map<String, Object> changes) {
     Job job = load(id);
+    String oldType = job.handlerType;
+    String oldHandler = job.handler;
     apply(job, changes);
-    validate(job);
+    check(job);
+    if (!Objects.equals(oldType, job.handlerType) || !Objects.equals(oldHandler, job.handler)) {
+      requireHandler(job);
+    }
     try {
       boolean saved = repository().update(job, clock.instant());
       if (saved) {
@@ -246,6 +288,38 @@ public class Jobs {
   }
 
   // ---- internals ----
+
+  private void requireHandler(Job job) {
+    boolean exists;
+    try {
+      exists = handlerCheck.exists(job.handlerType, job.handler);
+    } catch (Exception e) {
+      throw new IllegalStateException("Looking for the handler failed: " + e.getMessage(), e);
+    }
+    if (!exists) {
+      throw new IllegalArgumentException(
+          Job.SCRIPT.equals(job.handlerType)
+              ? "No api_scripts row named '" + job.handler + "'"
+              : "No Java handler registered under '" + job.handler + "'");
+    }
+  }
+
+  /**
+   * The check {@code new Jobs()} uses. A script handler must be a row of {@code api_scripts}. A
+   * Java handler must be registered, which only a running scheduler can say. Where none runs, the
+   * answer is yes.
+   */
+  private static boolean handlerExists(String handlerType, String handler) {
+    if (Job.SCRIPT.equals(handlerType)) {
+      TableRecord scripts = new TableRecord("api_scripts");
+      scripts.addQuery("name", handler);
+      scripts.setLimit(1);
+      scripts.query();
+      return scripts.next();
+    }
+    Scheduler running = Scheduler.get();
+    return running == null || running.hasJavaHandler(handler);
+  }
 
   private JobRepository repository() {
     if (repository != null) {

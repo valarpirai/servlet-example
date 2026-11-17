@@ -26,14 +26,14 @@ Jobs.update(id, { priority: 10 });
 var run = Jobs.runNow(id);           // a one-time copy runs now
 var runs = Jobs.history(run, 5);     // newest first
 Jobs.delete(id);
-Jobs.enqueue('report', 'java', 'hello', { userId: 42 });
+Jobs.enqueue('report', 'java', 'hello-world', { userId: 42 });
 ```
 
 ## From Java
 
 ```java
 Jobs jobs = new Jobs();
-String id = jobs.enqueue("report", "java", "hello", Map.of("userId", 42));
+String id = jobs.enqueue("report", "java", "hello-world", Map.of("userId", 42));
 JobInfo info = jobs.get(id);
 ```
 
@@ -70,9 +70,20 @@ throws. `triggerSpec` and `context` take an object or JSON text. `nextRun` and
 - The trigger spec fits the type. `on_demand` needs none.
 - Retry counts and delays are positive. `retryJitter` is 0 to 1.
 
-A failure throws `IllegalArgumentException`. Nothing is saved. The check does not
-confirm that the handler exists. A missing handler shows up at run time as a
-`no_handler` run.
+A failure throws `IllegalArgumentException`. Nothing is saved.
+
+## Handler lookup
+
+`create` also looks for the handler:
+
+- A `script` handler must be an `api_scripts` row with that name.
+- A `java` handler must be registered under that key. Only a running scheduler
+  knows the keys. On a node with no scheduler, the check passes.
+
+`update` looks only when the change sets a different `handlerType` or `handler`, so
+editing a priority never fails over a handler removed since. `validate` always
+looks. `enqueue` and `runNow` look too. A handler removed after the job was saved
+still shows up at run time as a `no_handler` run.
 
 ## Held jobs
 

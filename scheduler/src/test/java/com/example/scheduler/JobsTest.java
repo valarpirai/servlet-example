@@ -90,6 +90,45 @@ class JobsTest {
     assertDoesNotThrow(() -> jobs.create(f));
   }
 
+  // --- handler existence ---
+
+  private Jobs checked(String... existing) {
+    java.util.Set<String> known = java.util.Set.of(existing);
+    return new Jobs(
+        repo, Clock.systemUTC(), (type, handler) -> known.contains(type + ":" + handler));
+  }
+
+  @Test
+  void missingHandlerIsRejectedAndNothingIsSaved() {
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> checked().create(fields()));
+    assertTrue(e.getMessage().contains("cleanup"));
+    assertTrue(repo.rows.isEmpty());
+    Map<String, Object> java = fields();
+    java.put("handlerType", "java");
+    assertThrows(IllegalArgumentException.class, () -> checked().create(java));
+  }
+
+  @Test
+  void existingHandlerIsAccepted() {
+    assertDoesNotThrow(() -> checked("script:cleanup").create(fields()));
+  }
+
+  @Test
+  void validateAlsoLooksForTheHandler() {
+    assertThrows(IllegalArgumentException.class, () -> checked().validate(fields()));
+  }
+
+  @Test
+  void updateLooksForTheHandlerOnlyWhenItChanges() {
+    String id = jobs.create(fields());
+    Jobs strict = checked();
+    assertDoesNotThrow(() -> strict.update(id, Map.of("priority", 3)));
+    assertThrows(IllegalArgumentException.class, () -> strict.update(id, Map.of("handler", "x")));
+    assertEquals("cleanup", repo.row(id).handler);
+    assertTrue(checked("script:other").update(id, Map.of("handler", "other")));
+  }
+
   // --- enqueue and runNow ---
 
   @Test

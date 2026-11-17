@@ -148,6 +148,16 @@ public class Scheduler {
     return job.id;
   }
 
+  /**
+   * Tells whether a Java handler is registered on this node.
+   *
+   * @param key the {@code handler} value of a Java job
+   * @return true when a handler runs under that key
+   */
+  public boolean hasJavaHandler(String key) {
+    return handlers.find(Job.JAVA, key) != null;
+  }
+
   /** Replaces the jitter source. For tests. */
   void setRandom(DoubleSupplier random) {
     this.random = random;
