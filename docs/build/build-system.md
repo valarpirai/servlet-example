@@ -12,7 +12,8 @@ dependency checks by naming nothing.
 
 ## The chain
 
-Four POMs, each inheriting from the one above:
+Four POMs, each inheriting from the one above. Every app module sits at the end
+of the chain:
 
 ```
 shared-build/catalog/thirdparty/pom.xml    versions for outside libraries
@@ -21,8 +22,12 @@ shared-build/catalog/internal/pom.xml      versions for our own artifacts
         ↓
 shared-build/pom.xml                       compiler, plugins, conventions
         ↓
-pom.xml                                    the app
+common/pom.xml, core/pom.xml,
+scheduler/pom.xml, web/pom.xml             the app modules
 ```
+
+The root `pom.xml` only lists the modules. It builds nothing. See
+[Modules](../architecture/modules.md) for what each module holds.
 
 Each link uses `<relativePath>`. Nothing needs installing first. Clone the repo
 and `mvn clean package` works.
@@ -41,7 +46,9 @@ Inheritance honours `relativePath`, so the layout stays clone-and-go.
 | Third-party versions | `shared-build/catalog/thirdparty/pom.xml` |
 | Internal and forked versions | `shared-build/catalog/internal/pom.xml` |
 | Java version, plugin versions and config | `shared-build/pom.xml` |
-| What the app depends on | `pom.xml` |
+| Versions of our own modules | `shared-build/catalog/internal/pom.xml` |
+| What a module depends on | that module's `pom.xml` |
+| Which modules exist | root `pom.xml` |
 
 Build tooling sits apart from library versions. A Maven plugin upgrade and a
 Jackson upgrade are different decisions, so they live in different files.
@@ -58,7 +65,8 @@ A catalog can grow without making any JAR bigger.
 The layout already matches the target.
 
 1. Move `shared-build/` into its own repo, cloned as a sibling of this one
-2. Change the parent `<relativePath>` in `pom.xml` to `../shared-build/pom.xml`
+2. Change the parent `<relativePath>` in the root `pom.xml` to `../shared-build/pom.xml`,
+   and in each module POM to `../../shared-build/pom.xml`
 3. Nothing else. The catalog chain uses paths relative to itself
 
 To resolve from a repository instead of disk, publish the three POMs and drop

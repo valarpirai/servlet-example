@@ -108,10 +108,12 @@ The default storage backend is `database`, not the filesystem.
 ## Resource layout
 
 ```
-src/main/resources/
+core/src/main/resources/
 ├── application.yml          Database credentials
 ├── logback.xml              Appenders and third-party log levels
-├── db/                      Flyway migrations
+└── db/                      Flyway migrations
+
+web/src/main/resources/
 ├── META-INF/services/       DataSourceStrategy registrations
 ├── templates/               HTML templates
 └── static/                  index.html, script-editor.html, data-browser.html

@@ -13,7 +13,7 @@ mvn test -Dtest=*Storage*Test,AttachmentManagerTest
 
 Test packages match source packages. `route/RouteRegistryTest` tests
 `route/RouteRegistry`. To find a class's tests, look in the same package under
-`src/test/java`.
+`<module>/src/test/java`.
 
 ## Useful subsets
 

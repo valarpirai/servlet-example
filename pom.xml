@@ -5,11 +5,6 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!--
-        Build logic, dependency versions, and plugin configuration all come from
-        shared-build. To move shared-build into its own repository later, clone it
-        as a sibling directory and change relativePath to ../shared-build/pom.xml.
-    -->
     <parent>
         <groupId>com.example.build</groupId>
         <artifactId>shared-build-parent</artifactId>
@@ -18,145 +13,17 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>servlet-example</artifactId>
+    <artifactId>servlet-example-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
-    <name>Jakarta EE Servlet Example</name>
-    <description>Simple web application using Jakarta EE Servlets with Embedded Tomcat</description>
+    <name>Servlet Example Modules</name>
+    <description>Aggregator for the common, core, scheduler and web modules</description>
 
-    <properties>
-        <!-- Read by the shade and exec conventions in shared-build -->
-        <app.mainClass>com.example.Main</app.mainClass>
-    </properties>
-
-    <!--
-        No versions here by design. Every version is pinned in
-        shared-build/pom.xml. To add a library, add it to that catalog first.
-    -->
-    <dependencies>
-        <!-- Embedded Tomcat -->
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-jasper</artifactId>
-        </dependency>
-
-        <!-- Gson for JSON processing -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-
-        <!-- ClassGraph finds @JobName handlers at startup -->
-        <dependency>
-            <groupId>io.github.classgraph</groupId>
-            <artifactId>classgraph</artifactId>
-        </dependency>
-
-        <!-- SnakeYAML for YAML configuration -->
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-        </dependency>
-
-        <!-- Mozilla Rhino for JavaScript execution -->
-        <dependency>
-            <groupId>org.mozilla</groupId>
-            <artifactId>rhino</artifactId>
-        </dependency>
-
-        <!-- SLF4J API -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- Logback Classic (SLF4J implementation) -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-
-        <!-- Janino for Logback conditional processing -->
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
-
-        <!-- Lombok for reducing boilerplate code -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- PostgreSQL JDBC driver -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-        </dependency>
-
-        <!-- HikariCP - JDBC connection pool -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-        </dependency>
-
-        <!-- jOOQ - type-safe SQL DSL -->
-        <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq</artifactId>
-        </dependency>
-
-        <!-- Flyway - database migrations -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-
-        <!-- JUnit 5 -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Mockito for mocking in tests -->
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <finalName>servlet-example</finalName>
-
-        <!--
-            Opting in to two conventions. Versions and configuration come from
-            shared-build; this project only says that it wants them.
-        -->
-        <plugins>
-            <!-- Executable JAR -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-            </plugin>
-
-            <!-- Dev server: mvn -PappRun -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+    <modules>
+        <module>common</module>
+        <module>core</module>
+        <module>scheduler</module>
+        <module>web</module>
+    </modules>
 </project>

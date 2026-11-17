@@ -51,6 +51,10 @@
         <spotless.plugin.version>2.43.0</spotless.plugin.version>
         <shade.plugin.version>3.5.1</shade.plugin.version>
         <exec.plugin.version>3.1.1</exec.plugin.version>
+        <jar.plugin.version>3.4.1</jar.plugin.version>
+        <!-- Modules with no server skip exec. exec still needs a main class value. -->
+        <exec.skip>true</exec.skip>
+        <app.mainClass>none</app.mainClass>
         <enforcer.plugin.version>3.4.1</enforcer.plugin.version>
         <google.java.format.version>1.19.2</google.java.format.version>
     </properties>
@@ -78,6 +82,10 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${surefire.plugin.version}</version>
+                    <configuration>
+                        <!-- A -Dtest filter matches classes in one module only -->
+                        <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+                    </configuration>
                 </plugin>
 
                 <plugin>
@@ -129,6 +137,20 @@
                     </executions>
                 </plugin>
 
+                <!-- Publishes each module test helpers as a test-jar -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${jar.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>test-jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
@@ -173,6 +195,7 @@
                             <configuration>
                                 <mainClass>${app.mainClass}</mainClass>
                                 <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                                <skip>${exec.skip}</skip>
                             </configuration>
                         </execution>
                     </executions>
@@ -182,6 +205,11 @@
 
         <!-- Applied to every child automatically -->
         <plugins>
+            <!-- Named here so mvn -PappRun finds the execution in every module -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>

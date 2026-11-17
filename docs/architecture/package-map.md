@@ -2,6 +2,9 @@
 
 Every source package under `com.example`, and what each one is for.
 
+The packages spread over four Maven modules. [Modules](./modules.md) says which
+module holds which package. Package names do not change from module to module.
+
 `Main` boots the app. `servlet/` holds the single servlet. Everything else is
 grouped by function, one level deep.
 
@@ -19,6 +22,7 @@ src/main/java/com/example/
 ├── processor/                          Per-request processors
 │   ├── IRequestProcessor.java          Processor interface
 │   ├── ScriptProcessor.java            JavaScript execution
+│   ├── ScriptScopeBuilder.java         Sandbox scope construction (web)
 │   ├── ApiScriptProcessor.java         Script-defined HTTP APIs
 │   └── FileUploadProcessor.java        Multipart upload
 │
@@ -78,8 +82,7 @@ src/main/java/com/example/
 │
 ├── script/                             Rhino execution internals
 │   ├── ScriptExecutor.java             Script invocation
-│   ├── ScriptModuleLoader.java         import resolution
-│   └── ScriptScopeBuilder.java         Sandbox scope construction
+│   └── ScriptModuleLoader.java         import resolution
 │
 ├── security/
 │   └── ScriptSecurityManager.java      ClassShutter policy
@@ -127,7 +130,7 @@ src/main/java/com/example/
 
 Test packages match source packages. `route/RouteRegistryTest` tests
 `route/RouteRegistry`. Find the tests for a class by looking in the same package
-under `src/test/java`.
+under the same module's `src/test/java`.
 
 ## Finding things by task
 

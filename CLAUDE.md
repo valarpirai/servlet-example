@@ -15,6 +15,7 @@ Scheduled jobs | docs/scheduler/adding-a-job.md | scheduler/, `scheduled_jobs` t
 Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
 Code structure | docs/architecture/package-map.md | All packages
+Modules | docs/architecture/modules.md | common/, core/, scheduler/, web/
 App flow diagrams | docs/architecture/startup-flow.md | config/, servlet/
 Configuration | docs/architecture/configuration.md | application.yml, app_properties
 Issues/fixes | docs/troubleshooting/ | -
@@ -91,19 +92,19 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 - App dependencies (no versions): `pom.xml`
 
 **Configuration:**
-- DB credentials and `record.allowedTables`: `src/main/resources/application.yml`
+- DB credentials and `record.allowedTables`: `core/src/main/resources/application.yml`
 - Everything else: `app_properties` table, seeded by `db/V2__seed_app_properties.sql`
 - Routes: the `routes` table
-- DB migrations: `src/main/resources/db/V*.sql`
+- DB migrations: `core/src/main/resources/db/V*.sql`
 
 **Source code (by package):**
-- DB / startup: `src/main/java/**/config/*.java`
-- All processors: `src/main/java/**/processor/*Processor.java`
-- All handlers: `src/main/java/**/handler/*Handler.java`
-- All strategies: `src/main/java/**/datasource/*Strategy.java`
-- Storage layer: `src/main/java/**/storage/*.java`
-- Utilities: `src/main/java/**/util/*.java`
-- Route system: `src/main/java/**/route/*.java`
+- DB / startup: `core/src/main/java/**/config/*.java`
+- All processors: `web/src/main/java/**/processor/*Processor.java`
+- All handlers: `web/src/main/java/**/handler/*Handler.java`
+- All strategies: `web/src/main/java/**/datasource/*Strategy.java`
+- Storage layer: `web/src/main/java/**/storage/*.java`
+- Utilities: `{common,core,web}/src/main/java/**/util/*.java`
+- Route system: `web/src/main/java/**/route/*.java`
 
 **Runtime state (all gitignored, all under `data/`):**
 - Attachments: `data/attachments/`
@@ -111,7 +112,7 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 - Logs: `logs/`
 
 **Tests:**
-- All tests: `src/test/java/**/*Test.java`
+- All tests: `{common,core,scheduler,web}/src/test/java/**/*Test.java`
 - Tests mirror source packages exactly
 
 ---
@@ -122,8 +123,9 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 mvn clean verify                     # Build, test, format check, enforcer
 mvn -PappRun                         # Dev server
 mvn clean package                    # Build JAR
-java -jar target/servlet-example.jar # Run the packaged JAR
-mvn test                             # All tests
+java -jar web/target/servlet-example.jar # Run the packaged JAR
+mvn test                             # All tests, every module
+mvn test -pl core -am                # One module and what it needs
 mvn spotless:apply                   # Format code
 
 SERVER_PORT=9090 mvn -PappRun        # Custom port
@@ -137,7 +139,7 @@ See docs/architecture/configuration.md.
 
 ## Config
 
-`src/main/resources/application.yml` — **db credentials and `record.allowedTables`**
+`core/src/main/resources/application.yml` — **db credentials and `record.allowedTables`**
 The `routes` table — 38 default routes, seeded by `db/V8__create_routes.sql` and changed by later migrations.
 
 Every other property lives in `app_properties`, **not** `application.yml`.
@@ -152,12 +154,14 @@ Defaults, env var rules, and the connection pool: docs/architecture/configuratio
 
 ## Architecture
 
+**Modules**: `common` ← `core` ← `scheduler` ← `web`. `web` uses all three. See docs/architecture/modules.md
+
 **Routing**: `routes` table → RouteRegistry → RouteDispatcher → Handler/Processor
 **Properties**: LRU cache → DB (`app_properties`) → YAML (three-level fallback)
 **Storage**: 1MB chunks → ChunkedOutputStream/InputStream → memory-safe; DB or filesystem backend
 **DB**: `Database` wrapper (jOOQ DSL) + Flyway auto-migrations on startup
 **JS**: Rhino sandbox → `ScriptSecurityManager` ClassShutter (whitelist/blacklist)
-**Build**: catalog-thirdparty → catalog-internal → shared-build-parent → app (Maven parent chain)
+**Build**: catalog-thirdparty → catalog-internal → shared-build-parent → modules (Maven parent chain)
 
 **Packages**: `com.example.*` — servlet/, route/, processor/, handler/, storage/, datasource/, config/,
 script/, scheduler/, security/, module/, extlib/, mongo/, model/, exception/, util/

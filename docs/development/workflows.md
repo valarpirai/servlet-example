@@ -5,7 +5,7 @@ The loops for a feature, a bug, and a dev server.
 ## Running the app
 
 ```bash
-mvn -PappRun                      # dev server on 8080
+mvn -PappRun                      # dev server on 8080, from the repo root
 SERVER_PORT=9090 mvn -PappRun     # different port
 curl localhost:8080/health        # confirm it is up
 ```
@@ -14,7 +14,7 @@ Packaged run:
 
 ```bash
 mvn clean package
-java -jar target/servlet-example.jar
+java -jar web/target/servlet-example.jar
 ```
 
 ## Adding a feature
@@ -71,7 +71,7 @@ is needed.
 
 Properties live in `app_properties`, not `application.yml`. Change a running
 value with SQL or `TableRecord`. It takes effect within 5 seconds. Change the shipped default by adding a
-migration under `src/main/resources/db/`.
+migration under `core/src/main/resources/db/`.
 
 Editing `V2__seed_app_properties.sql` does nothing on an existing database.
 Flyway will not re-run an applied migration.

@@ -107,7 +107,7 @@ servlet-example/
 
 ## Configuration
 
-`src/main/resources/application.yml` holds database credentials and nothing else:
+`core/src/main/resources/application.yml` holds database credentials and nothing else:
 
 ```yaml
 db:
@@ -148,7 +148,7 @@ mvn clean package
 
 **Production mode (executable JAR):**
 ```bash
-java -jar target/servlet-example.jar
+java -jar web/target/servlet-example.jar
 ```
 
 **Development mode:**
