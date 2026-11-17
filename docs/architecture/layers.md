@@ -35,15 +35,16 @@ Three paths still shape responses in the controller: `ApiHandler.sendResponse`,
 - A controller calls services and views. It does not touch `TableRecord`, `Database`,
   a repository, JDBC or jOOQ.
 - Shared code (`util`, `exception`, `security`) does not call a controller, a service,
-  a repository, `TableRecord` or jOOQ.
+  a view, a repository, `TableRecord` or jOOQ.
 - A service calls other services and the model. It does not call a controller or a view.
 - A model class calls only other model classes and shared code.
-- A view calls only the model.
+- A view calls only the model. It does not touch `TableRecord`, `Database`, a repository,
+  JDBC or jOOQ.
 - Nothing calls a controller.
 
-`CONTROLLERS_AVOID_DATA_ACCESS` and `SHARED_STAYS_INDEPENDENT` are the first two. The rest
-are the `LAYERS` rule.
-Both live in `ArchitectureTest`.
+`CONTROLLERS_AVOID_DATA_ACCESS`, `VIEWS_AVOID_DATA_ACCESS` and `SHARED_STAYS_INDEPENDENT`
+are three rules of their own. The rest are the `LAYERS` rule. All four live in
+`ArchitectureTest`.
 
 ## Where the checks live
 
@@ -54,7 +55,7 @@ All checks are tests in the `web` module, under `web/src/test/java/com/example/a
 |---|---|
 | `Layers.java` | Maps each package to a layer. The one place to edit. |
 | `LayersTest.java` | Fails when a class sits in a package no layer claims. |
-| `ArchitectureTest.java` | Holds the two ArchUnit rules and a proof test. |
+| `ArchitectureTest.java` | Holds the four ArchUnit rules and a proof test for each. |
 | `BaselineGuardTest.java` | Fails when a rule is renamed, the store holds a stray rule, or the store is unlocked. |
 | `MainClassesOnly.java` | Keeps test classes out of the analysis, including the packaged `core` test jar. |
 

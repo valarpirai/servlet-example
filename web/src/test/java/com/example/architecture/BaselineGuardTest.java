@@ -33,6 +33,7 @@ class BaselineGuardTest {
         Set.of(
             ArchitectureTest.controllersAvoidDataAccess().getDescription(),
             ArchitectureTest.sharedStaysIndependent().getDescription(),
+            ArchitectureTest.viewsAvoidDataAccess().getDescription(),
             ArchitectureTest.layerDependencies().getDescription()),
         stored.stringPropertyNames());
   }

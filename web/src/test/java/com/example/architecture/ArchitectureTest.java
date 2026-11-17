@@ -10,6 +10,8 @@ import com.example.handler.ViolatingFixture;
 import com.example.handler.ViolatingJdbcFixture;
 import com.example.handler.ViolatingRepositoryFixture;
 import com.example.util.ViolatingUtilFixture;
+import com.example.util.ViolatingUtilViewFixture;
+import com.example.view.ViolatingViewFixture;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -28,27 +30,50 @@ import org.junit.jupiter.api.Test;
 class ArchitectureTest {
 
   /**
+   * Matches classes that give direct access to tables: TableRecord, Database, repositories, JDBC
+   * and jOOQ.
+   *
+   * @return the predicate
+   */
+  private static DescribedPredicate<JavaClass> dataAccess() {
+    DescribedPredicate<JavaClass> database =
+        DescribedPredicate.describe(
+            "com.example.config.Database", c -> c.getName().equals("com.example.config.Database"));
+    return resideInAnyPackage(
+            "com.example.record..",
+            "com.example.repository..",
+            "java.sql..",
+            "javax.sql..",
+            "org.jooq..")
+        .or(database);
+  }
+
+  /**
    * Builds the rule that keeps controllers away from data access.
    *
    * @return the unfrozen rule
    */
   static ArchRule controllersAvoidDataAccess() {
-    DescribedPredicate<JavaClass> database =
-        DescribedPredicate.describe(
-            "com.example.config.Database", c -> c.getName().equals("com.example.config.Database"));
     return noClasses()
         .that()
         .resideInAnyPackage(Layers.CONTROLLER_PACKAGES)
         .should()
-        .dependOnClassesThat(
-            resideInAnyPackage(
-                    "com.example.record..",
-                    "com.example.repository..",
-                    "java.sql..",
-                    "javax.sql..",
-                    "org.jooq..")
-                .or(database))
+        .dependOnClassesThat(dataAccess())
         .as("Controllers must not depend on TableRecord, Database, repositories, JDBC or jOOQ");
+  }
+
+  /**
+   * Builds the rule that keeps views away from data access.
+   *
+   * @return the unfrozen rule
+   */
+  static ArchRule viewsAvoidDataAccess() {
+    return noClasses()
+        .that()
+        .resideInAnyPackage(Layers.VIEW_PACKAGES)
+        .should()
+        .dependOnClassesThat(dataAccess())
+        .as("Views must not depend on TableRecord, Database, repositories, JDBC or jOOQ");
   }
 
   /**
@@ -61,6 +86,7 @@ class ArchitectureTest {
         Stream.of(
                 Layers.CONTROLLER_PACKAGES,
                 Layers.SERVICE_PACKAGES,
+                Layers.VIEW_PACKAGES,
                 new String[] {"com.example.record..", "com.example.repository..", "org.jooq.."})
             .flatMap(Arrays::stream)
             .toArray(String[]::new);
@@ -70,7 +96,7 @@ class ArchitectureTest {
             "com.example.util..", "com.example.exception..", "com.example.security..")
         .should()
         .dependOnClassesThat(resideInAnyPackage(forbidden))
-        .as("Shared packages must not depend on controllers, services or data access");
+        .as("Shared packages must not depend on controllers, services, views or data access");
   }
 
   /**
@@ -108,6 +134,8 @@ class ArchitectureTest {
 
   @ArchTest static final ArchRule SHARED_STAYS_INDEPENDENT = freeze(sharedStaysIndependent());
 
+  @ArchTest static final ArchRule VIEWS_AVOID_DATA_ACCESS = freeze(viewsAvoidDataAccess());
+
   @ArchTest static final ArchRule LAYERS = freeze(layerDependencies());
 
   @Test
@@ -131,6 +159,18 @@ class ArchitectureTest {
   @Test
   void sharedRuleCatchesAUtilThatReachesIntoDataAccess() {
     var classes = new ClassFileImporter().importClasses(ViolatingUtilFixture.class);
+    assertTrue(sharedStaysIndependent().evaluate(classes).hasViolation());
+  }
+
+  @Test
+  void viewRuleCatchesAViewThatReadsATable() {
+    var classes = new ClassFileImporter().importClasses(ViolatingViewFixture.class);
+    assertTrue(viewsAvoidDataAccess().evaluate(classes).hasViolation());
+  }
+
+  @Test
+  void sharedRuleCatchesSharedCodeThatReachesTheView() {
+    var classes = new ClassFileImporter().importClasses(ViolatingUtilViewFixture.class);
     assertTrue(sharedStaysIndependent().evaluate(classes).hasViolation());
   }
 }
