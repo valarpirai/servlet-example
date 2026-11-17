@@ -3,6 +3,7 @@ package com.example.route;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.example.model.Route;
+import com.example.repository.RouteRepository;
 import org.junit.jupiter.api.Test;
 
 class RouteRegistryTableTest {
@@ -11,7 +12,7 @@ class RouteRegistryTableTest {
 
   /** A registry that checks the table on every lookup. */
   private RouteRegistry registry() {
-    return new RouteRegistry(db, 0);
+    return new RouteRegistry(new RouteRepository(db), 0);
   }
 
   // --- loading ---
@@ -200,7 +201,7 @@ class RouteRegistryTableTest {
   @Test
   void waitsBetweenChecks() {
     db.route("/one", "GET", "script", "s", "f");
-    RouteRegistry slow = new RouteRegistry(db, 60_000);
+    RouteRegistry slow = new RouteRegistry(new RouteRepository(db), 60_000);
     int statementsAfterStart = db.sql.size();
 
     slow.findRoute("GET", "/one");

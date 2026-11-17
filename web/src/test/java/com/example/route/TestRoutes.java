@@ -1,5 +1,7 @@
 package com.example.route;
 
+import com.example.repository.RouteRepository;
+
 /** A registry holding the routes that the routing tests exercise, as the routes table would. */
 final class TestRoutes {
 
@@ -41,6 +43,6 @@ final class TestRoutes {
     for (String prefix : new String[] {"/api/", "/health", "/metrics"}) {
       db.setJsonContentTypeFor(prefix);
     }
-    return new RouteRegistry(db, Long.MAX_VALUE);
+    return new RouteRegistry(new RouteRepository(db), Long.MAX_VALUE);
   }
 }
