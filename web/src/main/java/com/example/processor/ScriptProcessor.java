@@ -5,6 +5,7 @@ import com.example.model.ProcessorResponse;
 import com.example.module.ModuleManager;
 import com.example.script.ScriptExecutor;
 import com.example.script.ScriptModuleLoader;
+import com.example.script.ScriptScopeBuilder;
 import com.example.security.ScriptSecurityManager;
 import com.example.util.JsonConverter;
 import com.example.util.JsonUtil;

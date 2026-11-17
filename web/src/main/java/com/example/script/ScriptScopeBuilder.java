@@ -1,4 +1,4 @@
-package com.example.processor;
+package com.example.script;
 
 import com.example.record.BusinessRules;
 import com.example.record.RecordConstructor;

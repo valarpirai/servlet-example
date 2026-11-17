@@ -48,7 +48,7 @@ The HTTP layer and the feature code: `Main`, `servlet/`, `route/`, `handler/`,
 `processor/`, `storage/`, `datasource/`, `extlib/`, `mongo/`, `tableapi/`.
 
 Servlet-aware helpers stay here: `CorrelationIdFilter`, `RequestHelper`,
-`ResponseHelper`, `RuntimeMetrics` and `ScriptScopeBuilder`. This module builds
+`ResponseHelper`, `RuntimeMetrics` and `script/ScriptScopeBuilder`. This module builds
 the shaded `servlet-example.jar`.
 
 ## Adding code

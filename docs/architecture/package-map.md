@@ -22,7 +22,6 @@ src/main/java/com/example/
 ├── processor/                          Per-request processors
 │   ├── IRequestProcessor.java          Processor interface
 │   ├── ScriptProcessor.java            JavaScript execution
-│   ├── ScriptScopeBuilder.java         Sandbox scope construction (web)
 │   ├── ApiScriptProcessor.java         Script-defined HTTP APIs
 │   └── FileUploadProcessor.java        Multipart upload
 │
@@ -82,7 +81,8 @@ src/main/java/com/example/
 │
 ├── script/                             Rhino execution internals
 │   ├── ScriptExecutor.java             Script invocation
-│   └── ScriptModuleLoader.java         import resolution
+│   ├── ScriptModuleLoader.java         import resolution
+│   └── ScriptScopeBuilder.java         Sandbox scope construction (web module)
 │
 ├── security/
 │   └── ScriptSecurityManager.java      ClassShutter policy
