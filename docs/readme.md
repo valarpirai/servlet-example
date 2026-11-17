@@ -11,6 +11,7 @@ How the app is put together.
 - [Component responsibilities](./architecture/component-responsibilities.md) — who owns what
 - [Modules](./architecture/modules.md) — common, core, scheduler and web
 - [Package map](./architecture/package-map.md) — every package and its purpose
+- [MVC layers](./architecture/layers.md) — the four layers, the rules, the baseline
 - [Design patterns and principles](./architecture/design-patterns.md) — patterns and principles, for new team members
 - [Configuration](./architecture/configuration.md) — properties and precedence
 

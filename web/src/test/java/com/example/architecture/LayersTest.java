@@ -7,7 +7,8 @@ import com.example.brandnew.Orphan;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.core.importer.Location;
+import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,7 @@ class LayersTest {
   void everyClassIsInOneLayerOrOutsideLayers() {
     JavaClasses classes =
         new ClassFileImporter()
-            .withImportOption(new ImportOption.DoNotIncludeTests())
+            .withImportOption(new MainClassesOnly())
             .importPackages("com.example");
     assertTrue(
         classes.contain("com.example.common.util.JsonUtil")
@@ -40,5 +41,16 @@ class LayersTest {
     JavaClass orphan = new ClassFileImporter().importClass(Orphan.class);
     assertTrue(Layers.layerOf(orphan).isEmpty());
     assertFalse(Layers.isOutsideLayers(orphan));
+  }
+
+  @Test
+  void mainClassesOnlySkipsTestJarsAndTestDirectories() {
+    MainClassesOnly option = new MainClassesOnly();
+    assertFalse(
+        option.includes(
+            Location.of(URI.create("jar:file:/m2/core-1.0-tests.jar!/com/example/A.class"))));
+    assertFalse(
+        option.includes(Location.of(URI.create("file:/w/core/target/test-classes/a/A.class"))));
+    assertTrue(option.includes(Location.of(URI.create("jar:file:/m2/core-1.0.jar!/a/A.class"))));
   }
 }

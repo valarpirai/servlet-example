@@ -17,6 +17,7 @@ Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
 Code structure | docs/architecture/package-map.md | All packages
 Modules | docs/architecture/modules.md | common/, core/, scheduler/, web/
+Layering rules | docs/architecture/layers.md | web/src/test/java/com/example/architecture/
 App flow diagrams | docs/architecture/startup-flow.md | config/, servlet/
 Configuration | docs/architecture/configuration.md | application.yml, app_properties
 Issues/fixes | docs/troubleshooting/ | -

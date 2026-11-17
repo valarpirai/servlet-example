@@ -10,7 +10,6 @@ import com.example.handler.ViolatingFixture;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
@@ -20,7 +19,7 @@ import org.junit.jupiter.api.Test;
  * MVC layer rules for every module. Existing violations sit in a frozen baseline under {@code
  * src/test/resources/archunit-baseline}. A new violation fails the build.
  */
-@AnalyzeClasses(packages = "com.example", importOptions = ImportOption.DoNotIncludeTests.class)
+@AnalyzeClasses(packages = "com.example", importOptions = MainClassesOnly.class)
 class ArchitectureTest {
 
   /**
