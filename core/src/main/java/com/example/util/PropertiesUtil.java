@@ -1,6 +1,5 @@
 package com.example.util;
 
-import com.example.repository.PropertyRepository;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -34,7 +33,7 @@ public class PropertiesUtil {
   private static volatile long cacheFilledAt = System.currentTimeMillis();
 
   // Set by DbPropertiesLoader once the DB connection is ready.
-  private static volatile PropertyRepository propertyRepository;
+  private static volatile PropertySource propertySource;
 
   static {
     loadYaml();
@@ -94,8 +93,8 @@ public class PropertiesUtil {
    * Register the DB-backed property repository. Clears the LRU cache so subsequent reads go to the
    * DB. Pass null to detach (used in tests).
    */
-  public static void setPropertyRepository(PropertyRepository repo) {
-    propertyRepository = repo;
+  public static void setPropertySource(PropertySource source) {
+    propertySource = source;
     clearCache();
   }
 
@@ -207,9 +206,9 @@ public class PropertiesUtil {
     }
 
     // 2. DB lookup (lazy)
-    if (propertyRepository != null) {
+    if (propertySource != null) {
       try {
-        Optional<String> dbValue = propertyRepository.findValueByName(key);
+        Optional<String> dbValue = propertySource.findValueByName(key);
         lruCache.put(key, dbValue);
         if (dbValue.isPresent()) return dbValue.get();
         // DB miss – fall through to YAML

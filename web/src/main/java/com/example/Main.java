@@ -141,7 +141,7 @@ public class Main {
                     }
                   },
                   "shutdown"));
-      com.example.util.RuntimeMetrics.setWorkerExecutor(
+      com.example.metrics.RuntimeMetrics.setWorkerExecutor(
           tomcat.getConnector().getProtocolHandler().getExecutor());
 
       logger.info("=========================================");

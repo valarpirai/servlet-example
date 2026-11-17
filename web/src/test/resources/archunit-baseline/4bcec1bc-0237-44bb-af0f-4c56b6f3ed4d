@@ -1,5 +1,0 @@
-Field <com.example.util.PropertiesUtil.propertyRepository> has type <com.example.repository.PropertyRepository> in (PropertiesUtil.java:0)
-Method <com.example.util.PropertiesUtil.getProperty(java.lang.String)> calls method <com.example.repository.PropertyRepository.findValueByName(java.lang.String)> in (PropertiesUtil.java:212)
-Method <com.example.util.PropertiesUtil.setPropertyRepository(com.example.repository.PropertyRepository)> has parameter of type <com.example.repository.PropertyRepository> in (PropertiesUtil.java:0)
-Method <com.example.util.RuntimeMetrics.snapshot(long)> calls method <com.example.scheduler.Scheduler.get()> in (RuntimeMetrics.java:39)
-Method <com.example.util.RuntimeMetrics.snapshot(long)> calls method <com.example.scheduler.Scheduler.stats()> in (RuntimeMetrics.java:41)

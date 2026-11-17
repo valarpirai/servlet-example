@@ -41,7 +41,7 @@ class TableEditorTest {
   @BeforeEach
   void setUp() {
     // YAML-only: the allow-list is the built-in default, js_modules:name
-    PropertiesUtil.setPropertyRepository(null);
+    PropertiesUtil.setPropertySource(null);
     editor = new TableEditor(new FakeDb());
   }
 

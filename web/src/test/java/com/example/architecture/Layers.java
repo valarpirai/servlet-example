@@ -33,7 +33,8 @@ final class Layers {
     "com.example.mongo..",
     "com.example.script..",
     "com.example.module..",
-    "com.example.routing.."
+    "com.example.routing..",
+    "com.example.metrics.."
   };
 
   static final String[] MODEL_PACKAGES = {

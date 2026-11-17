@@ -41,7 +41,7 @@ public class DbPropertiesLoader {
       database = new Database(config);
       dbConfig = config;
       repository = new PropertyRepository(database);
-      PropertiesUtil.setPropertyRepository(repository);
+      PropertiesUtil.setPropertySource(repository);
       System.out.println("[DbPropertiesLoader] DB ready – schema migrated, LRU cache active");
     } catch (Exception e) {
       throw new IllegalStateException("Cannot connect to the database: " + e.getMessage(), e);

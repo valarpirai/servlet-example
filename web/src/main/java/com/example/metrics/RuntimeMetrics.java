@@ -1,4 +1,4 @@
-package com.example.util;
+package com.example.metrics;
 
 import com.example.config.DbPropertiesLoader;
 import java.lang.management.ManagementFactory;

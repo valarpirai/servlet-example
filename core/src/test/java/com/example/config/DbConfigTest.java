@@ -10,7 +10,7 @@ class DbConfigTest {
   @BeforeEach
   void setUp() {
     // Ensure YAML-only mode (no DB repository)
-    com.example.util.PropertiesUtil.setPropertyRepository(null);
+    com.example.util.PropertiesUtil.setPropertySource(null);
   }
 
   @Test

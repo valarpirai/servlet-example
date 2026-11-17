@@ -1,4 +1,4 @@
-package com.example.util;
+package com.example.metrics;
 
 import static org.junit.jupiter.api.Assertions.*;
 

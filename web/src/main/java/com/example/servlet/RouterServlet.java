@@ -1,11 +1,11 @@
 package com.example.servlet;
 
 import com.example.config.DbPropertiesLoader;
+import com.example.metrics.RuntimeMetrics;
 import com.example.route.RouteDispatcher;
 import com.example.routing.RouteRegistry;
 import com.example.util.CorrelationIdFilter;
 import com.example.util.JsonUtil;
-import com.example.util.RuntimeMetrics;
 import com.example.util.StructuredLogger;
 import com.example.view.HealthView;
 import com.example.view.MetricsView;

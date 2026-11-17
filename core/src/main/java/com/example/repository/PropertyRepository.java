@@ -2,10 +2,11 @@ package com.example.repository;
 
 import com.example.config.Database;
 import com.example.record.TableRecord;
+import com.example.util.PropertySource;
 import java.util.Optional;
 
 /** Lookup of a value in the app_properties table, read through {@link TableRecord}. */
-public class PropertyRepository {
+public class PropertyRepository implements PropertySource {
 
   private final Database database;
 
@@ -19,6 +20,7 @@ public class PropertyRepository {
    * @param name property name
    * @return the value, or empty when no active row has the name or its value is null
    */
+  @Override
   public Optional<String> findValueByName(String name) throws Exception {
     TableRecord properties = new TableRecord(database, "app_properties");
     properties.addQuery("name", name);
