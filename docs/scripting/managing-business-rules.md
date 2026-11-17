@@ -61,7 +61,7 @@ Field names are `name`, `collection`, `runWhen`, `onInsert`, `onUpdate`,
 
 - The name is not blank.
 - The collection is a valid table name.
-- `runWhen` is `before` or `after`.
+- `runWhen` is `before`, `after` or `async`.
 - At least one of `onInsert`, `onUpdate`, `onDelete` is true.
 - The script is not blank.
 - The script and the condition compile.
@@ -78,5 +78,6 @@ runs. An edit takes effect at once, so test a rule on a quiet table first. Set
 ## Related
 
 - [Table records and business rules](./table-records-and-rules.md) — how rules run
+- [Async business rules](./async-business-rules.md) — rules that run off the request thread
 - [Table editing](../data-browser/table-editing.md) — the HTTP route
 - [Script sandbox](./script-sandbox.md) — what scripts may use

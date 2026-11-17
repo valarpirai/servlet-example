@@ -25,6 +25,7 @@ class MockDb extends Database {
   final List<String> sql = new ArrayList<>();
 
   private final List<Object[]> rules = new ArrayList<>();
+  private final List<Object[]> asyncRules = new ArrayList<>();
   private final List<Object[]> rows = new ArrayList<>();
   private final List<Object[]> keys = new ArrayList<>(List.<Object[]>of(new Object[] {"name"}));
 
@@ -35,6 +36,11 @@ class MockDb extends Database {
   /** Adds a rule row: name, condition, script. The mock returns it for any rule lookup. */
   void rule(String name, String condition, String script) {
     rules.add(new Object[] {name, condition, script});
+  }
+
+  /** Adds an async rule row: id, name, condition, script. Returned when a select binds 'async'. */
+  void asyncRule(String id, String name, String condition, String script) {
+    asyncRules.add(new Object[] {id, name, condition, script});
   }
 
   /** Adds a modules row: name, content. */
@@ -64,6 +70,11 @@ class MockDb extends Database {
                   sql.add(s);
                   if (s.contains("information_schema")) {
                     return result(keys, "column_name");
+                  }
+                  if (s.startsWith("select")
+                      && s.contains("business_rules")
+                      && java.util.Arrays.asList(ctx.bindings()).contains("async")) {
+                    return result(asyncRules, "id", "name", "condition", "script");
                   }
                   if (s.startsWith("select") && s.contains("business_rules")) {
                     return result(rules, "name", "condition", "script");

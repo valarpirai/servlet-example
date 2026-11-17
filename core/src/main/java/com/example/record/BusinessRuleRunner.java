@@ -60,6 +60,14 @@ class BusinessRuleRunner {
    * @return false when a before rule aborted the write
    */
   boolean run(String tableName, Operation operation, String when, TableRecord current) {
+    boolean proceed = runSync(tableName, operation, when, current);
+    if (proceed && when.equals("after")) {
+      dispatchAsync(tableName, operation, current);
+    }
+    return proceed;
+  }
+
+  private boolean runSync(String tableName, Operation operation, String when, TableRecord current) {
     List<org.jooq.Record3<String, String, String>> rules = load(tableName, operation, when);
     if (rules.isEmpty()) {
       return true;
@@ -102,6 +110,114 @@ class BusinessRuleRunner {
   }
 
   private void execute(String name, String condition, String script, TableRecord current) {
+    execute(name, condition, script, current, current.previousSnapshot());
+  }
+
+  /**
+   * Queues each async rule that matches a finished write. The write is done, so nothing here may
+   * fail it: every problem is logged and the rule is skipped. The rule's condition is checked now,
+   * against the saved fields, so a rule that does not apply costs no job.
+   */
+  private void dispatchAsync(String tableName, Operation operation, TableRecord current) {
+    List<org.jooq.Record4<Object, String, String, String>> rules;
+    try {
+      rules = loadAsync(tableName, operation);
+    } catch (RuntimeException e) {
+      logger.warn("Loading async rules for {} failed: {}", tableName, e.getMessage());
+      return;
+    }
+    if (rules.isEmpty()) {
+      return;
+    }
+    int depth = AsyncRules.depth() + 1;
+    int maxDepth = PropertiesUtil.getInt("record.maxRuleDepth", 5);
+    if (depth > maxDepth) {
+      logger.warn("Async rules on {} nest deeper than {}; skipped", tableName, maxDepth);
+      return;
+    }
+    for (var rule : rules) {
+      String id = String.valueOf(rule.value1());
+      String name = rule.value2();
+      try {
+        TableRecord previous = current.previousSnapshot();
+        if (!conditionHolds(name, rule.value3(), current, previous)) {
+          continue;
+        }
+        AsyncRuleCall call = new AsyncRuleCall();
+        call.ruleId = id;
+        call.ruleName = name;
+        call.table = tableName;
+        call.operation = operation.name().toLowerCase();
+        call.current = current.currentText();
+        call.previous = current.previousText();
+        call.depth = depth;
+        AsyncRules.enqueue(call);
+      } catch (RuntimeException e) {
+        logger.warn("Async rule '{}' on {} was not queued: {}", name, tableName, e.getMessage());
+      }
+    }
+  }
+
+  private List<org.jooq.Record4<Object, String, String, String>> loadAsync(
+      String tableName, Operation operation) {
+    try {
+      return database.query(
+          dsl ->
+              dsl.select(field("id"), NAME, CONDITION, SCRIPT)
+                  .from(table("business_rules"))
+                  .where(field("collection", String.class).eq(tableName))
+                  .and(field("run_when", String.class).eq("async"))
+                  .and(field(operation.column, Boolean.class).isTrue())
+                  .and(field("active", Boolean.class).isTrue())
+                  .orderBy(field("order_no"), field("id"))
+                  .fetch());
+    } catch (Exception e) {
+      throw new IllegalStateException("Loading async rules failed: " + e.getMessage(), e);
+    }
+  }
+
+  private boolean conditionHolds(
+      String name, String condition, TableRecord current, TableRecord previous) {
+    if (condition == null || condition.isBlank()) {
+      return true;
+    }
+    ScriptExecutor.ScriptExecutionResult result =
+        executor.execute(
+            "(" + condition + ") ? true : false",
+            (scope, cx) -> bind(scope, cx, current, previous));
+    if (!result.isSuccess()) {
+      throw new IllegalStateException(
+          "condition failed: " + result.getMessage(), result.getThrowable());
+    }
+    return Boolean.TRUE.equals(result.getResult());
+  }
+
+  private void bind(
+      org.mozilla.javascript.Scriptable scope,
+      Context cx,
+      TableRecord current,
+      TableRecord previous) {
+    ScriptableObject.putProperty(scope, "current", Context.javaToJS(current, scope));
+    ScriptableObject.putProperty(
+        scope, "previous", previous == null ? null : Context.javaToJS(previous, scope));
+    ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor(database));
+  }
+
+  /**
+   * Runs one async rule's script on saved fields. The job calls this, on a scheduler worker.
+   *
+   * @param call the saved write
+   * @param script the rule's script
+   */
+  void executeAsync(AsyncRuleCall call, String script) {
+    TableRecord current = TableRecord.snapshot(database, call.table, call.current);
+    TableRecord previous =
+        call.previous == null ? null : TableRecord.snapshot(database, call.table, call.previous);
+    execute(call.ruleName, null, script, current, previous);
+  }
+
+  private void execute(
+      String name, String condition, String script, TableRecord current, TableRecord previous) {
     boolean hasCondition = condition != null && !condition.isBlank();
     String source = hasCondition ? "if (" + condition + ") {\n" + script + "\n}" : script;
     try {
@@ -109,17 +225,8 @@ class BusinessRuleRunner {
     } catch (IOException e) {
       throw new IllegalStateException("Business rule '" + name + "' failed: " + e.getMessage(), e);
     }
-    TableRecord previous = current.previousSnapshot();
-
     ScriptExecutor.ScriptExecutionResult result =
-        executor.execute(
-            source,
-            (scope, cx) -> {
-              ScriptableObject.putProperty(scope, "current", Context.javaToJS(current, scope));
-              ScriptableObject.putProperty(
-                  scope, "previous", previous == null ? null : Context.javaToJS(previous, scope));
-              ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor(database));
-            });
+        executor.execute(source, (scope, cx) -> bind(scope, cx, current, previous));
     if (!result.isSuccess()) {
       throw new IllegalStateException(
           "Business rule '" + name + "' failed: " + result.getMessage(), result.getThrowable());

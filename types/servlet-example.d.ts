@@ -115,7 +115,7 @@ interface BusinessRule {
   readonly id: ScriptText;
   readonly name: ScriptText;
   readonly collection: ScriptText;
-  readonly runWhen: "before" | "after";
+  readonly runWhen: "before" | "after" | "async";
   readonly onInsert: boolean;
   readonly onUpdate: boolean;
   readonly onDelete: boolean;
@@ -131,7 +131,7 @@ interface BusinessRule {
 interface BusinessRuleFields {
   name: string;
   collection: string;
-  runWhen: "before" | "after";
+  runWhen: "before" | "after" | "async";
   onInsert?: boolean;
   onUpdate?: boolean;
   onDelete?: boolean;

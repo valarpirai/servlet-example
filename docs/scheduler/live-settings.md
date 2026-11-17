@@ -8,8 +8,9 @@ A business rule on `app_properties` watches every `scheduler.*` row. When one is
 inserted or updated, the rule calls `Scheduler.reload()`. The scheduler on that node
 reads its settings again and applies them.
 
-The rule is `Reload scheduler settings`, seeded by migration `V23`. It runs after the
-write, with this condition and script:
+The rule is `Reload scheduler settings`, seeded by migration `V23`. Migration `V24` makes
+it an [async rule](../scripting/async-business-rules.md), so it runs on a scheduler
+worker and never inside the request that changed the setting. Its condition and script:
 
 ```javascript
 // condition
@@ -44,10 +45,12 @@ on all three. See [Table editing](../data-browser/table-editing.md).
 
 ## Limits
 
-- **One node.** The rule runs on the node that took the write. Other nodes keep their
-  old settings until they restart or run `Scheduler.reload()` themselves.
-- **No scheduler here.** On a node with no scheduler, `reload()` answers `No scheduler
-  runs on this node` and changes nothing.
+- **One node.** The job runs on the node that claims it. Other nodes keep their old
+  settings until they restart or run `Scheduler.reload()` themselves.
+- **A short delay.** The change applies when a worker claims the job, usually within a
+  second.
+- **No scheduler at all.** Async rules need a running scheduler. With none, the reload
+  job waits in the table.
 - **Turn it off.** Set `active` to false on the rule in `business_rules`.
 
 ## Calling it yourself

@@ -53,13 +53,13 @@ class TableRecordBulkTest {
   }
 
   @Test
-  void updateMultipleRunsBeforeAndAfterRuleLookups() {
+  void updateMultipleRunsBeforeAfterAndAsyncRuleLookups() {
     db.row("a", "old");
     TableRecord gr = modules();
     gr.addQuery("name", "a");
     gr.setValue("content", "new");
     gr.updateMultiple();
-    assertEquals(2, db.sql.stream().filter(s -> s.contains("business_rules")).count());
+    assertEquals(3, db.sql.stream().filter(s -> s.contains("business_rules")).count());
   }
 
   @Test

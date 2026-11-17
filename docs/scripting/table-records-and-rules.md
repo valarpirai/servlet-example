@@ -153,7 +153,7 @@ Columns of `business_rules`:
 | Column | Meaning |
 |---|---|
 | `collection` | Table the rule watches |
-| `run_when` | `before` or `after` |
+| `run_when` | `before`, `after` or [`async`](./async-business-rules.md) |
 | `on_insert`, `on_update`, `on_delete` | Writes that fire the rule |
 | `condition` | JavaScript expression. Empty means always |
 | `script` | JavaScript to run |

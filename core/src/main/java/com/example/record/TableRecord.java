@@ -39,6 +39,7 @@ public class TableRecord {
   private Map<String, Object> current = new LinkedHashMap<>();
   private Map<String, Object> previous;
   private boolean aborted;
+  private boolean readOnly;
 
   /**
    * Creates a record handle on the application database.
@@ -258,6 +259,7 @@ public class TableRecord {
    * @return the new key, or null when a before rule aborted
    */
   public String insert() {
+    requireWritable();
     key();
     previous = null;
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
@@ -287,6 +289,7 @@ public class TableRecord {
    * @return true when written, false when a before rule aborted
    */
   public boolean update() {
+    requireWritable();
     key();
     requireLoadedRow();
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
@@ -323,6 +326,7 @@ public class TableRecord {
    * @return true when deleted, false when a before rule aborted
    */
   public boolean deleteRecord() {
+    requireWritable();
     key();
     requireLoadedRow();
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
@@ -367,6 +371,7 @@ public class TableRecord {
    * @return rows updated; rows skipped by a before rule or a lost race are not counted
    */
   public int updateMultiple() {
+    requireWritable();
     key();
     requireConditions("updateMultiple");
     Map<String, Object> values = new LinkedHashMap<>(current);
@@ -395,6 +400,7 @@ public class TableRecord {
    * @return rows deleted
    */
   public int deleteMultiple() {
+    requireWritable();
     key();
     requireConditions("deleteMultiple");
     BusinessRuleRunner rules = new BusinessRuleRunner(database);
@@ -494,6 +500,44 @@ public class TableRecord {
     snapshot.current = new LinkedHashMap<>(previous);
     snapshot.previous = new HashMap<>(previous);
     return snapshot;
+  }
+
+  /**
+   * Builds a read-only record from saved field text. Async rules run on one.
+   *
+   * @param database the database
+   * @param table the table the row came from
+   * @param values field text by column; a missing column reads as null
+   * @return a record whose writes throw
+   */
+  static TableRecord snapshot(Database database, String table, Map<String, String> values) {
+    TableRecord record = new TableRecord(database, table);
+    record.current = new LinkedHashMap<>(values);
+    record.previous = new HashMap<>(values);
+    record.readOnly = true;
+    return record;
+  }
+
+  /** The current fields as text, for saving a snapshot. */
+  Map<String, String> currentText() {
+    return toText(current);
+  }
+
+  /** The row as it was read, as text. Null when there was no earlier row. */
+  Map<String, String> previousText() {
+    return previous == null ? null : toText(previous);
+  }
+
+  private static Map<String, String> toText(Map<String, Object> values) {
+    Map<String, String> out = new LinkedHashMap<>();
+    values.forEach((k, v) -> out.put(k, v == null ? null : String.valueOf(v)));
+    return out;
+  }
+
+  private void requireWritable() {
+    if (readOnly) {
+      throw new IllegalStateException("A snapshot is read-only: " + table);
+    }
   }
 
   private void requireLoadedRow() {

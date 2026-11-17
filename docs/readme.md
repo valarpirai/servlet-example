@@ -42,6 +42,7 @@ Server-side JavaScript on Rhino, sandboxed.
 - [Script modules](./scripting/script-modules.md) — imports, exports and the js_modules table
 - [Table records and business rules](./scripting/table-records-and-rules.md) — read, write and react to rows
 - [Managing business rules](./scripting/managing-business-rules.md) — create, change and delete rules from Java and scripts
+- [Async business rules](./scripting/async-business-rules.md) — rules that run off the request thread, as jobs
 - [Script globals](./scripting/script-globals.md) — add a global name for scripts
 - [TypeScript for scripts](./scripting/typescript.md) — types for every global script API
 

@@ -3,6 +3,7 @@ package com.example.scheduler;
 import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
 import com.example.processor.ApiScriptProcessor;
+import com.example.record.AsyncRules;
 import com.example.repository.SqlJobRepository;
 import com.example.security.ScriptGlobals;
 import com.example.util.PropertiesUtil;
@@ -23,6 +24,7 @@ public final class SchedulerBootstrap {
   public static Scheduler create() {
     ScriptGlobals.register("Jobs", Jobs::new, Jobs.class, JobInfo.class, JobRun.class);
     ScriptGlobals.register("Scheduler", SchedulerAdmin::new, SchedulerAdmin.class);
+    AsyncRules.setSink(BusinessRuleJob::enqueue);
     if (!PropertiesUtil.getBoolean("scheduler.enabled", true)) {
       return null;
     }

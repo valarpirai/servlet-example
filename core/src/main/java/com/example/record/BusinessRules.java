@@ -50,8 +50,10 @@ public class BusinessRules {
     if (rule.getCollection() == null || !IDENTIFIER.matcher(rule.getCollection()).matches()) {
       throw new IllegalArgumentException("Invalid collection: " + rule.getCollection());
     }
-    if (!"before".equals(rule.getRunWhen()) && !"after".equals(rule.getRunWhen())) {
-      throw new IllegalArgumentException("runWhen must be 'before' or 'after'");
+    if (!"before".equals(rule.getRunWhen())
+        && !"after".equals(rule.getRunWhen())
+        && !"async".equals(rule.getRunWhen())) {
+      throw new IllegalArgumentException("runWhen must be 'before', 'after' or 'async'");
     }
     if (!rule.isOnInsert() && !rule.isOnUpdate() && !rule.isOnDelete()) {
       throw new IllegalArgumentException(
