@@ -9,9 +9,9 @@ How the app is put together.
 - [Startup flow](./architecture/startup-flow.md) — JVM start to first request
 - [Request flow](./architecture/request-flow.md) — one request, end to end
 - [Component responsibilities](./architecture/component-responsibilities.md) — who owns what
-- [Modules](./architecture/modules.md) — common, core, scheduler and web
+- [Modules](./architecture/modules.md) — common, core, scheduler, databrowser and web
 - [Package map](./architecture/package-map.md) — every package and its purpose
-- [MVC layers](./architecture/layers.md) — the four layers, the rules, the baseline
+- [MVC layers](./architecture/layers.md) — the four layers and the rules the build checks
 - [Design patterns and principles](./architecture/design-patterns.md) — patterns and principles, for new team members
 - [Configuration](./architecture/configuration.md) — properties and precedence
 

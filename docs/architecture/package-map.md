@@ -2,7 +2,7 @@
 
 Every source package under `com.example`, and what each one is for.
 
-The packages spread over four Maven modules. [Modules](./modules.md) says which
+The packages spread over five Maven modules. [Modules](./modules.md) says which
 module holds which package. Package names do not change from module to module.
 
 `Main` boots the app. `servlet/` holds the single servlet. Everything else is
@@ -15,17 +15,16 @@ src/main/java/com/example/
 ├── servlet/
 │   └── RouterServlet.java              HTTP request router
 │
-├── route/                              Declarative routing
-│   ├── RouteRegistry.java              YAML loader and pattern matcher
+├── route/                              Dispatch
 │   └── RouteDispatcher.java            Reflection-based dispatch
 │
-├── processor/                          Per-request processors
+├── routing/                            Route lookup (a service)
+│   └── RouteRegistry.java              routes table loader and pattern matcher
+│
+├── controller/                         HTTP handlers and request processors
 │   ├── IRequestProcessor.java          Processor interface
 │   ├── ScriptProcessor.java            JavaScript execution
-│   ├── ApiScriptProcessor.java         Script-defined HTTP APIs
-│   └── FileUploadProcessor.java        Multipart upload
-│
-├── handler/                            Singleton HTTP handlers
+│   ├── FileUploadProcessor.java        Multipart upload
 │   ├── ApiHandler.java                 Script-backed API dispatch
 │   ├── AttachmentHandler.java          Download, delete, list
 │   ├── DataBrowserHandler.java         Relational browsing
@@ -55,8 +54,6 @@ src/main/java/com/example/
 │   ├── SchedulerBootstrap.java         Builds the scheduler from app_properties
 │   ├── SchedulerConfig.java            scheduler.* settings
 │   ├── SchedulerMetrics.java           Counters, lateness, per-handler times
-│   ├── Job.java                        One row of scheduled_jobs
-│   ├── JobRun.java                     One row of scheduled_job_runs
 │   ├── JobQueue.java                   Blocking priority queue
 │   ├── Recurrence.java                 Next-run interface
 │   ├── Recurrences.java                once, interval, daily
@@ -68,7 +65,8 @@ src/main/java/com/example/
 │   ├── ScriptJobHandler.java           Runs an api_scripts row as a job
 │   └── HelloWorldJobHandler.java       Sample Java handler
 │
-├── datasource/                         Database connection strategies
+├── datasource/                         Database connection strategies (databrowser module)
+│   ├── DataBrowserService.java         JDBC work behind the data browser
 │   ├── DataSourceStrategy.java         Strategy interface, a ServiceLoader SPI
 │   ├── DataSourceRegistry.java         Strategy registry
 │   ├── PostgreSqlStrategy.java         PostgreSQL URL builder
@@ -88,6 +86,8 @@ src/main/java/com/example/
 ├── script/                             Rhino execution internals
 │   ├── ScriptExecutor.java             Script invocation
 │   ├── ScriptModuleLoader.java         import resolution
+│   ├── ApiScriptProcessor.java         Script-defined HTTP APIs
+│   ├── ScriptRuleEngine.java           Runs business rule scripts
 │   └── ScriptScopeBuilder.java         Sandbox scope construction (web module)
 │
 ├── security/
@@ -101,12 +101,12 @@ src/main/java/com/example/
 │   ├── TableRecord.java                Query and write allow-listed tables
 │   └── BusinessRuleRunner.java         Runs rules around each write
 │
-├── extlib/                             Dynamic JDBC driver loading
+├── extlib/                             Dynamic JDBC driver loading (databrowser module)
 │   ├── ExtLibManager.java              Driver jar loading
 │   ├── DriverShim.java                 Driver delegation wrapper
 │   └── SessionManager.java             Connection session lifecycle
 │
-├── mongo/                              MongoDB by reflection, no compile dependency
+├── mongo/                              MongoDB by reflection, no compile dependency (databrowser module)
 │   ├── MongoExtLibManager.java         Mongo driver loading
 │   ├── MongoReflectionClient.java      Reflective driver calls
 │   └── MongoSessionManager.java        Mongo session lifecycle
@@ -114,8 +114,13 @@ src/main/java/com/example/
 ├── model/                              Shared domain models, all Lombok
 │   ├── Attachment.java                 File metadata
 │   ├── Module.java                     Module metadata
+│   ├── Job.java                        One row of scheduled_jobs
+│   ├── JobRun.java                     One row of scheduled_job_runs
 │   ├── Route.java                      Route configuration
 │   └── ProcessorResponse.java          HTTP response builder
+│
+├── metrics/                            Runtime metrics (a service)
+│   └── RuntimeMetrics.java             Counters and scheduler stats for /metrics
 │
 ├── exception/
 │   ├── ScriptExecutionException.java   Script failure
@@ -123,6 +128,7 @@ src/main/java/com/example/
 │
 └── util/                               Shared utilities
     ├── PropertiesUtil.java             Property lookup with env overrides
+    ├── PropertySource.java             Where PropertiesUtil reads database values
     ├── JsonUtil.java                   Gson wrapper with InstantTypeAdapter
     ├── JsonConverter.java              Java and JavaScript value conversion
     ├── StructuredLogger.java           MDC-based logging
@@ -133,8 +139,8 @@ src/main/java/com/example/
 
 ## Tests mirror this layout
 
-Test packages match source packages. `route/RouteRegistryTest` tests
-`route/RouteRegistry`. Find the tests for a class by looking in the same package
+Test packages match source packages. `routing/RouteRegistryTest` tests
+`routing/RouteRegistry`. Find the tests for a class by looking in the same package
 under the same module's `src/test/java`.
 
 ## Finding things by task
@@ -142,9 +148,9 @@ under the same module's `src/test/java`.
 | Task | Start here |
 |---|---|
 | Routing | `route/`, the `routes` table |
-| Request handling | `processor/`, `handler/` |
+| Request handling | `controller/` |
 | File storage | `storage/AttachmentManager` |
-| Database browsing | `datasource/` |
+| Database browsing | `datasource/` (the `databrowser` module) |
 | Script sandbox | `security/ScriptSecurityManager` |
 | Logging | `util/StructuredLogger` |
 

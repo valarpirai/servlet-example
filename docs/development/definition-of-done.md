@@ -20,7 +20,7 @@ git status          # nothing unintended
 ## Adding a package or moving code between layers
 
 - [ ] The package is in a layer in `Layers.java`, see [MVC layers](../architecture/layers.md)
-- [ ] `ArchitectureTest` passes, and the baseline did not grow
+- [ ] `ArchitectureTest` passes
 
 ## Changing storage
 

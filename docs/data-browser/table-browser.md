@@ -101,7 +101,7 @@ not trust.
 ## Where the code lives
 
 - `tableapi/TableApi.java` holds the queries
-- `handler/TableApiHandler.java` turns them into HTTP
+- `controller/TableApiHandler.java` turns them into HTTP
 - `static/table-browser.html` is the UI
 - `tableapi/TableEditor.java` holds the writes
 - the `routes` table registers four static routes and six API routes

@@ -9,11 +9,11 @@ Quick guidance for Claude Code. **All detail lives in docs/ — start at
 ---|---|---
 Routing | docs/routing/table-routes.md | `routes` table, route/
 File storage | docs/storage/memory-guarantee.md | storage/
-Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | tableapi/, handler/TableApiHandler.java, static/table-browser.html
+Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | tableapi/, controller/TableApiHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
 Script globals and types | docs/scripting/typescript.md, .claude/rules/script-globals-types.md | types/*.d.ts
 Scheduled jobs | docs/scheduler/adding-a-job.md | scheduler/, `scheduled_jobs` table
-Databases | docs/data-browser/datasource-strategies.md | datasource/
+Databases | docs/data-browser/datasource-strategies.md | databrowser/ (datasource/, extlib/, mongo/)
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
 Code structure | docs/architecture/package-map.md | All packages
 Modules | docs/architecture/modules.md | common/, core/, scheduler/, web/
@@ -102,9 +102,9 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 
 **Source code (by package):**
 - DB / startup: `core/src/main/java/**/config/*.java`
-- All processors: `web/src/main/java/**/processor/*Processor.java`
-- All handlers: `web/src/main/java/**/handler/*Handler.java`
-- All strategies: `web/src/main/java/**/datasource/*Strategy.java`
+- All processors: `web/src/main/java/**/controller/*Processor.java`
+- All handlers: `web/src/main/java/**/controller/*Handler.java`
+- All strategies: `databrowser/src/main/java/**/datasource/*Strategy.java`
 - Storage layer: `web/src/main/java/**/storage/*.java`
 - Utilities: `{common,core,web}/src/main/java/**/util/*.java`
 - Route system: `web/src/main/java/**/route/*.java`
@@ -160,7 +160,7 @@ Defaults, env var rules, and the connection pool: docs/architecture/configuratio
 
 ## Architecture
 
-**Modules**: `common` ← `core` ← `scheduler` ← `web`. `web` uses all three. See docs/architecture/modules.md
+**Modules**: `common` ← `core` ← `scheduler`; `databrowser` stands alone; `web` uses all four. See docs/architecture/modules.md
 
 **Routing**: `routes` table → RouteRegistry → RouteDispatcher → Handler/Processor
 **Properties**: LRU cache → DB (`app_properties`) → YAML (three-level fallback)
@@ -169,7 +169,7 @@ Defaults, env var rules, and the connection pool: docs/architecture/configuratio
 **JS**: Rhino sandbox → `ScriptSecurityManager` ClassShutter (whitelist/blacklist)
 **Build**: catalog-thirdparty → catalog-internal → shared-build-parent → modules (Maven parent chain)
 
-**Packages**: `com.example.*` — servlet/, route/, processor/, handler/, storage/, datasource/, config/,
+**Packages**: `com.example.*` — servlet/, route/, routing/, controller/, view/, storage/, datasource/, config/,
 script/, scheduler/, security/, module/, extlib/, mongo/, model/, exception/, util/
 
 **See docs/architecture/ for full details**

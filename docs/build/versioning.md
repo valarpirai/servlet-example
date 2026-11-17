@@ -5,7 +5,7 @@ characters of the git commit id. Example: `1.0.d7cf60`.
 
 ## What it does
 
-All four modules share one version. The root `pom.xml` holds it as `${revision}`.
+All five modules share one version. The root `pom.xml` holds it as `${revision}`.
 Each module takes the root as its parent, so the version flows down.
 
 `./build.sh` reads `app.version.base` (the major and minor) from the root

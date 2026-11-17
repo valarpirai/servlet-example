@@ -70,7 +70,7 @@ It injects `X-Correlation-ID` into the SLF4J MDC before the request reaches
 
 ## Principles enforced by structure, not convention
 
-- **Package by function, not by layer.** `route/`, `processor/`, `handler/`,
+- **Package by function, not by layer.** `route/`, `controller/`,
   `storage/` and `datasource/` each hold one concern. See
   [Package map](./package-map.md).
 - **Fail-soft configuration, fail-fast migrations.** A missing database falls

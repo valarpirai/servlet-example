@@ -76,7 +76,7 @@ Delete handles each id on its own. A row a rule blocks, or that is missing, land
 ## Where the code lives
 
 - `tableapi/TableEditor.java` converts values and calls `TableRecord`
-- `handler/TableApiHandler.java` serves the three write endpoints
+- `controller/TableApiHandler.java` serves the three write endpoints
 - `static/table-browser.html` holds the form and the list actions
 - `V3__routes.sql` registers the routes
 

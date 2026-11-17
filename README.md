@@ -36,7 +36,7 @@ The app does not start without a database. See
 
 ```
 servlet-example/
-├── pom.xml                     (lists the four modules, builds nothing)
+├── pom.xml                     (lists the five modules, builds nothing)
 ├── common/                     (exceptions, models, JsonUtil, JsonConverter)
 ├── core/                       (database, properties, tables, scripting, logging)
 │   └── src/main/
@@ -44,21 +44,21 @@ servlet-example/
 │       │   ├── config/         (DbConfig, Database, DbPropertiesLoader)
 │       │   ├── repository/     (PropertyRepository)
 │       │   ├── record/         (TableRecord, business rules)
-│       │   ├── script/  module/  security/   (Rhino sandbox)
-│       │   ├── processor/      (ApiScriptProcessor)
+│       │   ├── script/  module/  security/   (Rhino sandbox, ApiScriptProcessor)
 │       │   └── util/           (StructuredLogger, PropertiesUtil, LoggingConfig)
 │       └── resources/
 │           ├── application-default.yml
 │           ├── logback.xml
 │           └── db/             (Flyway migrations)
 ├── scheduler/                  (scheduler/, job repositories)
+├── databrowser/                (datasource/, extlib/, mongo/, the data browser page)
 ├── web/                        (HTTP layer, builds the executable JAR)
 │   └── src/main/
 │       ├── java/com/example/
 │       │   ├── Main.java
-│       │   ├── servlet/  route/  handler/  processor/
-│       │   ├── storage/  datasource/  extlib/  mongo/  tableapi/
-│       │   └── util/           (request and response helpers, metrics)
+│       │   ├── servlet/  route/  routing/  controller/  view/
+│       │   ├── storage/  metrics/  tableapi/
+│       │   └── util/           (request helpers)
 │       └── resources/
 │           ├── META-INF/services/   (DataSourceStrategy registrations)
 │           ├── templates/

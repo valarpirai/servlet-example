@@ -28,11 +28,13 @@ when it returns `false`, and the default implementation throws
 
 ## Adding a database
 
+All of this lives in the `databrowser` module, under `databrowser/src/`.
+
 1. Write `datasource/YourDbStrategy.java` implementing `DataSourceStrategy`, with
    a public no-arg constructor
 2. Add its fully qualified name as a line in
    `META-INF/services/com.example.datasource.DataSourceStrategy`
-3. Add connection fields to `DB_FIELDS` in `static/data-browser.html`
+3. Add connection fields to `DB_FIELDS` in `static/data-browser.html` (also in the module)
 4. Override `supportsCatalogSwitch` and implement `buildUrlForDatabase` if a
    connection is bound to one database
 5. Add `YourDbStrategyTest` beside the other strategy tests

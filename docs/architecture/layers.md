@@ -89,7 +89,7 @@ Do not add an exemption. Fix the code.
 ## Related
 
 - [Package map](./package-map.md) — every package and its purpose
-- [Modules](./modules.md) — the four Maven modules
+- [Modules](./modules.md) — the five Maven modules
 - [Request flow](./request-flow.md) — how a request crosses the layers
 - [Data access rules](../../.claude/rules/data-access.md) — why tables go through `TableRecord`
 - [Project rules](../../CLAUDE.md) — repository-wide guidance

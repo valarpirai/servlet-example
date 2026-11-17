@@ -1,15 +1,16 @@
 # Modules
 
-The app is four Maven modules. Each one owns a layer.
+The app is five Maven modules. Each one owns a slice of the code.
 
-Dependencies run one way: `common ← core ← scheduler ← web`. `web` uses all
-three. No module imports a module above it.
+Dependencies run one way: `common ← core ← scheduler`, and `web` uses all of them
+plus `databrowser`. `databrowser` stands alone. No module imports a module above it.
 
 ```
 common     exception/, model/, JsonUtil, JsonConverter
 core       config/, record/, script/, module/, security/, logging, migrations
 scheduler  scheduler/, job repositories
-web        Main, servlet/, route/, handler/, processor/, storage/, and the rest
+databrowser datasource/, extlib/, mongo/, the data browser page
+web        Main, servlet/, route/, routing/, controller/, view/, storage/, and the rest
 ```
 
 ## common
@@ -26,8 +27,8 @@ Everything that needs the database, the properties or the script sandbox.
 |---|---|
 | Database | `config/Database`, `DbConfig`, `DbPropertiesLoader` |
 | Properties | `repository/PropertyRepository`, `util/PropertiesUtil` |
-| Tables | `record/TableRecord`, `BusinessRuleRunner` |
-| Scripting | `script/`, `module/`, `security/`, `processor/ApiScriptProcessor` |
+| Tables | `record/TableRecord`, `BusinessRuleRunner`, `RuleScriptEngine` |
+| Scripting | `script/` (including `ApiScriptProcessor` and `ScriptRuleEngine`), `module/`, `security/` |
 | Logging | `util/StructuredLogger`, `util/LoggingConfig` |
 | Resources | `db/V*.sql`, `application-default.yml`, `logback.xml` |
 
@@ -37,19 +38,28 @@ scheduler tables. One schema history covers every module.
 
 ## scheduler
 
-`scheduler/` and the job repositories, `JobRepository` and `SqlJobRepository`.
+`scheduler/` and the job repositories, `JobRepository` and `SqlJobRepository`. The row
+types `Job` and `JobRun` are in `model/`.
 `ScriptJobHandler` runs an `api_scripts` row through core's `ApiScriptProcessor`.
 `Jobs` manages jobs from Java and scripts. It reaches scripts through core's
 [script globals](../scripting/script-globals.md).
 
+## databrowser
+
+Browsing external databases. It holds `datasource/` (the strategy SPI and
+`DataBrowserService`), `extlib/` (JDBC driver download and sessions) and `mongo/`. It also
+holds `static/data-browser.html`. It needs no other app module and no servlet type.
+
+`web` depends on it, so the shaded jar carries it. The HTTP side, `DataBrowserHandler` and
+`MongoHandler`, stays in `web` because the handlers use the servlet helpers.
+
 ## web
 
-The HTTP layer and the feature code: `Main`, `servlet/`, `route/`, `handler/`,
-`processor/`, `storage/`, `datasource/`, `extlib/`, `mongo/`, `tableapi/`.
+The HTTP layer and the feature code: `Main`, `servlet/`, `route/`, `routing/`,
+`controller/`, `view/`, `metrics/`, `storage/`, `tableapi/`.
 
-Servlet-aware helpers stay here: `CorrelationIdFilter`, `RequestHelper`,
-`RuntimeMetrics`, `script/ScriptScopeBuilder` and the `view/` package. This module builds
-the shaded `servlet-example.jar`.
+Servlet-aware helpers stay here: `CorrelationIdFilter`, `RequestHelper`, `script/ScriptScopeBuilder`
+and the `view/` package. This module builds the shaded `servlet-example.jar`.
 
 ## Adding code
 
@@ -58,7 +68,8 @@ the shaded `servlet-example.jar`.
 | A type with no database or servlet use | `common` |
 | Database, property or script code | `core` |
 | A job handler that needs only core | `scheduler` |
-| A route, handler or servlet type | `web` |
+| Browsing an external database, with no servlet type | `databrowser` |
+| A route, controller or servlet type | `web` |
 
 If code needs a type from a module above it, the code is in the wrong module.
 Move the code up, or pass the value in.
