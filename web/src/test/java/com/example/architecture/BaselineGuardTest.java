@@ -32,6 +32,7 @@ class BaselineGuardTest {
     assertEquals(
         Set.of(
             ArchitectureTest.controllersAvoidDataAccess().getDescription(),
+            ArchitectureTest.sharedStaysIndependent().getDescription(),
             ArchitectureTest.layerDependencies().getDescription()),
         stored.stringPropertyNames());
   }

@@ -28,14 +28,17 @@ raises no error.
 
 ## The rules
 
-- A controller calls services and views. It does not touch `TableRecord`, `Database`
-  or jOOQ.
+- A controller calls services and views. It does not touch `TableRecord`, `Database`,
+  a repository, JDBC or jOOQ.
+- Shared code (`util`, `exception`, `security`) does not call a controller, a service,
+  a repository, `TableRecord` or jOOQ.
 - A service calls other services and the model. It does not call a controller or a view.
 - A model class calls only other model classes and shared code.
 - A view calls only the model.
 - Nothing calls a controller.
 
-The first rule is `CONTROLLERS_AVOID_DATA_ACCESS`. The rest are the `LAYERS` rule.
+`CONTROLLERS_AVOID_DATA_ACCESS` and `SHARED_STAYS_INDEPENDENT` are the first two. The rest
+are the `LAYERS` rule.
 Both live in `ArchitectureTest`.
 
 ## Where the checks live
@@ -72,6 +75,19 @@ To read what is left, open the files in the baseline folder. `stored.rules` name
 file for each rule. Each line in a rule file is one violation.
 
 Review the baseline in a pull request. A baseline that grows means someone broke a rule.
+
+## Changing a rule
+
+A new or widened rule has new violations. Freeze them once and review the diff:
+
+```bash
+mvn test -pl web -am -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false \
+  -Darchunit.freeze.store.default.allowStoreCreation=true \
+  -Darchunit.freeze.store.default.allowStoreUpdate=true \
+  -Darchunit.freeze.refreeze=true
+```
+
+Rename the rule's key in `stored.rules` first when you change its description.
 
 ## Adding a package
 

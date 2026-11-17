@@ -1,4 +1,5 @@
 #
-#Tue Nov 17 10:25:20 IST 2026
-Controllers\ must\ not\ depend\ on\ TableRecord,\ Database\ or\ jOOQ=d2202330-01bd-4631-965d-0cde5217ae91
+#Tue Nov 17 10:47:08 IST 2026
+Controllers\ must\ not\ depend\ on\ TableRecord,\ Database,\ repositories,\ JDBC\ or\ jOOQ=d2202330-01bd-4631-965d-0cde5217ae91
 MVC\ layer\ dependencies=93d5518b-d731-4be7-ae70-bebe343e42c6
+Shared\ packages\ must\ not\ depend\ on\ controllers,\ services\ or\ data\ access=4bcec1bc-0237-44bb-af0f-4c56b6f3ed4d
