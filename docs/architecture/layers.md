@@ -8,8 +8,8 @@ A new team member can read this page, then read any package knowing its role.
 
 | Layer | Job | Packages |
 |---|---|---|
-| Controller | Takes the request, calls a service, picks the response | `handler`, `processor`, `route`, `servlet` |
-| Service | Business logic and orchestration | `tableapi`, `storage`, `scheduler`, `datasource`, `extlib`, `mongo`, `script`, `module` |
+| Controller | Takes the request, calls a service, picks the response | `controller`, `route`, `servlet` |
+| Service | Business logic and orchestration | `tableapi`, `storage`, `scheduler`, `datasource`, `extlib`, `mongo`, `script`, `module`, `routing`, `metrics` |
 | Model | Rows, records, data access | `record`, `repository`, `config`, `model` |
 | View | Shapes the response body | `view` |
 
@@ -56,62 +56,35 @@ All checks are tests in the `web` module, under `web/src/test/java/com/example/a
 | `Layers.java` | Maps each package to a layer. The one place to edit. |
 | `LayersTest.java` | Fails when a class sits in a package no layer claims. |
 | `ArchitectureTest.java` | Holds the four ArchUnit rules and a proof test for each. |
-| `BaselineGuardTest.java` | Fails when a rule is renamed, the store holds a stray rule, or the store is unlocked. |
 | `MainClassesOnly.java` | Keeps test classes out of the analysis, including the packaged `core` test jar. |
 
 The proof test runs the data-access rule against `ViolatingFixture`, a controller that
 holds a `TableRecord`. It fails if the rule stops catching that.
 
-## The baseline
+## No exceptions
 
-The code does not meet every rule today. Existing violations sit in a frozen baseline,
-`web/src/test/resources/archunit-baseline/`.
+Every rule holds with no violations. There is no baseline and no exemption list. A new
+violation fails the build.
 
-- A new violation fails the build.
-- A fixed violation fails the build until you shrink the baseline. See "Fixing a violation".
-- A missing baseline fails the build.
-- The store never changes by itself. `archunit.properties` sets
-  `allowStoreCreation=false` and `allowStoreUpdate=false`.
-- Each rule is stored under its description. `BaselineGuardTest` fails when a description
-  changes or the store holds a rule that no longer exists. Never rename a rule without
-  renaming its key in `stored.rules`.
-
-To read what is left, open the files in the baseline folder. `stored.rules` names the
-file for each rule. Each line in a rule file is one violation.
-
-Review the baseline in a pull request. A baseline that grows means someone broke a rule.
-
-## Changing a rule
-
-A new or widened rule has new violations. Freeze them once and review the diff:
-
-```bash
-mvn test -pl web -am -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false \
-  -Darchunit.freeze.store.default.allowStoreCreation=true \
-  -Darchunit.freeze.store.default.allowStoreUpdate=true \
-  -Darchunit.freeze.refreeze=true
-```
-
-Rename the rule's key in `stored.rules` first when you change its description.
+To widen a rule, add the new target to it in `ArchitectureTest`. Fix what it finds in the
+same change. Add a fixture that breaks the new rule, and a test that the rule catches it.
 
 ## Adding a package
 
 Add its glob to the right array in `Layers.java`. Use the form `com.example.name..`.
 
 Skip this and `LayersTest` fails. The message names the classes with no layer.
-Editing the globs does not change the baseline. A new violation still fails the build.
 
 Put shared code in `OUTSIDE_PACKAGES` only when no layer owns it.
 
 ## Fixing a violation
 
-1. Find the line in the baseline.
+1. Read the failing rule's message. It names the class and the line.
 2. Move the logic to the layer that owns it. A controller that reads a table calls a
    service. The service uses `TableRecord`.
-3. Run `mvn test -pl web -am -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false -Darchunit.freeze.store.default.allowStoreUpdate=true`.
-4. Commit the shrunken baseline with the fix.
+3. Run `mvn test -pl web -am -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false`.
 
-Do not add a class to the baseline by hand. Fix the code.
+Do not add an exemption. Fix the code.
 
 ## Related
 

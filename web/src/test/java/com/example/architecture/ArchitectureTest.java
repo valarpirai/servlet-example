@@ -3,7 +3,6 @@ package com.example.architecture;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
-import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.controller.ViolatingFixture;
@@ -22,10 +21,7 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-/**
- * MVC layer rules for every module. Existing violations sit in a frozen baseline under {@code
- * src/test/resources/archunit-baseline}. A new violation fails the build.
- */
+/** MVC layer rules for every module. Any violation fails the build. */
 @AnalyzeClasses(packages = "com.example", importOptions = MainClassesOnly.class)
 class ArchitectureTest {
 
@@ -129,14 +125,13 @@ class ArchitectureTest {
         .as("MVC layer dependencies");
   }
 
-  @ArchTest
-  static final ArchRule CONTROLLERS_AVOID_DATA_ACCESS = freeze(controllersAvoidDataAccess());
+  @ArchTest static final ArchRule CONTROLLERS_AVOID_DATA_ACCESS = controllersAvoidDataAccess();
 
-  @ArchTest static final ArchRule SHARED_STAYS_INDEPENDENT = freeze(sharedStaysIndependent());
+  @ArchTest static final ArchRule SHARED_STAYS_INDEPENDENT = sharedStaysIndependent();
 
-  @ArchTest static final ArchRule VIEWS_AVOID_DATA_ACCESS = freeze(viewsAvoidDataAccess());
+  @ArchTest static final ArchRule VIEWS_AVOID_DATA_ACCESS = viewsAvoidDataAccess();
 
-  @ArchTest static final ArchRule LAYERS = freeze(layerDependencies());
+  @ArchTest static final ArchRule LAYERS = layerDependencies();
 
   @Test
   void dataAccessRuleCatchesAController() {
