@@ -23,6 +23,7 @@ How the app is put together.
 - [Table routes](./routing/table-routes.md) — the routes table, JavaScript handlers, default routes
 - [Route configuration](./routing/route-configuration.md) — the route fields
 - [Adding a route](./routing/adding-a-route.md) — the checklist
+- [MVC guidelines for routes](./routing/mvc-route-guidelines.md) — what goes in the handler, service, model and view
 
 ## Storage
 
