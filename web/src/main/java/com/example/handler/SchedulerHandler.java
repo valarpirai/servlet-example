@@ -1,12 +1,11 @@
 package com.example.handler;
 
 import com.example.scheduler.Scheduler;
-import com.example.util.JsonUtil;
+import com.example.view.ResponseHelper;
+import com.example.view.SchedulerStatsView;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,25 +32,21 @@ public class SchedulerHandler {
    */
   public void handleStats(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
-    Map<String, Object> body = new LinkedHashMap<>();
     Scheduler scheduler = Scheduler.get();
-    body.put("enabled", scheduler != null);
-    int status = 200;
-    if (scheduler != null) {
-      body.put("node", scheduler.stats());
-      try {
-        body.put("table", scheduler.tableCounts());
-      } catch (Exception e) {
-        logger.error("Failed to count scheduled jobs", e);
-        body.put("table", Map.of("error", String.valueOf(e.getMessage())));
-        status = 500;
-      }
+    if (scheduler == null) {
+      ResponseHelper.sendJson(response, 200, SchedulerStatsView.disabled());
+      return;
     }
-    response.setStatus(status);
-    response.setContentType("application/json");
-    response.setCharacterEncoding("UTF-8");
-    PrintWriter out = response.getWriter();
-    out.print(JsonUtil.toJson(body));
-    out.flush();
+    Object node = scheduler.stats();
+    int status = 200;
+    Map<String, Object> body;
+    try {
+      body = SchedulerStatsView.enabled(node, scheduler.tableCounts());
+    } catch (Exception e) {
+      logger.error("Failed to count scheduled jobs", e);
+      body = SchedulerStatsView.tableFailed(node, e.getMessage());
+      status = 500;
+    }
+    ResponseHelper.sendJson(response, status, body);
   }
 }
