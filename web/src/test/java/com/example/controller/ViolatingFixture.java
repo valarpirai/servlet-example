@@ -1,4 +1,4 @@
-package com.example.handler;
+package com.example.controller;
 
 import com.example.record.TableRecord;
 

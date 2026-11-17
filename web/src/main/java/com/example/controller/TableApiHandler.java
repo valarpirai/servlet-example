@@ -1,4 +1,4 @@
-package com.example.handler;
+package com.example.controller;
 
 import com.example.tableapi.TableApi;
 import com.example.tableapi.TableEditor;

@@ -18,10 +18,7 @@ final class Layers {
   static final String VIEW = "View";
 
   static final String[] CONTROLLER_PACKAGES = {
-    "com.example.handler..",
-    "com.example.processor..",
-    "com.example.route..",
-    "com.example.servlet.."
+    "com.example.controller..", "com.example.route..", "com.example.servlet.."
   };
 
   static final String[] SERVICE_PACKAGES = {

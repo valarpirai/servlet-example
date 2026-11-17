@@ -1,15 +1,15 @@
 package com.example.route;
 
-import com.example.handler.ApiHandler;
-import com.example.handler.AttachmentHandler;
-import com.example.handler.DataBrowserHandler;
-import com.example.handler.MongoHandler;
-import com.example.handler.SchedulerHandler;
-import com.example.handler.TableApiHandler;
+import com.example.controller.ApiHandler;
+import com.example.controller.AttachmentHandler;
+import com.example.controller.DataBrowserHandler;
+import com.example.controller.FileUploadProcessor;
+import com.example.controller.MongoHandler;
+import com.example.controller.SchedulerHandler;
+import com.example.controller.ScriptProcessor;
+import com.example.controller.TableApiHandler;
 import com.example.model.ProcessorResponse;
 import com.example.model.Route;
-import com.example.processor.FileUploadProcessor;
-import com.example.processor.ScriptProcessor;
 import com.example.routing.RouteRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

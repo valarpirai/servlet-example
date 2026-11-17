@@ -1,4 +1,4 @@
-package com.example.handler;
+package com.example.controller;
 
 import com.example.scheduler.Scheduler;
 import com.example.view.ResponseHelper;

@@ -1,4 +1,4 @@
-package com.example.handler;
+package com.example.controller;
 
 import com.example.model.Attachment;
 import com.example.storage.AttachmentManager;

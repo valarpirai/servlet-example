@@ -1,4 +1,4 @@
-package com.example.handler;
+package com.example.controller;
 
 import com.example.datasource.DataBrowserService;
 import com.example.datasource.DataSourceRegistry;

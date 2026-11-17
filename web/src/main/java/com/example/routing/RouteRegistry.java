@@ -323,7 +323,7 @@ public class RouteRegistry {
       // Check if processor implements IRequestProcessor interface
       boolean implementsInterface = false;
       for (Class<?> iface : processorClass.getInterfaces()) {
-        if (iface.getName().equals("com.example.processor.IRequestProcessor")) {
+        if (iface.getName().equals("com.example.controller.IRequestProcessor")) {
           implementsInterface = true;
           break;
         }
@@ -378,17 +378,17 @@ public class RouteRegistry {
   private String getHandlerClassName(String handlerName) {
     switch (handlerName) {
       case "ApiHandler":
-        return "com.example.handler.ApiHandler";
+        return "com.example.controller.ApiHandler";
       case "AttachmentHandler":
-        return "com.example.handler.AttachmentHandler";
+        return "com.example.controller.AttachmentHandler";
       case "DataBrowserHandler":
-        return "com.example.handler.DataBrowserHandler";
+        return "com.example.controller.DataBrowserHandler";
       case "MongoHandler":
-        return "com.example.handler.MongoHandler";
+        return "com.example.controller.MongoHandler";
       case "TableApiHandler":
-        return "com.example.handler.TableApiHandler";
+        return "com.example.controller.TableApiHandler";
       case "SchedulerHandler":
-        return "com.example.handler.SchedulerHandler";
+        return "com.example.controller.SchedulerHandler";
       default:
         return null;
     }
@@ -398,9 +398,9 @@ public class RouteRegistry {
   private String getProcessorClassName(String processorName) {
     switch (processorName) {
       case "FileUploadProcessor":
-        return "com.example.processor.FileUploadProcessor";
+        return "com.example.controller.FileUploadProcessor";
       case "ScriptProcessor":
-        return "com.example.processor.ScriptProcessor";
+        return "com.example.controller.ScriptProcessor";
       default:
         return null;
     }

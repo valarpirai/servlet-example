@@ -1,4 +1,4 @@
-package com.example.processor;
+package com.example.controller;
 
 import com.example.model.ProcessorResponse;
 import jakarta.servlet.ServletException;

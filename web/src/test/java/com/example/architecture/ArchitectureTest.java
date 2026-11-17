@@ -6,9 +6,9 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.example.handler.ViolatingFixture;
-import com.example.handler.ViolatingJdbcFixture;
-import com.example.handler.ViolatingRepositoryFixture;
+import com.example.controller.ViolatingFixture;
+import com.example.controller.ViolatingJdbcFixture;
+import com.example.controller.ViolatingRepositoryFixture;
 import com.example.util.ViolatingUtilFixture;
 import com.example.util.ViolatingUtilViewFixture;
 import com.example.view.ViolatingViewFixture;
