@@ -2,7 +2,7 @@ package com.example.handler;
 
 import com.example.model.Attachment;
 import com.example.storage.AttachmentManager;
-import com.example.util.ResponseHelper;
+import com.example.view.ResponseHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

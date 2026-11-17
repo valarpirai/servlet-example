@@ -2,7 +2,7 @@ package com.example.handler;
 
 import com.example.processor.ApiScriptProcessor;
 import com.example.util.RequestHelper;
-import com.example.util.ResponseHelper;
+import com.example.view.ResponseHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;

@@ -53,4 +53,10 @@ class LayersTest {
         option.includes(Location.of(URI.create("file:/w/core/target/test-classes/a/A.class"))));
     assertTrue(option.includes(Location.of(URI.create("jar:file:/m2/core-1.0.jar!/a/A.class"))));
   }
+
+  @Test
+  void viewPackageIsAClaimedLayer() {
+    JavaClass view = new ClassFileImporter().importClass(com.example.view.ResponseHelper.class);
+    assertTrue(Layers.layerOf(view).equals(java.util.Optional.of(Layers.VIEW)));
+  }
 }

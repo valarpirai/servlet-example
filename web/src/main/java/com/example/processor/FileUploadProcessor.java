@@ -4,7 +4,7 @@ import com.example.model.Attachment;
 import com.example.model.ProcessorResponse;
 import com.example.storage.AttachmentManager;
 import com.example.util.PropertiesUtil;
-import com.example.util.ResponseHelper;
+import com.example.view.ResponseHelper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;

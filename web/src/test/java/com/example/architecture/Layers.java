@@ -42,8 +42,8 @@ final class Layers {
     "com.example.model.."
   };
 
-  /** No View package exists yet. The rules treat the layer as optional. */
-  static final String[] VIEW_PACKAGES = {};
+  /** Response shaping. The rules treat the layer as optional. */
+  static final String[] VIEW_PACKAGES = {"com.example.view.."};
 
   /** Shared code any layer may use, and the root bootstrap class. */
   static final String[] OUTSIDE_PACKAGES = {

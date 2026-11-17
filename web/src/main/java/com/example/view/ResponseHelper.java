@@ -1,11 +1,42 @@
-package com.example.util;
+package com.example.view;
 
 import com.example.model.ProcessorResponse;
+import com.example.util.JsonUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /** Helper class for common response patterns to reduce code duplication. */
 public class ResponseHelper {
+
+  /**
+   * Writes a body as JSON, UTF-8.
+   *
+   * @param response HTTP response object
+   * @param status HTTP status code
+   * @param body object written with {@link JsonUtil#toJson}
+   * @throws IOException if writing response fails
+   */
+  public static void sendJson(HttpServletResponse response, int status, Object body)
+      throws IOException {
+    sendJsonText(response, status, JsonUtil.toJson(body));
+  }
+
+  /**
+   * Writes text that is already JSON, UTF-8, exactly as given.
+   *
+   * @param response HTTP response object
+   * @param status HTTP status code
+   * @param json the response body
+   * @throws IOException if writing response fails
+   */
+  public static void sendJsonText(HttpServletResponse response, int status, String json)
+      throws IOException {
+    response.setStatus(status);
+    response.setContentType("application/json");
+    response.setCharacterEncoding("UTF-8");
+    response.getWriter().print(json);
+    response.getWriter().flush();
+  }
 
   /**
    * Sends a JSON error response to the HTTP response.

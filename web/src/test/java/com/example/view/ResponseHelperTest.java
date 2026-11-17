@@ -1,4 +1,4 @@
-package com.example.util;
+package com.example.view;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -113,5 +113,47 @@ class ResponseHelperTest {
     ResponseHelper.sendJsonSuccess(response, Map.of("result", "done"));
 
     assertTrue(sw.toString().contains("done"));
+  }
+
+  // --- sendJson and sendJsonText ---
+
+  @Test
+  void sendJsonWritesStatusTypeCharsetAndBodyInKeyOrder() throws IOException {
+    StringWriter out = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(out));
+    Map<String, Object> body = new java.util.LinkedHashMap<>();
+    body.put("b", 1);
+    body.put("a", 2);
+
+    ResponseHelper.sendJson(response, 201, body);
+
+    verify(response).setStatus(201);
+    verify(response).setContentType("application/json");
+    verify(response).setCharacterEncoding("UTF-8");
+    assertEquals(com.example.util.JsonUtil.toJson(body), out.toString());
+    assertTrue(out.toString().indexOf("\"b\"") < out.toString().indexOf("\"a\""), out.toString());
+  }
+
+  @Test
+  void sendJsonTextWritesTheStringUnchanged() throws IOException {
+    StringWriter out = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(out));
+
+    ResponseHelper.sendJsonText(response, 400, "{\"already\":\"json\"}");
+
+    verify(response).setStatus(400);
+    verify(response).setContentType("application/json");
+    verify(response).setCharacterEncoding("UTF-8");
+    assertEquals("{\"already\":\"json\"}", out.toString());
+  }
+
+  @Test
+  void sendJsonWritesNonAsciiText() throws IOException {
+    StringWriter out = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(out));
+
+    ResponseHelper.sendJson(response, 200, Map.of("name", "caf\u00e9"));
+
+    assertTrue(out.toString().contains("caf\u00e9"), out.toString());
   }
 }
