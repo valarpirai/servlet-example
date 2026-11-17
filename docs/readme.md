@@ -90,6 +90,7 @@ Versions and conventions live in `shared-build/`.
 
 - [Definition of done](./development/definition-of-done.md) — before you commit
 - [Workflows](./development/workflows.md) — feature, bug, dev server
+- [Local PgBouncer](./development/local-pgbouncer.md) — Postgres and pooler via docker compose
 - [Testing](./development/testing.md) — subsets and coverage
 - [Code formatting](./development/code-formatting.md) — spotless
 - [Lombok](./development/lombok.md) — annotations and IDE setup
