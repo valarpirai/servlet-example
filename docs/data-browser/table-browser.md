@@ -106,7 +106,8 @@ not trust.
 
 ## Where the code lives
 
-- `tableapi/TableApi.java` holds the queries
+- `tableapi/TableApi.java` holds the rules: name checks, page limits, display values
+- `repository/TableBrowserRepository.java` reads rows through `TableRecord`
 - `controller/TableApiHandler.java` turns them into HTTP
 - `static/table-browser.html` is the UI
 - `tableapi/TableEditor.java` holds the writes

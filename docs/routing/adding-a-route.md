@@ -56,7 +56,7 @@ In `RouteRegistry.getHandlerClassName`, for startup validation:
 
 ```java
 case "UserHandler":
-  return "com.example.handler.UserHandler";
+  return "com.example.controller.UserHandler";
 ```
 
 In `RouteDispatcher.getHandlerInstance`, for dispatch:

@@ -169,8 +169,9 @@ Defaults, env var rules, and the connection pool: docs/architecture/configuratio
 **JS**: Rhino sandbox → `ScriptSecurityManager` ClassShutter (whitelist/blacklist)
 **Build**: catalog-thirdparty → catalog-internal → shared-build-parent → modules (Maven parent chain)
 
-**Packages**: `com.example.*` — servlet/, route/, routing/, controller/, view/, storage/, datasource/, config/,
-script/, scheduler/, security/, module/, extlib/, mongo/, model/, exception/, util/
+**Packages**: `com.example.*` — servlet/, route/, routing/, controller/, view/, tableapi/, repository/, record/, storage/,
+datasource/, config/, script/, scheduler/, security/, module/, extlib/, mongo/, metrics/, model/,
+exception/, util/
 
 **See docs/architecture/ for full details**
 
