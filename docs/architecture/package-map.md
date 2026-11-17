@@ -39,7 +39,7 @@ src/main/java/com/example/
 │   └── SchedulerStatsView.java         Scheduler stats body
 │
 ├── tableapi/                           Read and edit the app database tables
-│   ├── TableApi.java                   Table list, paged rows, one row
+│   ├── TableApi.java                   Table list, paged rows, one row; validates names, sets page limits
 │   └── TableEditor.java                Create, update, delete through TableRecord
 │
 ├── storage/                            Chunked file storage
@@ -80,6 +80,7 @@ src/main/java/com/example/
 │
 ├── repository/                         Table access for app state
 │   ├── PropertyRepository.java         app_properties value lookup
+│   ├── TableBrowserRepository.java     Table browser reads: rows through TableRecord, structure through Database
 │   ├── JobRepository.java              scheduled_jobs access interface
 │   └── SqlJobRepository.java           jOOQ implementation
 │

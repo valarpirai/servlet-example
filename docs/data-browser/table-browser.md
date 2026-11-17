@@ -89,13 +89,19 @@ sortable column returns 400. An unknown table or row returns 404.
 ## How it stays safe
 
 `TableApi` checks the table name against `information_schema` before it uses
-it, then quotes it. The sort column must match a real, sortable column of that
-table. Names that match nothing never reach a query.
+it. `TableBrowserRepository` reads rows through `TableRecord`, which checks and
+quotes the name.
+
+When `record.allowedTables` is set, the browser lists only those tables and the
+application's own tables. Unset, it lists every table.
+
+The sort column must match a real, sortable column of that table. Names that match
+nothing never reach a query.
 
 The page builds its DOM with text nodes. Table data never becomes HTML.
 
-Like the rest of the app, the browser has no login. It lists every table, including
-`app_properties`, and can write the allow-listed ones. Keep it off any network you do
+Like the rest of the app, the browser has no login. It lists every table it may read,
+including `app_properties`, and can write the allow-listed ones. Keep it off any network you do
 not trust.
 
 ## Where the code lives

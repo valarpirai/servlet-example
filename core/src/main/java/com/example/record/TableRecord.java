@@ -34,6 +34,7 @@ public class TableRecord {
   private final List<Condition> conditions = new ArrayList<>();
   private final List<org.jooq.OrderField<?>> ordering = new ArrayList<>();
   private int limit;
+  private int offset;
   private List<Map<String, Object>> rows = List.of();
   private int index = -1;
   private Map<String, Object> current = new LinkedHashMap<>();
@@ -127,6 +128,17 @@ public class TableRecord {
   }
 
   /**
+   * Adds an equality condition that compares the column as text. It matches a number or a uuid
+   * column against its text form.
+   *
+   * @param column column name
+   * @param text text to match
+   */
+  public void addQueryAsText(String column, String text) {
+    conditions.add(column(column).cast(String.class).eq(text));
+  }
+
+  /**
    * Sorts the result ascending. Call again to add a lower-priority sort column.
    *
    * @param column column name
@@ -151,6 +163,15 @@ public class TableRecord {
    */
   public void setLimit(int limit) {
     this.limit = limit;
+  }
+
+  /**
+   * Skips rows at the start of the result. Use it with {@link #setLimit} and a sort to page.
+   *
+   * @param offset rows to skip; 0 skips none
+   */
+  public void setOffset(int offset) {
+    this.offset = Math.max(offset, 0);
   }
 
   /** Runs the query. Call {@link #next()} to walk the rows. */
@@ -208,6 +229,17 @@ public class TableRecord {
   public String getValue(String column) {
     Object v = current.get(column);
     return v == null ? null : String.valueOf(v);
+  }
+
+  /**
+   * Reads a field of the current row with its Java type.
+   *
+   * @param column column name
+   * @return the value as the database returned it, such as a number, a boolean or a byte array, or
+   *     null
+   */
+  public Object getTypedValue(String column) {
+    return current.get(column);
   }
 
   /**
@@ -450,7 +482,10 @@ public class TableRecord {
         dsl -> {
           SelectConditionStep<?> select = dsl.select().from(table(name(table))).where(conditions);
           var ordered = ordering.isEmpty() ? select : select.orderBy(ordering);
-          return (limit > 0 ? ordered.limit(limit) : ordered).fetch().intoMaps();
+          if (limit > 0) {
+            return ordered.limit(limit).offset(offset).fetch().intoMaps();
+          }
+          return (offset > 0 ? ordered.offset(offset) : ordered).fetch().intoMaps();
         });
   }
 

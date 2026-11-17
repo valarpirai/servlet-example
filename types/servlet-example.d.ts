@@ -66,11 +66,15 @@ declare class TableRecord {
   addQuery(column: string, value: RecordValue): void;
   /** Adds a condition with an operator. */
   addQuery(column: string, operator: QueryOperator, value: RecordValue): void;
+  /** Adds an equality condition that compares the column as text, so a number or uuid column matches its text form. */
+  addQueryAsText(column: string, text: string): void;
   /** Sorts ascending. Call again for a lower-priority sort column. */
   orderBy(column: string): void;
   /** Sorts descending. */
   orderByDesc(column: string): void;
   setLimit(limit: number): void;
+  /** Skips rows at the start of the result. Use with setLimit and a sort to page. */
+  setOffset(offset: number): void;
 
   /** Runs the query. Then call next() to walk the rows. */
   query(): void;
@@ -84,6 +88,8 @@ declare class TableRecord {
 
   /** Reads a field of the current row as text. Null when the field is null. */
   getValue(column: string): ScriptText | null;
+  /** Reads a field of the current row with its Java type, such as a number or boolean. Null when the field is null. */
+  getTypedValue(column: string): unknown;
   /** Sets a field. Nothing is written until insert() or update(). */
   setValue(column: string, value: RecordValue): void;
   /** True when a field differs from the row as it was read. */

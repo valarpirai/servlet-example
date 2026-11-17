@@ -175,12 +175,15 @@ class TableEditorTest {
 
   @Test
   void createRefusesATableThatIsNotAllowListed() {
-    tableName = "notes";
+    tableName = "routes";
     com.example.record.AllowedTables.override(
         com.example.record.AllowedTables.parse("js_modules:name"));
 
     assertThrows(
-        TableEditor.NotWritableException.class, () -> editor.create("notes", Map.of("name", "m")));
+        TableEditor.NotWritableException.class, () -> editor.create("routes", Map.of("name", "m")));
+
+    tableName = "notes";
+    assertThrows(IllegalArgumentException.class, () -> editor.create("notes", Map.of("name", "m")));
   }
 
   @Test
