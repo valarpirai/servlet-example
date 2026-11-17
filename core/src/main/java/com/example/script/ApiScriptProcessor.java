@@ -1,9 +1,7 @@
-package com.example.processor;
+package com.example.script;
 
 import com.example.module.ModuleManager;
 import com.example.repository.ApiScriptRepository;
-import com.example.script.ScriptExecutor;
-import com.example.script.ScriptModuleLoader;
 import com.example.util.JsonConverter;
 import com.example.util.JsonUtil;
 import com.google.gson.JsonObject;

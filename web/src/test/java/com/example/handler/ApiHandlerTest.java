@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.example.module.ModuleManager;
-import com.example.processor.ApiScriptProcessor;
 import com.example.processor.FakeScriptDb;
 import com.example.repository.ApiScriptRepository;
+import com.example.script.ApiScriptProcessor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;

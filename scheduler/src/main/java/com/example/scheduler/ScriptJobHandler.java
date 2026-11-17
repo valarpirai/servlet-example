@@ -1,6 +1,6 @@
 package com.example.scheduler;
 
-import com.example.processor.ApiScriptProcessor;
+import com.example.script.ApiScriptProcessor;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.util.Map;

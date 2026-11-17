@@ -1,8 +1,9 @@
-package com.example.processor;
+package com.example.script;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.example.module.ModuleManager;
+import com.example.processor.FakeScriptDb;
 import com.example.repository.ApiScriptRepository;
 import com.google.gson.JsonObject;
 import java.util.HashMap;

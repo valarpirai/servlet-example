@@ -1,6 +1,6 @@
 package com.example.handler;
 
-import com.example.processor.ApiScriptProcessor;
+import com.example.script.ApiScriptProcessor;
 import com.example.util.RequestHelper;
 import com.example.view.ResponseHelper;
 import com.google.gson.JsonObject;
