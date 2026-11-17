@@ -39,6 +39,8 @@ scheduler tables. One schema history covers every module.
 
 `scheduler/` and the job repositories, `JobRepository` and `SqlJobRepository`.
 `ScriptJobHandler` runs an `api_scripts` row through core's `ApiScriptProcessor`.
+`Jobs` manages jobs from Java and scripts. It reaches scripts through core's
+[script globals](../scripting/script-globals.md).
 
 ## web
 

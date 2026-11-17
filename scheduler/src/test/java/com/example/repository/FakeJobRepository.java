@@ -170,6 +170,52 @@ public class FakeJobRepository implements JobRepository {
     return n;
   }
 
+  @Override
+  public synchronized Job find(String id) {
+    Job row = rows.get(id);
+    return row == null ? null : copy(row);
+  }
+
+  @Override
+  public synchronized List<Job> list(Integer state) {
+    List<Job> out = new ArrayList<>();
+    rows.values().stream()
+        .filter(j -> state == null || j.state == state)
+        .forEach(j -> out.add(copy(j)));
+    return out;
+  }
+
+  private boolean idle(Job row) {
+    return row != null && row.state != Job.QUEUED && row.state != Job.RUNNING;
+  }
+
+  @Override
+  public synchronized boolean update(Job job, Instant now) {
+    if (!idle(rows.get(job.id))) {
+      return false;
+    }
+    Job next = copy(job);
+    next.state = Job.READY;
+    next.lastError = null;
+    next.retryCount = 0;
+    rows.put(job.id, next);
+    return true;
+  }
+
+  @Override
+  public synchronized boolean remove(String id) {
+    if (!idle(rows.get(id))) {
+      return false;
+    }
+    rows.remove(id);
+    return true;
+  }
+
+  @Override
+  public synchronized List<JobRun> runs(String jobId, int limit) {
+    return runs.stream().filter(r -> jobId.equals(r.jobId)).limit(limit).toList();
+  }
+
   private static Job copy(Job j) {
     Job c = new Job();
     c.id = j.id;

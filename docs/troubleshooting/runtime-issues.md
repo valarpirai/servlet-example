@@ -30,7 +30,7 @@ If heap tracks file size rather than request count, some path loads a whole
 file. See [memory guarantee](../storage/memory-guarantee.md).
 
 ```bash
-java -XX:+HeapDumpOnOutOfMemoryError -jar web/target/servlet-example.jar
+java -XX:+HeapDumpOnOutOfMemoryError -jar web/target/servlet-example-*.jar
 ```
 
 ## App exits at startup

@@ -50,8 +50,8 @@ whole file.
 ## Memory
 
 ```bash
-java -Xms512m -Xmx1024m -jar web/target/servlet-example.jar
-java -XX:+HeapDumpOnOutOfMemoryError -jar web/target/servlet-example.jar
+java -Xms512m -Xmx1024m -jar web/target/servlet-example-*.jar
+java -XX:+HeapDumpOnOutOfMemoryError -jar web/target/servlet-example-*.jar
 jcmd <pid> GC.heap_info
 ```
 
@@ -62,7 +62,7 @@ with any heap analyser.
 
 ```bash
 java -XX:StartFlightRecording=duration=60s,filename=recording.jfr \
-  -jar web/target/servlet-example.jar
+  -jar web/target/servlet-example-*.jar
 ```
 
 Open the recording in JDK Mission Control.

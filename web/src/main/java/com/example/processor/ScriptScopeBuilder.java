@@ -2,6 +2,7 @@ package com.example.processor;
 
 import com.example.record.BusinessRules;
 import com.example.record.RecordConstructor;
+import com.example.security.ScriptGlobals;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ public class ScriptScopeBuilder {
     ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
     ScriptableObject.putProperty(
         scope, "BusinessRules", Context.javaToJS(new BusinessRules(), scope));
+    ScriptGlobals.apply(scope);
   }
 
   private void addParams(Scriptable scope, Map<String, Object> params) {

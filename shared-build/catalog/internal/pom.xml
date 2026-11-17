@@ -27,7 +27,8 @@
     </description>
 
     <properties>
-        <servlet.example.version>1.0-SNAPSHOT</servlet.example.version>
+        <!-- The version of every app module. The root pom sets revision. -->
+        <servlet.example.version>${revision}</servlet.example.version>
     </properties>
 
     <dependencyManagement>

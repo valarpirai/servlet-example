@@ -94,6 +94,49 @@ public interface JobRepository {
    */
   void park(Job job, String runId, String error, Instant now) throws Exception;
 
+  /**
+   * Reads one job.
+   *
+   * @param id the job id
+   * @return the job, or null when no row has the id
+   */
+  Job find(String id) throws Exception;
+
+  /**
+   * Lists jobs, soonest due first.
+   *
+   * @param state a state value such as {@link Job#READY}, or null for every state
+   * @return the jobs, possibly empty
+   */
+  List<Job> list(Integer state) throws Exception;
+
+  /**
+   * Rewrites the editable fields of a job that no node holds. The job returns to ready, with its
+   * error and retry count cleared.
+   *
+   * @param job the job with its new values; {@code id} picks the row
+   * @param now the current time
+   * @return false when the row is gone or is queued or running
+   */
+  boolean update(Job job, Instant now) throws Exception;
+
+  /**
+   * Deletes a job that no node holds.
+   *
+   * @param id the job id
+   * @return false when the row is gone or is queued or running
+   */
+  boolean remove(String id) throws Exception;
+
+  /**
+   * Reads run history, newest first.
+   *
+   * @param jobId the job id
+   * @param limit most rows to return
+   * @return the runs, possibly empty
+   */
+  List<JobRun> runs(String jobId, int limit) throws Exception;
+
   /** Hands queued jobs back, for shutdown. Touches only rows still queued by {@code node}. */
   void release(List<Job> jobs, String node, Instant now) throws Exception;
 

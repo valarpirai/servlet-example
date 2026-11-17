@@ -4,6 +4,7 @@ import com.example.config.Database;
 import com.example.config.DbPropertiesLoader;
 import com.example.processor.ApiScriptProcessor;
 import com.example.repository.SqlJobRepository;
+import com.example.security.ScriptGlobals;
 import com.example.util.PropertiesUtil;
 import java.net.InetAddress;
 import java.time.Clock;
@@ -20,6 +21,7 @@ public final class SchedulerBootstrap {
    *     ready
    */
   public static Scheduler create() {
+    ScriptGlobals.register("Jobs", Jobs::new, Jobs.class, JobInfo.class, JobRun.class);
     if (!PropertiesUtil.getBoolean("scheduler.enabled", true)) {
       return null;
     }

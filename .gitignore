@@ -39,3 +39,6 @@ dependency-reduced-pom.xml
 data/attachments/
 data/extlib/*.jar
 data/modules/
+
+# Flattened POMs written by the build (flatten-maven-plugin)
+.flattened-pom.xml

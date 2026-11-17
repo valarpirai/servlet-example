@@ -13,8 +13,8 @@ curl localhost:8080/health        # confirm it is up
 Packaged run:
 
 ```bash
-mvn clean package
-java -jar web/target/servlet-example.jar
+./build.sh package          # jars at major.minor.<commit>; mvn clean package gives 1.0.dev
+java -jar web/target/servlet-example-*.jar
 ```
 
 ## Adding a feature

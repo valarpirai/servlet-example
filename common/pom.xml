@@ -6,15 +6,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.example.build</groupId>
-        <artifactId>shared-build-parent</artifactId>
-        <version>1.0.0</version>
-        <relativePath>../shared-build/pom.xml</relativePath>
+        <groupId>com.example</groupId>
+        <artifactId>servlet-example-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.example</groupId>
     <artifactId>servlet-example-common</artifactId>
-    <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Common</name>

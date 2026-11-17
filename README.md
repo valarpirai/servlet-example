@@ -112,14 +112,15 @@ Those are the only two mechanisms. Rules and reasons in
 ### Build the executable JAR
 
 ```bash
-mvn clean package    # all modules; the JAR lands in web/target/
+./build.sh package    # all modules at major.minor.<6-char commit>; the JAR lands in web/target/
+mvn clean package    # same, with version <major.minor>.dev
 ```
 
 ### Run the application
 
 **Production mode (executable JAR):**
 ```bash
-java -jar web/target/servlet-example.jar
+java -jar web/target/servlet-example-*.jar
 ```
 
 **Development mode (from the repo root):**

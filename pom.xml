@@ -14,11 +14,18 @@
 
     <groupId>com.example</groupId>
     <artifactId>servlet-example-parent</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>Servlet Example Modules</name>
     <description>Aggregator for the common, core, scheduler and web modules</description>
+
+    <properties>
+        <!-- major.minor of every module. ./build.sh adds the first 6 characters of the commit. -->
+        <app.version.base>1.0</app.version.base>
+        <!-- A plain mvn build uses this. ./build.sh passes -Drevision=major.minor.commit instead. -->
+        <revision>${app.version.base}.dev</revision>
+    </properties>
 
     <modules>
         <module>common</module>

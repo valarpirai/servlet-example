@@ -42,6 +42,7 @@ Server-side JavaScript on Rhino, sandboxed.
 - [Script modules](./scripting/script-modules.md) — imports, exports and the js_modules table
 - [Table records and business rules](./scripting/table-records-and-rules.md) — read, write and react to rows
 - [Managing business rules](./scripting/managing-business-rules.md) — create, change and delete rules from Java and scripts
+- [Script globals](./scripting/script-globals.md) — add a global name for scripts
 
 ## Scheduler
 
@@ -49,6 +50,7 @@ Jobs live in the `scheduled_jobs` table and run on a worker pool. Handlers can b
 
 - [Scheduler overview](./scheduler/scheduler-overview.md) — parts, states, safety rules
 - [Adding a job](./scheduler/adding-a-job.md) — rows, `@JobName` handlers, script handlers, troubleshooting
+- [Managing jobs](./scheduler/managing-jobs.md) — create, run and delete jobs from Java and scripts
 - [Job retries](./scheduler/job-retries.md) — retry, backoff and jitter
 - [Monitoring](./scheduler/monitoring.md) — run history, stats endpoint, metrics
 
@@ -76,6 +78,7 @@ Browse PostgreSQL, MySQL, Snowflake or MongoDB from the browser.
 
 Versions and conventions live in `shared-build/`.
 
+- [Versioning](./build/versioning.md) — module versions from the commit id
 - [Build system](./build/build-system.md) — the catalog chain
 - [Adding a dependency](./build/adding-a-dependency.md) — the two-step process
 - [Build conventions](./build/build-conventions.md) — plugins and enforcer rules

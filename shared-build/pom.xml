@@ -52,6 +52,7 @@
         <shade.plugin.version>3.5.1</shade.plugin.version>
         <exec.plugin.version>3.1.1</exec.plugin.version>
         <jar.plugin.version>3.4.1</jar.plugin.version>
+        <flatten.plugin.version>1.6.0</flatten.plugin.version>
         <!-- Modules with no server skip exec. exec still needs a main class value. -->
         <exec.skip>true</exec.skip>
         <app.mainClass>none</app.mainClass>
@@ -137,15 +138,37 @@
                     </executions>
                 </plugin>
 
-                <!-- Publishes each module test helpers as a test-jar -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${jar.plugin.version}</version>
+                </plugin>
+
+                <!--
+                    The version is ${revision}, set from git by build.sh. This writes the
+                    resolved version into the pom that install and deploy publish.
+                -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${flatten.plugin.version}</version>
+                    <configuration>
+                        <updatePomFile>true</updatePomFile>
+                        <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                    </configuration>
                     <executions>
                         <execution>
+                            <id>flatten</id>
+                            <phase>process-resources</phase>
                             <goals>
-                                <goal>test-jar</goal>
+                                <goal>flatten</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>flatten-clean</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -205,6 +228,10 @@
 
         <!-- Applied to every child automatically -->
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+            </plugin>
             <!-- Named here so mvn -PappRun finds the execution in every module -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

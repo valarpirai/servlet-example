@@ -122,8 +122,9 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 ```bash
 mvn clean verify                     # Build, test, format check, enforcer
 mvn -PappRun                         # Dev server
-mvn clean package                    # Build JAR
-java -jar web/target/servlet-example.jar # Run the packaged JAR
+./build.sh                           # Build at major.minor.<6-char commit> (docs/build/versioning.md)
+mvn clean package                    # Build JAR, version 1.0.dev
+java -jar web/target/servlet-example-*.jar # Run the packaged JAR
 mvn test                             # All tests, every module
 mvn test -pl core -am                # One module and what it needs
 mvn spotless:apply                   # Format code

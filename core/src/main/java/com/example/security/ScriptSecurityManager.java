@@ -110,7 +110,7 @@ public class ScriptSecurityManager {
     @Override
     public boolean visibleToScripts(String className) {
       // 1. Check whitelist first (explicitly allowed)
-      if (ALLOWED_CLASSES.contains(className)) {
+      if (ALLOWED_CLASSES.contains(className) || ScriptGlobals.isVisible(className)) {
         return true;
       }
 

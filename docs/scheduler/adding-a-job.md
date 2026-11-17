@@ -1,7 +1,8 @@
 # Adding a Job
 
 A job is a row in `scheduled_jobs` plus a handler. The handler is either a
-Java class or a stored script.
+Java class or a stored script. To create jobs from code, see
+[Managing jobs](./managing-jobs.md).
 
 ## The row
 

@@ -39,6 +39,11 @@ imported catalog would need `mvn install` before the app could build.
 
 Inheritance honours `relativePath`, so the layout stays clone-and-go.
 
+## Versions
+
+Every app module shares one version, `major.minor.<commit>`. See
+[Versioning](./versioning.md).
+
 ## Where things live
 
 | What | File |

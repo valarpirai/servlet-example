@@ -96,6 +96,96 @@ public class SqlJobRepository implements JobRepository {
   }
 
   @Override
+  public Job find(String id) {
+    TableRecord r = new TableRecord(database, JOBS);
+    r.addQuery("id", id);
+    r.query();
+    return r.next() ? toJob(r) : null;
+  }
+
+  @Override
+  public List<Job> list(Integer state) {
+    TableRecord r = new TableRecord(database, JOBS);
+    if (state != null) {
+      r.addQuery("state", state);
+    }
+    r.orderBy("next_run");
+    r.orderBy("name");
+    r.query();
+    List<Job> jobs = new ArrayList<>();
+    while (r.next()) {
+      jobs.add(toJob(r));
+    }
+    return jobs;
+  }
+
+  @Override
+  public boolean update(Job job, Instant now) {
+    TableRecord r = idle(job.id);
+    r.setValue("name", job.name);
+    r.setValue("handler_type", job.handlerType);
+    r.setValue("handler", job.handler);
+    r.setValue("trigger_type", job.triggerType);
+    r.setValue("trigger_spec", job.triggerSpec.toString());
+    r.setValue("next_run", utc(job.nextRun != null ? job.nextRun : now));
+    r.setValue("state", Job.READY);
+    r.setValue("priority", job.priority);
+    r.setValue("context", job.context.toString());
+    r.setValue("max_retries", job.maxRetries);
+    r.setValue("retry_delay_seconds", job.retryDelaySeconds);
+    r.setValue("retry_exponential", job.retryExponential);
+    r.setValue("retry_max_delay_seconds", job.retryMaxDelaySeconds);
+    r.setValue("retry_jitter", BigDecimal.valueOf(job.retryJitter));
+    r.setValue("retry_count", 0);
+    r.setValue("last_error", null);
+    if (job.runEnd != null) {
+      r.setValue("run_end", utc(job.runEnd));
+    }
+    r.setValue("updated_at", utc(now));
+    return r.updateMultiple() == 1;
+  }
+
+  @Override
+  public boolean remove(String id) {
+    return idle(id).deleteMultiple() == 1;
+  }
+
+  @Override
+  public List<JobRun> runs(String jobId, int limit) {
+    TableRecord r = new TableRecord(database, RUNS);
+    r.addQuery("job_id", jobId);
+    r.orderByDesc("started_at");
+    r.setLimit(limit);
+    r.query();
+    List<JobRun> runs = new ArrayList<>();
+    while (r.next()) {
+      JobRun run = new JobRun();
+      run.jobId = r.getValue("job_id");
+      run.jobName = r.getValue("job_name");
+      run.handlerType = r.getValue("handler_type");
+      run.handler = r.getValue("handler");
+      run.node = r.getValue("node");
+      run.runId = r.getValue("run_id");
+      run.status = r.getValue("status");
+      run.error = r.getValue("error");
+      run.startedAt = instant(r.getValue("started_at"));
+      run.endedAt = instant(r.getValue("ended_at"));
+      run.durationMillis = Long.parseLong(r.getValue("duration_ms"));
+      runs.add(run);
+    }
+    return runs;
+  }
+
+  /** A query for one job that is neither queued nor running. */
+  private TableRecord idle(String id) {
+    TableRecord r = new TableRecord(database, JOBS);
+    r.addQuery("id", id);
+    r.addQuery("state", "!=", Job.QUEUED);
+    r.addQuery("state", "!=", Job.RUNNING);
+    return r;
+  }
+
+  @Override
   public List<Job> claim(int limit, String node, Instant now) {
     TableRecord due = new TableRecord(database, JOBS);
     due.addQuery("state", Job.READY);

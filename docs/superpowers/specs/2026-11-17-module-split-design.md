@@ -102,6 +102,7 @@ Servlet-aware utilities stay in `web`. Core and scheduler never import
 - **Build chain.** Each module takes `shared-build-parent` as its parent. A new
   root aggregator POM lists the four modules. Versions stay in
   `shared-build/catalog/`. See `docs/build/build-system.md`.
+- **Version.** All modules share `major.minor.<6-char commit>`. `build.sh` sets it. See `docs/build/versioning.md`.
 - **Packaging.** `common`, `core` and `scheduler` build plain JARs. `web` builds the
   shaded runnable JAR.
 - **Package names.** Names stay `com.example.*`. `core` also publishes a test-jar for shared test helpers. Moving a class changes its module,

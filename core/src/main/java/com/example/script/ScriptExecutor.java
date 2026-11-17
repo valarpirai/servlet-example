@@ -2,6 +2,7 @@ package com.example.script;
 
 import com.example.record.BusinessRules;
 import com.example.record.RecordConstructor;
+import com.example.security.ScriptGlobals;
 import com.example.security.ScriptSecurityManager;
 import com.example.util.JsonUtil;
 import com.example.util.PropertiesUtil;
@@ -44,6 +45,7 @@ public class ScriptExecutor {
       ScriptableObject.putProperty(scope, "TableRecord", new RecordConstructor());
       ScriptableObject.putProperty(
           scope, "BusinessRules", Context.javaToJS(new BusinessRules(), scope));
+      ScriptGlobals.apply(scope);
 
       // Let caller setup scope variables
       if (scopeSetup != null) {
