@@ -67,7 +67,7 @@ public class SessionManager {
   private final ScheduledExecutorService cleaner =
       Executors.newSingleThreadScheduledExecutor(
           r -> {
-            Thread t = new Thread(r, "session-cleaner");
+            Thread t = new Thread(r, "bg-session-cleaner");
             t.setDaemon(true);
             return t;
           });

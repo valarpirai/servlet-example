@@ -90,7 +90,7 @@ hardcoded defaults. Only the earliest startup lines use those. See
 ## Periodic metrics line
 
 `RouterServlet` logs the `/metrics` report every 2 minutes. The line starts
-with `Metrics |` and comes from the `metrics-logger` thread. It carries memory,
+with `Metrics |` and comes from the `bg-metrics-logger` thread. It carries memory,
 threads, request workers and the DB pool. Search for `Metrics |` to graph load
 over time. The servlet loads at startup, so the first line appears 2 minutes
 after boot.

@@ -96,7 +96,7 @@ public class Scheduler {
     for (int i = 0; i < clampWorkers(config.workers); i++) {
       addWorker();
     }
-    loop = new Thread(this::schedulerLoop, "scheduler");
+    loop = new Thread(this::schedulerLoop, "bg-scheduler");
     loop.setDaemon(true);
     loop.start();
     slog.info("Scheduler started", Map.of("node", node, "workers", config.workers));
@@ -323,7 +323,7 @@ public class Scheduler {
 
   private void addWorker() {
     Worker w = new Worker(nextWorkerIndex++);
-    w.thread = new Thread(() -> workerLoop(w), "scheduler-worker-" + w.index);
+    w.thread = new Thread(() -> workerLoop(w), "bg-scheduler-worker-" + w.index);
     w.thread.setDaemon(true);
     workers.add(w);
     w.thread.start();

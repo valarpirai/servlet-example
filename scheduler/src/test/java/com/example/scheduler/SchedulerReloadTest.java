@@ -26,7 +26,7 @@ class SchedulerReloadTest {
 
   private static long liveWorkerThreads() {
     return Thread.getAllStackTraces().keySet().stream()
-        .filter(t -> t.getName().startsWith("scheduler-worker-") && t.isAlive())
+        .filter(t -> t.getName().startsWith("bg-scheduler-worker-") && t.isAlive())
         .count();
   }
 

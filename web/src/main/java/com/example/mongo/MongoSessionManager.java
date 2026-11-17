@@ -45,7 +45,7 @@ public class MongoSessionManager {
   private final ScheduledExecutorService cleaner =
       Executors.newSingleThreadScheduledExecutor(
           r -> {
-            Thread t = new Thread(r, "mongo-session-cleaner");
+            Thread t = new Thread(r, "bg-mongo-session-cleaner");
             t.setDaemon(true);
             return t;
           });

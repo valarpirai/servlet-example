@@ -37,7 +37,7 @@ on all three. See [Table editing](../data-browser/table-editing.md).
 
 ## How the pool resizes
 
-- **Growing:** new `scheduler-worker-N` threads start at once.
+- **Growing:** new `bg-scheduler-worker-N` threads start at once.
 - **Shrinking:** the highest-numbered workers retire. An idle worker stops at once. A
   busy worker finishes its job first. A running job is never interrupted.
 - The log shows `Scheduler settings reloaded` with the new values.

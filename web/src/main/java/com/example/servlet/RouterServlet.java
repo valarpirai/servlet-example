@@ -51,7 +51,7 @@ public class RouterServlet extends HttpServlet {
     metricsLogger =
         Executors.newSingleThreadScheduledExecutor(
             r -> {
-              Thread t = new Thread(r, "metrics-logger");
+              Thread t = new Thread(r, "bg-metrics-logger");
               t.setDaemon(true);
               return t;
             });
