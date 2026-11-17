@@ -1,7 +1,5 @@
 package com.example.handler;
 
-import com.example.config.Database;
-import com.example.config.DbPropertiesLoader;
 import com.example.tableapi.TableApi;
 import com.example.tableapi.TableEditor;
 import com.example.util.JsonUtil;
@@ -94,12 +92,12 @@ public class TableApiHandler {
   public void handleCreate(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     String table = (String) request.getAttribute("pathParam.table");
-    Database database = database(response);
-    if (database == null) {
+    TableEditor editor = editor(response);
+    if (editor == null) {
       return;
     }
     try {
-      String key = new TableEditor(database).create(table, values(request));
+      String key = editor.create(table, values(request));
       write(response, 201, Map.of("key", key));
     } catch (Exception e) {
       writeFailure(response, e, "Failed to create a row in " + table);
@@ -111,12 +109,12 @@ public class TableApiHandler {
       throws IOException {
     String table = (String) request.getAttribute("pathParam.table");
     String id = request.getParameter("id");
-    Database database = database(response);
-    if (database == null) {
+    TableEditor editor = editor(response);
+    if (editor == null) {
       return;
     }
     try {
-      if (new TableEditor(database).update(table, id, values(request))) {
+      if (editor.update(table, id, values(request))) {
         write(response, 200, Map.of("updated", true));
       } else {
         sendError(response, 404, "Row not found: " + table + " id=" + id);
@@ -130,8 +128,8 @@ public class TableApiHandler {
   public void handleDelete(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     String table = (String) request.getAttribute("pathParam.table");
-    Database database = database(response);
-    if (database == null) {
+    TableEditor editor = editor(response);
+    if (editor == null) {
       return;
     }
     try {
@@ -149,7 +147,7 @@ public class TableApiHandler {
         sendError(response, 400, "ids must list at least one key");
         return;
       }
-      write(response, 200, new TableEditor(database).delete(table, keys));
+      write(response, 200, editor.delete(table, keys));
     } catch (Exception e) {
       writeFailure(response, e, "Failed to delete from " + table);
     }
@@ -191,12 +189,12 @@ public class TableApiHandler {
     }
   }
 
-  private Database database(HttpServletResponse response) throws IOException {
-    Database database = DbPropertiesLoader.getDatabase();
-    if (database == null) {
+  private TableEditor editor(HttpServletResponse response) throws IOException {
+    Optional<TableEditor> editor = TableEditor.forApplicationDatabase();
+    if (editor.isEmpty()) {
       sendError(response, 503, "Database not configured");
     }
-    return database;
+    return editor.orElse(null);
   }
 
   /** Reads a whole-number query parameter. A missing or malformed value gives the fallback. */
@@ -209,12 +207,11 @@ public class TableApiHandler {
   }
 
   private TableApi browser(HttpServletResponse response) throws IOException {
-    Database database = DbPropertiesLoader.getDatabase();
-    if (database == null) {
+    Optional<TableApi> browser = TableApi.forApplicationDatabase();
+    if (browser.isEmpty()) {
       sendError(response, 503, "Database not configured");
-      return null;
     }
-    return new TableApi(database);
+    return browser.orElse(null);
   }
 
   private void reply(HttpServletResponse response, Optional<Map<String, Object>> body, String miss)

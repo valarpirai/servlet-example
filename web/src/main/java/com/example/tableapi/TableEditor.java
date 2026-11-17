@@ -1,6 +1,7 @@
 package com.example.tableapi;
 
 import com.example.config.Database;
+import com.example.config.DbPropertiesLoader;
 import com.example.record.TableRecord;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -43,6 +45,15 @@ public class TableEditor {
   public TableEditor(Database database) {
     this.database = database;
     this.browser = new TableApi(database);
+  }
+
+  /**
+   * Opens the editor on the application database.
+   *
+   * @return the editor, or empty when no database is configured
+   */
+  public static Optional<TableEditor> forApplicationDatabase() {
+    return Optional.ofNullable(DbPropertiesLoader.getDatabase()).map(TableEditor::new);
   }
 
   /**

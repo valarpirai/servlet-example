@@ -5,6 +5,7 @@ import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.table;
 
 import com.example.config.Database;
+import com.example.config.DbPropertiesLoader;
 import com.example.record.AllowedTables;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -57,6 +58,15 @@ public class TableApi {
 
   public TableApi(Database database) {
     this.database = database;
+  }
+
+  /**
+   * Opens the browser on the application database.
+   *
+   * @return the browser, or empty when no database is configured
+   */
+  public static Optional<TableApi> forApplicationDatabase() {
+    return Optional.ofNullable(DbPropertiesLoader.getDatabase()).map(TableApi::new);
   }
 
   /**

@@ -264,4 +264,9 @@ class TableEditorTest {
   void resetAllowedTables() {
     com.example.record.AllowedTables.reset();
   }
+
+  @Test
+  void forApplicationDatabaseIsEmptyWithoutADatabase() {
+    org.junit.jupiter.api.Assertions.assertTrue(TableEditor.forApplicationDatabase().isEmpty());
+  }
 }

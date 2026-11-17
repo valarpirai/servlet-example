@@ -235,4 +235,9 @@ class TableApiTest {
     keys = List.<Object[]>of(new Object[] {"a"}, new Object[] {"b"});
     assertTrue(browser.row("notes", "1").isEmpty());
   }
+
+  @Test
+  void forApplicationDatabaseIsEmptyWithoutADatabase() {
+    org.junit.jupiter.api.Assertions.assertTrue(TableApi.forApplicationDatabase().isEmpty());
+  }
 }
