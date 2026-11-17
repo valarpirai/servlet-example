@@ -48,7 +48,12 @@ public class Scheduler {
   private DoubleSupplier random = () -> ThreadLocalRandom.current().nextDouble();
 
   private final Object wake = new Object();
-  private final List<Thread> workers = new ArrayList<>();
+  private final List<Worker> workers = new ArrayList<>();
+  private int nextWorkerIndex;
+
+  /** Most worker threads reload will start, whatever the setting says. */
+  static final int MAX_WORKERS = 64;
+
   private Thread loop;
   private volatile boolean running;
   private boolean woken;
@@ -88,11 +93,8 @@ public class Scheduler {
     }
     running = true;
     instance = this;
-    for (int i = 0; i < config.workers; i++) {
-      Thread t = new Thread(this::workerLoop, "scheduler-worker-" + i);
-      t.setDaemon(true);
-      workers.add(t);
-      t.start();
+    for (int i = 0; i < clampWorkers(config.workers); i++) {
+      addWorker();
     }
     loop = new Thread(this::schedulerLoop, "scheduler");
     loop.setDaemon(true);
@@ -194,13 +196,13 @@ public class Scheduler {
       logger.warn("Could not hand back {} queued jobs: {}", queued.size(), e.getMessage());
     }
     queued.forEach(j -> held.remove(j.id));
-    for (Thread t : workers) {
-      join(t, deadline);
+    for (Worker w : workers) {
+      join(w.thread, deadline);
     }
-    for (Thread t : workers) {
-      if (t.isAlive()) {
-        t.interrupt();
-        join(t, System.currentTimeMillis() + 2000);
+    for (Worker w : workers) {
+      if (w.thread.isAlive()) {
+        w.thread.interrupt();
+        join(w.thread, System.currentTimeMillis() + 2000);
       }
     }
     workers.clear();
@@ -217,6 +219,7 @@ public class Scheduler {
     out.put("node", node);
     out.put("queued", queue.size());
     out.put("running", active.get());
+    out.put("workers", workerCount());
     out.put("held", held.size());
     out.putAll(metrics.snapshot());
     return out;
@@ -302,13 +305,118 @@ public class Scheduler {
     repository.purgeRuns(now.minusMillis(config.historyMillis));
   }
 
-  private void workerLoop() {
-    while (true) {
+  /** One worker thread. Retiring ends it after its current job. */
+  private static final class Worker {
+    final int index;
+    Thread thread;
+
+    /** Set before the interrupt that wakes an idle worker. */
+    volatile boolean retire;
+
+    /** True while the worker waits for a job. Guarded by the worker's own lock. */
+    boolean waiting;
+
+    Worker(int index) {
+      this.index = index;
+    }
+  }
+
+  private void addWorker() {
+    Worker w = new Worker(nextWorkerIndex++);
+    w.thread = new Thread(() -> workerLoop(w), "scheduler-worker-" + w.index);
+    w.thread.setDaemon(true);
+    workers.add(w);
+    w.thread.start();
+  }
+
+  private static int clampWorkers(int wanted) {
+    return Math.max(1, Math.min(MAX_WORKERS, wanted));
+  }
+
+  /** Worker threads that are not retiring. */
+  int workerCount() {
+    synchronized (this) {
+      return (int) workers.stream().filter(w -> !w.retire).count();
+    }
+  }
+
+  /**
+   * Reads the {@code scheduler.*} settings again and applies them to the running scheduler. Adds
+   * worker threads, or retires extras: an idle one stops at once, a busy one after its job. Poll,
+   * claim and sweep settings change at once. {@code scheduler.enabled} is not read here.
+   *
+   * @return what changed, or a note when nothing did or the scheduler is stopped
+   */
+  public String reload() {
+    com.example.util.PropertiesUtil.reload();
+    return reload(SchedulerConfig.fromProperties());
+  }
+
+  /** Applies settings. Visible for tests. */
+  synchronized String reload(SchedulerConfig fresh) {
+    if (!running) {
+      return "The scheduler is not running";
+    }
+    int oldWorkers = workerCount();
+    int target = clampWorkers(fresh.workers);
+    workers.removeIf(w -> w.retire && !w.thread.isAlive());
+    for (int i = oldWorkers; i < target; i++) {
+      addWorker();
+    }
+    if (target < oldWorkers) {
+      List<Worker> live = workers.stream().filter(w -> !w.retire).toList();
+      for (int i = live.size() - 1; i >= target; i--) {
+        retire(live.get(i));
+      }
+    }
+    config.maxInFlight = fresh.maxInFlight;
+    config.claimBatch = fresh.claimBatch;
+    config.pollMillis = fresh.pollMillis;
+    config.sweepMillis = fresh.sweepMillis;
+    config.historyMillis = fresh.historyMillis;
+    config.workers = target;
+    wakeup();
+    String summary =
+        "workers "
+            + oldWorkers
+            + " -> "
+            + target
+            + ", maxInFlight "
+            + config.maxInFlight
+            + ", claimBatch "
+            + config.claimBatch
+            + ", pollMillis "
+            + config.pollMillis;
+    slog.info("Scheduler settings reloaded", Map.<String, Object>of("applied", summary));
+    return summary;
+  }
+
+  private static void retire(Worker w) {
+    w.retire = true;
+    synchronized (w) {
+      if (w.waiting) {
+        w.thread.interrupt();
+      }
+    }
+  }
+
+  private void workerLoop(Worker w) {
+    while (!w.retire) {
       Job job;
       try {
+        synchronized (w) {
+          w.waiting = true;
+        }
         job = queue.take();
       } catch (InterruptedException e) {
         return;
+      } finally {
+        synchronized (w) {
+          w.waiting = false;
+          if (w.retire) {
+            Thread.interrupted(); // clear a retire interrupt that came as a job arrived
+          }
+        }
       }
       if (job == null) {
         return; // closed

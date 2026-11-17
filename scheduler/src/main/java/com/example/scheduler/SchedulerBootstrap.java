@@ -22,6 +22,7 @@ public final class SchedulerBootstrap {
    */
   public static Scheduler create() {
     ScriptGlobals.register("Jobs", Jobs::new, Jobs.class, JobInfo.class, JobRun.class);
+    ScriptGlobals.register("Scheduler", SchedulerAdmin::new, SchedulerAdmin.class);
     if (!PropertiesUtil.getBoolean("scheduler.enabled", true)) {
       return null;
     }

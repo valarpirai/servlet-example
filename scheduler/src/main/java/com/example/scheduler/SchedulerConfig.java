@@ -2,24 +2,27 @@ package com.example.scheduler;
 
 import com.example.util.PropertiesUtil;
 
-/** Scheduler settings. Times are in milliseconds. */
+/**
+ * Scheduler settings. Times are in milliseconds. The fields are volatile because {@link
+ * Scheduler#reload()} changes them while threads read them.
+ */
 public class SchedulerConfig {
 
-  public int workers = 4;
-  public int maxInFlight = 100;
-  public int claimBatch = 20;
-  public long pollMillis = 1000;
-  public long sweepMillis = 5 * 60_000L;
-  public long stopMillis = 30_000L;
+  public volatile int workers = 4;
+  public volatile int maxInFlight = 100;
+  public volatile int claimBatch = 20;
+  public volatile long pollMillis = 1000;
+  public volatile long sweepMillis = 5 * 60_000L;
+  public volatile long stopMillis = 30_000L;
 
   /** Stuck rows must sit idle this long before a sweep resets them. Covers the claim race. */
-  public long sweepGraceMillis = 60_000L;
+  public volatile long sweepGraceMillis = 60_000L;
 
   /** How long run history is kept. */
-  public long historyMillis = 30 * 24 * 3_600_000L;
+  public volatile long historyMillis = 30 * 24 * 3_600_000L;
 
   /** How far a job with no handler is pushed out. */
-  public long missingHandlerDelayMillis = 60 * 60_000L;
+  public volatile long missingHandlerDelayMillis = 60 * 60_000L;
 
   /** Reads the {@code scheduler.*} rows of {@code app_properties}. */
   public static SchedulerConfig fromProperties() {

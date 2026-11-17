@@ -262,6 +262,18 @@ declare const Jobs: {
   history(id: string, limit: number): JavaList<JobRun>;
 };
 
+// ---- Scheduler ------------------------------------------------------------------------------
+
+/** Controls the scheduler on the node that runs the script. Absent when no scheduler module loads. */
+declare const Scheduler: {
+  /**
+   * Applies the scheduler.* settings to the running scheduler without a restart. Resizes the
+   * worker pool: new threads start at once, extras stop after their current job. Returns what
+   * changed, or a note when no scheduler runs here. Other nodes are not touched.
+   */
+  reload(): string;
+};
+
 // ---- Shapes handed to handler functions -------------------------------------------------------
 
 /** The request an API script (httpHandler) or job script (run) receives. */

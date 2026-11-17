@@ -29,6 +29,7 @@ back stays hidden. List every class a script can reach through the global.
 | `TableRecord` | core | Read and write rows |
 | `BusinessRules` | core | [Manage business rules](./managing-business-rules.md) |
 | `Jobs` | scheduler | [Manage background jobs](../scheduler/managing-jobs.md) |
+| `Scheduler` | scheduler | [Reload scheduler settings](../scheduler/live-settings.md) |
 
 `TableRecord` and `BusinessRules` are set in `ScriptExecutor` and `ScriptScopeBuilder`.
 New globals should use the registry.

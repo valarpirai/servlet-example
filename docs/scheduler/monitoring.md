@@ -28,7 +28,7 @@ history write is logged. It never fails the job.
 | Field | Meaning |
 |---|---|
 | `enabled` | False when no scheduler runs. Nothing else is returned |
-| `node` | This node's counters. See below |
+| `node` | This node's counters. See below. `workers` is the live worker count |
 | `table` | Job rows by state across the cluster: `ready`, `queued`, `running`, `error` |
 
 `SchedulerHandler.handleStats` serves it. The `table` counts read the database.

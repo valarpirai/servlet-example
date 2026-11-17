@@ -52,6 +52,7 @@ Jobs live in the `scheduled_jobs` table and run on a worker pool. Handlers can b
 - [Scheduler overview](./scheduler/scheduler-overview.md) — parts, states, safety rules
 - [Adding a job](./scheduler/adding-a-job.md) — rows, `@JobName` handlers, script handlers, troubleshooting
 - [Managing jobs](./scheduler/managing-jobs.md) — create, run and delete jobs from Java and scripts
+- [Live scheduler settings](./scheduler/live-settings.md) — resize the worker pool without a restart
 - [Job retries](./scheduler/job-retries.md) — retry, backoff and jitter
 - [Monitoring](./scheduler/monitoring.md) — run history, stats endpoint, metrics
 
