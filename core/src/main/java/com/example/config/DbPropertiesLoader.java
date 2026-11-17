@@ -3,6 +3,8 @@ package com.example.config;
 import com.example.repository.PropertyRepository;
 import com.example.util.PropertiesUtil;
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * One-time initialiser that:
@@ -15,6 +17,8 @@ import org.flywaydb.core.Flyway;
  * <p>Called early in {@code Main} static block, after {@code LoggingConfig}.
  */
 public class DbPropertiesLoader {
+
+  private static final Logger logger = LoggerFactory.getLogger(DbPropertiesLoader.class);
 
   private static DbConfig dbConfig;
   private static Database database;
@@ -53,6 +57,24 @@ public class DbPropertiesLoader {
 
   public static Database getDatabase() {
     return database;
+  }
+
+  /**
+   * Checks that the application database answers a trivial query.
+   *
+   * @return false when no database is configured or the query fails; the failure is logged
+   */
+  public static boolean isDatabaseUp() {
+    if (database == null) {
+      return false;
+    }
+    try {
+      database.query(dsl -> dsl.selectOne().fetch());
+      return true;
+    } catch (Exception e) {
+      logger.warn("Health check failed: {}", e.getMessage());
+      return false;
+    }
   }
 
   public static PropertyRepository getRepository() {

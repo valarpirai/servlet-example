@@ -223,10 +223,7 @@ public class RouterServlet extends HttpServlet {
   private void handleHealth(HttpServletResponse response, PrintWriter out) {
     long uptime = System.currentTimeMillis() - startTime;
     String status = "UP";
-    try {
-      DbPropertiesLoader.getDatabase().query(dsl -> dsl.selectOne().fetch());
-    } catch (Exception e) {
-      logger.warn("Health check failed: {}", e.getMessage());
+    if (!DbPropertiesLoader.isDatabaseUp()) {
       status = "DOWN";
       response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
     }
