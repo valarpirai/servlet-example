@@ -33,6 +33,12 @@ src/main/java/com/example/
 │   ├── MongoHandler.java               MongoDB browsing
 │   └── TableApiHandler.java            Table API JSON endpoints
 │
+├── view/                               Response shaping (the View layer)
+│   ├── ResponseHelper.java             JSON writers and error shapes
+│   ├── HealthView.java                 /health body
+│   ├── MetricsView.java                /metrics body
+│   └── SchedulerStatsView.java         Scheduler stats body
+│
 ├── tableapi/                           Read and edit the app database tables
 │   ├── TableApi.java                   Table list, paged rows, one row
 │   └── TableEditor.java                Create, update, delete through TableRecord
@@ -122,8 +128,7 @@ src/main/java/com/example/
     ├── StructuredLogger.java           MDC-based logging
     ├── CorrelationIdFilter.java        Correlation ID filter
     ├── LoggingConfig.java              Programmatic Logback setup
-    ├── RequestHelper.java              Request parsing
-    └── ResponseHelper.java             Response writing
+    └── RequestHelper.java              Request parsing
 ```
 
 ## Tests mirror this layout

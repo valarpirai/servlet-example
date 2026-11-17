@@ -11,7 +11,7 @@ A new team member can read this page, then read any package knowing its role.
 | Controller | Takes the request, calls a service, picks the response | `handler`, `processor`, `route`, `servlet` |
 | Service | Business logic and orchestration | `tableapi`, `storage`, `scheduler`, `datasource`, `extlib`, `mongo`, `script`, `module` |
 | Model | Rows, records, data access | `record`, `repository`, `config`, `model` |
-| View | Shapes the response body | none yet |
+| View | Shapes the response body | `view` |
 
 `util`, `exception`, `security` and the root `Main` class sit outside the layers.
 Any layer may use them.
@@ -23,8 +23,12 @@ This app returns JSON and static pages. It has no template engine.
 View is the code that renders a response body. A controller passes data to it. A
 controller does not build JSON by hand.
 
-No View package exists yet. The layer is optional in the rules, so an empty View
-raises no error.
+The `view` package holds `ResponseHelper` (the JSON writers and error shapes), `HealthView`,
+`MetricsView` and `SchedulerStatsView`. A view takes plain data and returns a body or
+writes one. It never reads a table or calls a service.
+
+Three paths still shape responses in the controller: `ApiHandler.sendResponse`,
+`ScriptProcessor` and `RouteDispatcher`. They relay what a script or a route produced.
 
 ## The rules
 
