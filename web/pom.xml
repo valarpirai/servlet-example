@@ -46,6 +46,10 @@
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
+            <artifactId>servlet-example-databrowser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.example</groupId>
             <artifactId>servlet-example-core</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

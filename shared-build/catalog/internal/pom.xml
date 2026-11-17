@@ -22,7 +22,7 @@
         third-party catalog because these move on our release cycle, not an
         upstream one.
 
-        Holds the app modules: common, core and scheduler. Pin any new sibling
+        Holds the app modules: common, core, scheduler and databrowser. Pin any new sibling
         module here rather than in the third-party catalog.
     </description>
 
@@ -52,6 +52,11 @@
             <dependency>
                 <groupId>com.example</groupId>
                 <artifactId>servlet-example-scheduler</artifactId>
+                <version>${servlet.example.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.example</groupId>
+                <artifactId>servlet-example-databrowser</artifactId>
                 <version>${servlet.example.version}</version>
             </dependency>
         </dependencies>

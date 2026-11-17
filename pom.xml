@@ -18,7 +18,7 @@
     <packaging>pom</packaging>
 
     <name>Servlet Example Modules</name>
-    <description>Aggregator for the common, core, scheduler and web modules</description>
+    <description>Aggregator for the common, core, scheduler, databrowser and web modules</description>
 
     <properties>
         <!-- major.minor of every module. ./build.sh adds the first 6 characters of the commit. -->
@@ -31,6 +31,7 @@
         <module>common</module>
         <module>core</module>
         <module>scheduler</module>
+        <module>databrowser</module>
         <module>web</module>
     </modules>
 </project>
