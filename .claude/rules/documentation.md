@@ -32,7 +32,8 @@ synchronized.
 - MUST NOT include version history tables — git tracks this
 - MUST NOT include completed-migration paths or "next steps" for done work
 - MUST NOT add plan or implementation docs that describe a specific changeset
-  alongside the change itself
+  alongside the change itself. Design specs and plans in `superpowers/` are the
+  one exception. They are working records, not current-state docs.
 
 Documentation describes the world as it is. Past and future tense belong in
 commit messages, PR descriptions, and tickets. After a change lands, only the
@@ -57,6 +58,7 @@ always been that way.
 | `build/` | shared-build, catalogs, conventions |
 | `development/` | Day-to-day workflow, testing, formatting, debugging |
 | `troubleshooting/` | Symptom-first fixes, one area per file |
+| `superpowers/specs/`, `superpowers/plans/` | Dated design specs and implementation plans, named `YYYY-MM-DD-topic-design.md` and `YYYY-MM-DD-topic.md`. Exempt from the current-state rules. Delete when the change is old |
 
 - Adding a new subdirectory means adding a row here and a section in
   `docs/readme.md`
