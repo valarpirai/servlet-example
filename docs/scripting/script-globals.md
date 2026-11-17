@@ -33,6 +33,11 @@ back stays hidden. List every class a script can reach through the global.
 `TableRecord` and `BusinessRules` are set in `ScriptExecutor` and `ScriptScopeBuilder`.
 New globals should use the registry.
 
+## Types
+
+Add the global to `types/servlet-example.d.ts` in the same change. See
+[TypeScript for scripts](./typescript.md).
+
 ## Rules for a global
 
 - Build a fresh value per run. Do not share state between scripts.
@@ -42,5 +47,6 @@ New globals should use the registry.
 ## Related
 
 - [Script sandbox](./script-sandbox.md) — what scripts may use
+- [TypeScript for scripts](./typescript.md) — the types for every global
 - [Table records and business rules](./table-records-and-rules.md) — `TableRecord`
 - [Modules](../architecture/modules.md) — where the registry lives

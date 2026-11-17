@@ -11,6 +11,7 @@ Routing | docs/routing/table-routes.md | `routes` table, route/
 File storage | docs/storage/memory-guarantee.md | storage/
 Table browser, editing | docs/data-browser/table-browser.md, table-editing.md | tableapi/, handler/TableApiHandler.java, static/table-browser.html
 JS security | docs/scripting/sandbox-policy.md | security/ScriptSecurityManager.java
+Script globals and types | docs/scripting/typescript.md, .claude/rules/script-globals-types.md | types/*.d.ts
 Scheduled jobs | docs/scheduler/adding-a-job.md | scheduler/, `scheduled_jobs` table
 Databases | docs/data-browser/datasource-strategies.md | datasource/
 Logging | docs/observability/structured-logging.md | util/StructuredLogger.java
@@ -30,6 +31,7 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 
 **Adding functionality?**
 - New HTTP endpoint? → Java handler: row in `routes` (migration) → register in **both** `RouteRegistry` and `RouteDispatcher`. JavaScript handler: `script` route, no Java → See docs/routing/adding-a-route.md
+- New global script API (or changed one)? → **Update `types/servlet-example.d.ts` in the same change** → See .claude/rules/script-globals-types.md
 - JavaScript API? → Insert a row into `api_scripts` (name = endpoint) → See docs/scripting/api-scripting.md
 - Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser/datasource-strategies.md
 - File storage feature? → Modify `storage/` → Use streaming APIs → See docs/storage/memory-guarantee.md
