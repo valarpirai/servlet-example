@@ -6,6 +6,7 @@ import com.example.extlib.ExtLibManager;
 import com.example.extlib.SessionManager;
 import com.example.util.JsonUtil;
 import com.example.util.RequestHelper;
+import com.example.view.ResponseHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,21 +28,13 @@ public class DataBrowserHandler {
     return INSTANCE;
   }
 
-  private void writeJson(HttpServletResponse res, int status, String body) throws IOException {
-    res.setStatus(status);
-    res.setContentType("application/json");
-    res.setCharacterEncoding("UTF-8");
-    res.getWriter().print(body);
-    res.getWriter().flush();
-  }
-
   /** GET /api/data-browser/db-types */
   public void handleDbTypes(HttpServletRequest req, HttpServletResponse res) throws IOException {
     List<Map<String, String>> dbTypes = new ArrayList<>();
     for (DataSourceStrategy strategy : DataSourceRegistry.getInstance().all()) {
       dbTypes.add(Map.of("dbType", strategy.getDbType(), "displayName", strategy.getDisplayName()));
     }
-    writeJson(res, 200, JsonUtil.successResponse(Map.of("dbTypes", dbTypes)));
+    ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(Map.of("dbTypes", dbTypes)));
   }
 
   /** POST /api/data-browser/driver-status { "dbType": "postgresql" } */
@@ -53,17 +46,17 @@ public class DataBrowserHandler {
       String dbType = body.get("dbType").getAsString();
 
       if (!ExtLibManager.getInstance().isSupported(dbType)) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType: " + dbType, 400));
         return;
       }
 
       boolean downloaded = ExtLibManager.getInstance().isDownloaded(dbType);
-      writeJson(
+      ResponseHelper.sendJsonText(
           res, 200, JsonUtil.successResponse(Map.of("dbType", dbType, "downloaded", downloaded)));
 
     } catch (Exception e) {
-      writeJson(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
     }
   }
 
@@ -75,18 +68,19 @@ public class DataBrowserHandler {
       String dbType = body.get("dbType").getAsString();
 
       if (!ExtLibManager.getInstance().isSupported(dbType)) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType: " + dbType, 400));
         return;
       }
 
       ExtLibManager.getInstance().downloadAndLoad(dbType);
       Map<String, Object> data = Map.of("status", "ready", "dbType", dbType);
-      writeJson(res, 200, JsonUtil.successResponse(data));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
 
     } catch (Exception e) {
       logger.error("Driver download failed", e);
-      writeJson(res, 500, JsonUtil.errorResponse("Download Failed", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(
+          res, 500, JsonUtil.errorResponse("Download Failed", e.getMessage(), 500));
     }
   }
 
@@ -96,7 +90,7 @@ public class DataBrowserHandler {
       JsonObject body =
           JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       if (!body.has("dbType") || !body.has("user") || !body.has("password")) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             400,
             JsonUtil.errorResponse(
@@ -110,7 +104,7 @@ public class DataBrowserHandler {
 
       DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(dbType);
       if (strategy == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType: " + dbType, 400));
         return;
       }
@@ -134,11 +128,12 @@ public class DataBrowserHandler {
           SessionManager.getInstance().createSession(dbType, user, password, props, conn);
 
       Map<String, Object> data = Map.of("sessionId", sessionId, "status", "connected");
-      writeJson(res, 200, JsonUtil.successResponse(data));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
 
     } catch (Exception e) {
       logger.error("Connection failed", e);
-      writeJson(res, 400, JsonUtil.errorResponse("Connection Failed", e.getMessage(), 400));
+      ResponseHelper.sendJsonText(
+          res, 400, JsonUtil.errorResponse("Connection Failed", e.getMessage(), 400));
     }
   }
 
@@ -151,7 +146,7 @@ public class DataBrowserHandler {
 
       Connection conn = SessionManager.getInstance().getConnection(sessionId);
       if (conn == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
@@ -167,11 +162,12 @@ public class DataBrowserHandler {
       Map<String, Object> data = new LinkedHashMap<>();
       data.put("databases", databases);
       data.put("current", current == null ? "" : current);
-      writeJson(res, 200, JsonUtil.successResponse(data));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
 
     } catch (Exception e) {
       logger.error("Failed to list databases", e);
-      writeJson(res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(
+          res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
     }
   }
 
@@ -186,7 +182,7 @@ public class DataBrowserHandler {
 
       SessionManager.Session session = SessionManager.getInstance().getSession(sessionId);
       if (session == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
@@ -195,7 +191,7 @@ public class DataBrowserHandler {
 
       DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(session.dbType());
       if (strategy == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType for session", 400));
         return;
       }
@@ -211,11 +207,12 @@ public class DataBrowserHandler {
         SessionManager.getInstance().replaceConnection(sessionId, newConn);
       }
 
-      writeJson(res, 200, JsonUtil.successResponse(Map.of("database", database)));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(Map.of("database", database)));
 
     } catch (Exception e) {
       logger.error("Failed to switch database", e);
-      writeJson(res, 400, JsonUtil.errorResponse("Switch Failed", e.getMessage(), 400));
+      ResponseHelper.sendJsonText(
+          res, 400, JsonUtil.errorResponse("Switch Failed", e.getMessage(), 400));
     }
   }
 
@@ -236,7 +233,7 @@ public class DataBrowserHandler {
 
       Connection conn = SessionManager.getInstance().getConnection(sessionId);
       if (conn == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
@@ -279,11 +276,12 @@ public class DataBrowserHandler {
             }
           });
 
-      writeJson(res, 200, JsonUtil.successResponse(Map.of("schemas", result)));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(Map.of("schemas", result)));
 
     } catch (Exception e) {
       logger.error("Failed to list tables", e);
-      writeJson(res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(
+          res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
     }
   }
 
@@ -301,7 +299,7 @@ public class DataBrowserHandler {
 
       Connection conn = SessionManager.getInstance().getConnection(sessionId);
       if (conn == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
@@ -336,11 +334,12 @@ public class DataBrowserHandler {
       data.put("pageSize", pageSize);
       data.put("hasMore", rows.size() == pageSize);
 
-      writeJson(res, 200, JsonUtil.successResponse(data));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
 
     } catch (Exception e) {
       logger.error("Query failed", e);
-      writeJson(res, 400, JsonUtil.errorResponse("Query Failed", e.getMessage(), 400));
+      ResponseHelper.sendJsonText(
+          res, 400, JsonUtil.errorResponse("Query Failed", e.getMessage(), 400));
     }
   }
 
@@ -352,16 +351,17 @@ public class DataBrowserHandler {
       String sessionId = body.get("sessionId").getAsString();
       Connection conn = SessionManager.getInstance().getConnection(sessionId);
       if (conn == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
         return;
       }
       SessionManager.getInstance().removeSession(sessionId);
-      writeJson(res, 200, JsonUtil.successResponse(Map.of("status", "disconnected")));
+      ResponseHelper.sendJsonText(
+          res, 200, JsonUtil.successResponse(Map.of("status", "disconnected")));
     } catch (Exception e) {
-      writeJson(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
     }
   }
 

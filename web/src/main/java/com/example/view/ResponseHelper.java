@@ -39,6 +39,19 @@ public class ResponseHelper {
   }
 
   /**
+   * Writes the table API error body, {@code {"error": message, "status": status}}.
+   *
+   * @param response HTTP response object
+   * @param status HTTP status code
+   * @param message error text
+   * @throws IOException if writing response fails
+   */
+  public static void sendError(HttpServletResponse response, int status, String message)
+      throws IOException {
+    sendJson(response, status, java.util.Map.of("error", message, "status", status));
+  }
+
+  /**
    * Sends a JSON error response to the HTTP response.
    *
    * @param response HTTP response object

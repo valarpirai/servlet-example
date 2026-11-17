@@ -4,10 +4,10 @@ import com.example.tableapi.TableApi;
 import com.example.tableapi.TableEditor;
 import com.example.util.JsonUtil;
 import com.example.util.RequestHelper;
+import com.example.view.ResponseHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +38,10 @@ public class TableApiHandler {
       return;
     }
     try {
-      write(response, 200, Map.of("tables", browser.listTables()));
+      ResponseHelper.sendJson(response, 200, Map.of("tables", browser.listTables()));
     } catch (Exception e) {
       logger.error("Failed to list tables", e);
-      sendError(response, 500, e.getMessage());
+      ResponseHelper.sendError(response, 500, e.getMessage());
     }
   }
 
@@ -64,10 +64,10 @@ public class TableApiHandler {
               "desc".equalsIgnoreCase(request.getParameter("dir"))),
           "Table not found: " + table);
     } catch (IllegalArgumentException e) {
-      sendError(response, 400, e.getMessage());
+      ResponseHelper.sendError(response, 400, e.getMessage());
     } catch (Exception e) {
       logger.error("Failed to read table {}", table, e);
-      sendError(response, 500, e.getMessage());
+      ResponseHelper.sendError(response, 500, e.getMessage());
     }
   }
 
@@ -84,7 +84,7 @@ public class TableApiHandler {
       reply(response, browser.row(table, id), "Row not found: " + table + " id=" + id);
     } catch (Exception e) {
       logger.error("Failed to read row {} id={}", table, id, e);
-      sendError(response, 500, e.getMessage());
+      ResponseHelper.sendError(response, 500, e.getMessage());
     }
   }
 
@@ -98,7 +98,7 @@ public class TableApiHandler {
     }
     try {
       String key = editor.create(table, values(request));
-      write(response, 201, Map.of("key", key));
+      ResponseHelper.sendJson(response, 201, Map.of("key", key));
     } catch (Exception e) {
       writeFailure(response, e, "Failed to create a row in " + table);
     }
@@ -115,9 +115,9 @@ public class TableApiHandler {
     }
     try {
       if (editor.update(table, id, values(request))) {
-        write(response, 200, Map.of("updated", true));
+        ResponseHelper.sendJson(response, 200, Map.of("updated", true));
       } else {
-        sendError(response, 404, "Row not found: " + table + " id=" + id);
+        ResponseHelper.sendError(response, 404, "Row not found: " + table + " id=" + id);
       }
     } catch (Exception e) {
       writeFailure(response, e, "Failed to update " + table + " id=" + id);
@@ -144,10 +144,10 @@ public class TableApiHandler {
                         : String.valueOf(i)));
       }
       if (keys.isEmpty()) {
-        sendError(response, 400, "ids must list at least one key");
+        ResponseHelper.sendError(response, 400, "ids must list at least one key");
         return;
       }
-      write(response, 200, editor.delete(table, keys));
+      ResponseHelper.sendJson(response, 200, editor.delete(table, keys));
     } catch (Exception e) {
       writeFailure(response, e, "Failed to delete from " + table);
     }
@@ -178,21 +178,21 @@ public class TableApiHandler {
   private void writeFailure(HttpServletResponse response, Exception e, String log)
       throws IOException {
     if (e instanceof TableEditor.NotWritableException) {
-      sendError(response, 403, e.getMessage());
+      ResponseHelper.sendError(response, 403, e.getMessage());
     } else if (e instanceof TableEditor.BlockedException) {
-      sendError(response, 409, e.getMessage());
+      ResponseHelper.sendError(response, 409, e.getMessage());
     } else if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) {
-      sendError(response, 400, e.getMessage());
+      ResponseHelper.sendError(response, 400, e.getMessage());
     } else {
       logger.error(log, e);
-      sendError(response, 500, e.getMessage());
+      ResponseHelper.sendError(response, 500, e.getMessage());
     }
   }
 
   private TableEditor editor(HttpServletResponse response) throws IOException {
     Optional<TableEditor> editor = TableEditor.forApplicationDatabase();
     if (editor.isEmpty()) {
-      sendError(response, 503, "Database not configured");
+      ResponseHelper.sendError(response, 503, "Database not configured");
     }
     return editor.orElse(null);
   }
@@ -209,7 +209,7 @@ public class TableApiHandler {
   private TableApi browser(HttpServletResponse response) throws IOException {
     Optional<TableApi> browser = TableApi.forApplicationDatabase();
     if (browser.isEmpty()) {
-      sendError(response, 503, "Database not configured");
+      ResponseHelper.sendError(response, 503, "Database not configured");
     }
     return browser.orElse(null);
   }
@@ -217,23 +217,9 @@ public class TableApiHandler {
   private void reply(HttpServletResponse response, Optional<Map<String, Object>> body, String miss)
       throws IOException {
     if (body.isEmpty()) {
-      sendError(response, 404, miss);
+      ResponseHelper.sendError(response, 404, miss);
     } else {
-      write(response, 200, body.get());
+      ResponseHelper.sendJson(response, 200, body.get());
     }
-  }
-
-  private void write(HttpServletResponse response, int status, Object body) throws IOException {
-    response.setStatus(status);
-    response.setContentType("application/json");
-    response.setCharacterEncoding("UTF-8");
-    PrintWriter out = response.getWriter();
-    out.print(JsonUtil.toJson(body));
-    out.flush();
-  }
-
-  private void sendError(HttpServletResponse response, int status, String message)
-      throws IOException {
-    write(response, status, Map.of("error", message, "status", status));
   }
 }

@@ -156,4 +156,19 @@ class ResponseHelperTest {
 
     assertTrue(out.toString().contains("caf\u00e9"), out.toString());
   }
+
+  @Test
+  void tableApiErrorShapeIsKept() throws IOException {
+    StringWriter out = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(out));
+
+    ResponseHelper.sendError(response, 404, "No such table");
+
+    verify(response).setStatus(404);
+    com.google.gson.JsonObject json =
+        com.google.gson.JsonParser.parseString(out.toString()).getAsJsonObject();
+    assertEquals("No such table", json.get("error").getAsString());
+    assertEquals(404, json.get("status").getAsInt());
+    assertEquals(2, json.size());
+  }
 }

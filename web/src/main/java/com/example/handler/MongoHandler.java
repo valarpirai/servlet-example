@@ -5,6 +5,7 @@ import com.example.mongo.MongoReflectionClient;
 import com.example.mongo.MongoSessionManager;
 import com.example.util.JsonUtil;
 import com.example.util.RequestHelper;
+import com.example.view.ResponseHelper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -33,21 +34,13 @@ public class MongoHandler {
     return INSTANCE;
   }
 
-  private void writeJson(HttpServletResponse res, int status, String body) throws IOException {
-    res.setStatus(status);
-    res.setContentType("application/json");
-    res.setCharacterEncoding("UTF-8");
-    res.getWriter().print(body);
-    res.getWriter().flush();
-  }
-
   /** POST /api/data-browser/mongo/connect { "connectionString": "mongodb://..." } */
   public void handleConnect(HttpServletRequest req, HttpServletResponse res) throws IOException {
     try {
       JsonObject body =
           JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       if (!body.has("connectionString")) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             400,
             JsonUtil.errorResponse("Bad Request", "Missing required field: connectionString", 400));
@@ -64,11 +57,12 @@ public class MongoHandler {
 
       Map<String, Object> data =
           Map.of("sessionId", sessionId, "status", "connected", "databases", databases);
-      writeJson(res, 200, JsonUtil.successResponse(data));
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
 
     } catch (Exception e) {
       logger.error("Mongo connection failed", e);
-      writeJson(res, 400, JsonUtil.errorResponse("Connection Failed", e.getMessage(), 400));
+      ResponseHelper.sendJsonText(
+          res, 400, JsonUtil.errorResponse("Connection Failed", e.getMessage(), 400));
     }
   }
 
@@ -83,7 +77,7 @@ public class MongoHandler {
 
       MongoSessionManager.Session session = MongoSessionManager.getInstance().getSession(sessionId);
       if (session == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
@@ -93,11 +87,13 @@ public class MongoHandler {
       Object db = session.reflectionClient().getDatabase(session.client(), database);
       List<String> collections = session.reflectionClient().listCollectionNames(db);
 
-      writeJson(res, 200, JsonUtil.successResponse(Map.of("collections", collections)));
+      ResponseHelper.sendJsonText(
+          res, 200, JsonUtil.successResponse(Map.of("collections", collections)));
 
     } catch (Exception e) {
       logger.error("Failed to list Mongo collections", e);
-      writeJson(res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(
+          res, 500, JsonUtil.errorResponse("Query Failed", e.getMessage(), 500));
     }
   }
 
@@ -117,7 +113,7 @@ public class MongoHandler {
 
       MongoSessionManager.Session session = MongoSessionManager.getInstance().getSession(sessionId);
       if (session == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
@@ -133,11 +129,13 @@ public class MongoHandler {
         documents.add(JsonParser.parseString(json));
       }
 
-      writeJson(res, 200, JsonUtil.successResponse(Map.of("documents", documents)));
+      ResponseHelper.sendJsonText(
+          res, 200, JsonUtil.successResponse(Map.of("documents", documents)));
 
     } catch (Exception e) {
       logger.error("Mongo find failed", e);
-      writeJson(res, 400, JsonUtil.errorResponse("Query Failed", e.getMessage(), 400));
+      ResponseHelper.sendJsonText(
+          res, 400, JsonUtil.errorResponse("Query Failed", e.getMessage(), 400));
     }
   }
 
@@ -150,17 +148,18 @@ public class MongoHandler {
 
       MongoSessionManager.Session session = MongoSessionManager.getInstance().getSession(sessionId);
       if (session == null) {
-        writeJson(
+        ResponseHelper.sendJsonText(
             res,
             401,
             JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
         return;
       }
       MongoSessionManager.getInstance().removeSession(sessionId);
-      writeJson(res, 200, JsonUtil.successResponse(Map.of("status", "disconnected")));
+      ResponseHelper.sendJsonText(
+          res, 200, JsonUtil.successResponse(Map.of("status", "disconnected")));
 
     } catch (Exception e) {
-      writeJson(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
+      ResponseHelper.sendJsonText(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
     }
   }
 }
