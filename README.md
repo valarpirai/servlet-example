@@ -26,6 +26,8 @@ A modern web application using Jakarta EE Servlets with **declarative YAML routi
 - Maven 3.6+
 - PostgreSQL, required. Expected at `localhost:5432/appdb` with user and
   password `postgres`. Override with `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+  `docker compose up -d` starts one, with a PgBouncer pooler on port 6432. See
+  [Local PgBouncer](docs/development/local-pgbouncer.md).
 
 The app does not start without a database. See
 [docs/architecture/configuration.md](docs/architecture/configuration.md).

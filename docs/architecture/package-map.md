@@ -149,3 +149,4 @@ under the same module's `src/test/java`.
 - [Configuration](./configuration.md) — resource files
 - [Request flow](./request-flow.md) — how a request moves through these packages
 - [Design patterns and principles](./design-patterns.md) — why these packages are shaped this way
+- [MVC layers](./layers.md) — which layer each package belongs to

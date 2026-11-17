@@ -24,6 +24,7 @@ Test packages match source packages. `route/RouteRegistryTest` tests
 | Script sandbox | `mvn test -Dtest=ScriptProcessorSecurityTest` |
 | Data sources | `mvn test -Dtest=DataSource*Test` |
 | Handlers | `mvn test -Dtest=*HandlerTest` |
+| Layer rules | `mvn test -pl web -am -Dtest=ArchitectureTest,LayersTest -Dsurefire.failIfNoSpecifiedTests=false` |
 
 ## The security suite is a contract
 

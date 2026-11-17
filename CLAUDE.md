@@ -37,6 +37,7 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 - Database type? → Create `{DB}Strategy.java` → Add to `META-INF/services/com.example.datasource.DataSourceStrategy` → See docs/data-browser/datasource-strategies.md
 - File storage feature? → Modify `storage/` → Use streaming APIs → See docs/storage/memory-guarantee.md
 - Logging feature? → Use `StructuredLogger` → See docs/observability/structured-logging.md
+- New package under `com.example`? → Add it to a layer in `web/src/test/java/com/example/architecture/Layers.java` → See docs/architecture/layers.md
 - New dependency? → Add to `shared-build/catalog/thirdparty/pom.xml` → declare **without version** in `pom.xml` → See docs/build/adding-a-dependency.md
 - Writing or editing docs? → **Read .claude/rules/documentation.md first**
 
@@ -136,6 +137,7 @@ curl localhost:8080/health           # Health check
 ```
 
 PostgreSQL is required; the app exits at startup without it.
+`docker compose up -d` starts Postgres and a PgBouncer pooler (docs/development/local-pgbouncer.md).
 See docs/architecture/configuration.md.
 
 ---
