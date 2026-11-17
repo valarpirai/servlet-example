@@ -1,9 +1,9 @@
 package com.example.handler;
 
+import com.example.datasource.DataBrowserService;
 import com.example.datasource.DataSourceRegistry;
 import com.example.datasource.DataSourceStrategy;
 import com.example.extlib.ExtLibManager;
-import com.example.extlib.SessionManager;
 import com.example.util.JsonUtil;
 import com.example.util.RequestHelper;
 import com.example.view.ResponseHelper;
@@ -12,7 +12,6 @@ import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.sql.*;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +20,8 @@ public class DataBrowserHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(DataBrowserHandler.class);
   private static final DataBrowserHandler INSTANCE = new DataBrowserHandler();
+
+  private final DataBrowserService service = new DataBrowserService();
 
   private DataBrowserHandler() {}
 
@@ -122,10 +123,7 @@ public class DataBrowserHandler {
                 }
               });
 
-      String url = strategy.buildUrl(props);
-      Connection conn = ExtLibManager.getInstance().connect(dbType, url, user, password, props);
-      String sessionId =
-          SessionManager.getInstance().createSession(dbType, user, password, props, conn);
+      String sessionId = service.connect(strategy, dbType, user, password, props);
 
       Map<String, Object> data = Map.of("sessionId", sessionId, "status", "connected");
       ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
@@ -144,26 +142,10 @@ public class DataBrowserHandler {
           JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
       String sessionId = body.get("sessionId").getAsString();
 
-      Connection conn = SessionManager.getInstance().getConnection(sessionId);
-      if (conn == null) {
-        ResponseHelper.sendJsonText(
-            res,
-            401,
-            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
-        return;
-      }
+      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(service.databases(sessionId)));
 
-      List<String> databases = new ArrayList<>();
-      try (ResultSet rs = conn.getMetaData().getCatalogs()) {
-        while (rs.next()) databases.add(rs.getString("TABLE_CAT"));
-      }
-
-      String current = conn.getCatalog();
-      Map<String, Object> data = new LinkedHashMap<>();
-      data.put("databases", databases);
-      data.put("current", current == null ? "" : current);
-      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
-
+    } catch (DataBrowserService.SessionExpiredException e) {
+      sessionExpired(res);
     } catch (Exception e) {
       logger.error("Failed to list databases", e);
       ResponseHelper.sendJsonText(
@@ -180,35 +162,15 @@ public class DataBrowserHandler {
       String sessionId = body.get("sessionId").getAsString();
       String database = body.get("database").getAsString();
 
-      SessionManager.Session session = SessionManager.getInstance().getSession(sessionId);
-      if (session == null) {
-        ResponseHelper.sendJsonText(
-            res,
-            401,
-            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
-        return;
-      }
-
-      DataSourceStrategy strategy = DataSourceRegistry.getInstance().get(session.dbType());
-      if (strategy == null) {
-        ResponseHelper.sendJsonText(
-            res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType for session", 400));
-        return;
-      }
-
-      if (strategy.supportsCatalogSwitch()) {
-        session.connection().setCatalog(database);
-      } else {
-        String newUrl = strategy.buildUrlForDatabase(session.props(), database);
-        Connection newConn =
-            ExtLibManager.getInstance()
-                .connect(
-                    session.dbType(), newUrl, session.user(), session.password(), session.props());
-        SessionManager.getInstance().replaceConnection(sessionId, newConn);
-      }
+      service.selectDatabase(sessionId, database);
 
       ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(Map.of("database", database)));
 
+    } catch (DataBrowserService.SessionExpiredException e) {
+      sessionExpired(res);
+    } catch (DataBrowserService.UnknownDbTypeException e) {
+      ResponseHelper.sendJsonText(
+          res, 400, JsonUtil.errorResponse("Bad Request", "Unknown dbType for session", 400));
     } catch (Exception e) {
       logger.error("Failed to switch database", e);
       ResponseHelper.sendJsonText(
@@ -231,53 +193,12 @@ public class DataBrowserHandler {
       Set<String> systemSchemas =
           strategy != null ? strategy.getSystemSchemas() : Set.of("information_schema");
 
-      Connection conn = SessionManager.getInstance().getConnection(sessionId);
-      if (conn == null) {
-        ResponseHelper.sendJsonText(
-            res,
-            401,
-            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
-        return;
-      }
-
-      DatabaseMetaData meta = conn.getMetaData();
-      // Scope to the currently-connected database only
-      String catalog = conn.getCatalog();
-      Map<String, List<String>> schemaMap = new LinkedHashMap<>();
-
-      // getSchemas(catalog, schemaPattern) scopes to the current catalog,
-      // preventing MySQL from listing all databases as schemas
-      try (ResultSet schemas = meta.getSchemas(catalog, null)) {
-        while (schemas.next()) {
-          String name = schemas.getString("TABLE_SCHEM");
-          if (!systemSchemas.contains(name.toLowerCase())) {
-            schemaMap.put(name, new ArrayList<>());
-          }
-        }
-      }
-
-      if (schemaMap.isEmpty()) schemaMap.put("default", new ArrayList<>());
-
-      for (String schema : schemaMap.keySet()) {
-        String schemaArg = "default".equals(schema) ? null : schema;
-        try (ResultSet tables =
-            meta.getTables(catalog, schemaArg, "%", new String[] {"TABLE", "VIEW"})) {
-          while (tables.next()) {
-            schemaMap.get(schema).add(tables.getString("TABLE_NAME"));
-          }
-        }
-      }
-
-      List<Map<String, Object>> result = new ArrayList<>();
-      schemaMap.forEach(
-          (schema, tables) -> {
-            if (!tables.isEmpty()) {
-              result.add(Map.of("schema", schema, "tables", tables));
-            }
-          });
+      List<Map<String, Object>> result = service.tables(sessionId, systemSchemas);
 
       ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(Map.of("schemas", result)));
 
+    } catch (DataBrowserService.SessionExpiredException e) {
+      sessionExpired(res);
     } catch (Exception e) {
       logger.error("Failed to list tables", e);
       ResponseHelper.sendJsonText(
@@ -293,49 +214,12 @@ public class DataBrowserHandler {
       String sessionId = body.get("sessionId").getAsString();
       String sql = body.get("sql").getAsString();
       int page = body.has("page") ? body.get("page").getAsInt() : 1;
-      if (page < 1) page = 1;
-      int pageSize = 100;
-      int offset = (page - 1) * pageSize;
 
-      Connection conn = SessionManager.getInstance().getConnection(sessionId);
-      if (conn == null) {
-        ResponseHelper.sendJsonText(
-            res,
-            401,
-            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
-        return;
-      }
+      ResponseHelper.sendJsonText(
+          res, 200, JsonUtil.successResponse(service.query(sessionId, sql, page)));
 
-      sql = sql.strip();
-      if (sql.endsWith(";")) sql = sql.substring(0, sql.length() - 1).stripTrailing();
-      String pagedSql = "SELECT * FROM (" + sql + ") __q LIMIT " + pageSize + " OFFSET " + offset;
-
-      List<String> columns = new ArrayList<>();
-      List<List<Object>> rows = new ArrayList<>();
-
-      try (Statement stmt = conn.createStatement();
-          ResultSet rs = stmt.executeQuery(pagedSql)) {
-
-        ResultSetMetaData rsMeta = rs.getMetaData();
-        int colCount = rsMeta.getColumnCount();
-        for (int i = 1; i <= colCount; i++) columns.add(rsMeta.getColumnName(i));
-
-        while (rs.next()) {
-          List<Object> row = new ArrayList<>();
-          for (int i = 1; i <= colCount; i++) row.add(toSafeValue(rs.getObject(i)));
-          rows.add(row);
-        }
-      }
-
-      Map<String, Object> data = new LinkedHashMap<>();
-      data.put("columns", columns);
-      data.put("rows", rows);
-      data.put("page", page);
-      data.put("pageSize", pageSize);
-      data.put("hasMore", rows.size() == pageSize);
-
-      ResponseHelper.sendJsonText(res, 200, JsonUtil.successResponse(data));
-
+    } catch (DataBrowserService.SessionExpiredException e) {
+      sessionExpired(res);
     } catch (Exception e) {
       logger.error("Query failed", e);
       ResponseHelper.sendJsonText(
@@ -348,28 +232,18 @@ public class DataBrowserHandler {
     try {
       JsonObject body =
           JsonParser.parseString(RequestHelper.readRequestBody(req)).getAsJsonObject();
-      String sessionId = body.get("sessionId").getAsString();
-      Connection conn = SessionManager.getInstance().getConnection(sessionId);
-      if (conn == null) {
-        ResponseHelper.sendJsonText(
-            res,
-            401,
-            JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
-        return;
-      }
-      SessionManager.getInstance().removeSession(sessionId);
+      service.disconnect(body.get("sessionId").getAsString());
       ResponseHelper.sendJsonText(
           res, 200, JsonUtil.successResponse(Map.of("status", "disconnected")));
+    } catch (DataBrowserService.SessionExpiredException e) {
+      sessionExpired(res);
     } catch (Exception e) {
       ResponseHelper.sendJsonText(res, 500, JsonUtil.errorResponse("Error", e.getMessage(), 500));
     }
   }
 
-  private Object toSafeValue(Object value) {
-    if (value == null) return null;
-    if (value instanceof Number || value instanceof Boolean) return value;
-    if (value instanceof byte[])
-      return java.util.Base64.getEncoder().encodeToString((byte[]) value);
-    return value.toString();
+  private void sessionExpired(HttpServletResponse res) throws IOException {
+    ResponseHelper.sendJsonText(
+        res, 401, JsonUtil.errorResponse("Session Expired", "Session not found or expired", 401));
   }
 }
