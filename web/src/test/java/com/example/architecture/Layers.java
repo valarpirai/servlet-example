@@ -32,7 +32,8 @@ final class Layers {
     "com.example.extlib..",
     "com.example.mongo..",
     "com.example.script..",
-    "com.example.module.."
+    "com.example.module..",
+    "com.example.routing.."
   };
 
   static final String[] MODEL_PACKAGES = {

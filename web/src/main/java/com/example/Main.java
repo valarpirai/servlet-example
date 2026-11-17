@@ -1,7 +1,7 @@
 package com.example;
 
 import com.example.config.DbPropertiesLoader;
-import com.example.route.RouteRegistry;
+import com.example.routing.RouteRegistry;
 import com.example.scheduler.Scheduler;
 import com.example.scheduler.SchedulerBootstrap;
 import com.example.servlet.RouterServlet;

@@ -1,14 +1,14 @@
-package com.example.route;
+package com.example.routing;
 
 import com.example.repository.RouteRepository;
 
 /** A registry holding the routes that the routing tests exercise, as the routes table would. */
-final class TestRoutes {
+public final class TestRoutes {
 
   private TestRoutes() {}
 
   /** A registry over an in-memory routes table. It never re-reads the table. */
-  static RouteRegistry registry() {
+  public static RouteRegistry registry() {
     FakeRoutesDb db = new FakeRoutesDb();
     long editor = db.defaultRoute("/script-editor", "GET", "static", null, null);
     db.setResource(editor, "static/script-editor.html");

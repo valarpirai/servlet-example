@@ -2,7 +2,7 @@ package com.example.servlet;
 
 import com.example.config.DbPropertiesLoader;
 import com.example.route.RouteDispatcher;
-import com.example.route.RouteRegistry;
+import com.example.routing.RouteRegistry;
 import com.example.util.CorrelationIdFilter;
 import com.example.util.JsonUtil;
 import com.example.util.RuntimeMetrics;

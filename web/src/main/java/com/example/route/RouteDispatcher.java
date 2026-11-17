@@ -10,6 +10,7 @@ import com.example.model.ProcessorResponse;
 import com.example.model.Route;
 import com.example.processor.FileUploadProcessor;
 import com.example.processor.ScriptProcessor;
+import com.example.routing.RouteRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

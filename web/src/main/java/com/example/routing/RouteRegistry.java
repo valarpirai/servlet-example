@@ -1,4 +1,4 @@
-package com.example.route;
+package com.example.routing;
 
 import com.example.model.Route;
 import com.example.repository.RouteRepository;

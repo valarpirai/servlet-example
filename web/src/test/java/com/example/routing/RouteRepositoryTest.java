@@ -1,4 +1,4 @@
-package com.example.route;
+package com.example.routing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

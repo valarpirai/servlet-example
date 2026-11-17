@@ -1,4 +1,4 @@
-package com.example.route;
+package com.example.routing;
 
 import com.example.config.Database;
 import java.sql.SQLException;
