@@ -14,7 +14,7 @@ choice from callers. Handlers and processors never name a backend.
 
 ## Database backend
 
-Two tables, created by `db/V3__create_attachments.sql`.
+Two tables, created by `db/V2__attachments.sql`.
 
 `attachments` holds metadata: id, file name, content type, size, SHA-256 hash,
 storage type, timestamps.

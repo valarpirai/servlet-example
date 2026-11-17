@@ -94,7 +94,7 @@ Reading or writing tables | .claude/rules/data-access.md | record/TableRecord.ja
 
 **Configuration:**
 - DB credentials and `record.allowedTables`: defaults in `core/src/main/resources/application-default.yml`; a web app overrides them with its own `application.yml`
-- Everything else: `app_properties` table, seeded by `db/V2__seed_app_properties.sql`
+- Everything else: `app_properties` table, seeded by `db/V1__app_properties.sql`
 - Routes: the `routes` table
 - DB migrations: `core/src/main/resources/db/V*.sql`
 
@@ -143,7 +143,7 @@ See docs/architecture/configuration.md.
 
 `core/src/main/resources/application-default.yml` — **db credentials and `record.allowedTables`**
 A web app or top-level app overrides any key with its own `application.yml` on the classpath.
-The `routes` table — 38 default routes, seeded by `db/V8__create_routes.sql` and changed by later migrations.
+The `routes` table — 38 default routes, seeded by `db/V3__routes.sql`.
 
 Every other property lives in `app_properties`, **not** `application.yml`.
 Lookup order is LRU cache → DB → YAML.

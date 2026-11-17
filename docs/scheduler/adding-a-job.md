@@ -90,7 +90,7 @@ handler so the second run reaches the same end state.
 
 ## Sample jobs
 
-Migration `V18__seed_sample_jobs.sql` seeds two jobs that run every minute.
+Migration `V5__scheduler.sql` seeds two jobs that run every minute.
 
 | Job | Handler | Shows |
 |---|---|---|

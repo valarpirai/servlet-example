@@ -68,7 +68,7 @@ it.
 
 ## Seeded properties
 
-`db/V2__seed_app_properties.sql` seeds defaults. Change a value with SQL or with
+`db/V1__app_properties.sql` seeds defaults. Change a value with SQL or with
 `TableRecord`. The seed uses `ON CONFLICT DO NOTHING`, so edits survive a restart.
 
 A cached value lives up to 5 seconds. After an edit the new value appears within

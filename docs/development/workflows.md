@@ -73,7 +73,7 @@ Properties live in `app_properties`, not `application.yml`. Change a running
 value with SQL or `TableRecord`. It takes effect within 5 seconds. Change the shipped default by adding a
 migration under `core/src/main/resources/db/`.
 
-Editing `V2__seed_app_properties.sql` does nothing on an existing database.
+Editing `V1__app_properties.sql` does nothing on an existing database.
 Flyway will not re-run an applied migration.
 
 ## Branch and commit

@@ -1,21 +1,76 @@
--- Two Java processors become data. The module manager API is now a JavaScript route
--- (api_scripts row modules-api) and the template renderer is removed.
---
--- A trigger keeps js_modules.updated_at current, since the script route and the table
--- browser write through TableRecord and do not set it.
+-- Script storage and the rules that run around table writes.
+--   api_scripts     JavaScript endpoints and job handlers, keyed by name
+--   js_modules      JavaScript modules for require(), keyed by path
+--   business_rules  scripts run before, after or async to a table write
 
-CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $fn$
+CREATE FUNCTION set_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END
-$fn$ LANGUAGE plpgsql;
+$$;
 
-DROP TRIGGER IF EXISTS js_modules_updated_at ON js_modules;
-CREATE TRIGGER js_modules_updated_at BEFORE UPDATE ON js_modules
+CREATE TABLE api_scripts (
+    name       VARCHAR(255) PRIMARY KEY,
+    content    TEXT         NOT NULL,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE js_modules (
+    name       VARCHAR(500) PRIMARY KEY,
+    content    TEXT         NOT NULL,
+    size_bytes INTEGER      NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER js_modules_updated_at
+    BEFORE UPDATE ON js_modules
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-INSERT INTO api_scripts (name, content) VALUES ('modules-api', $script$
+CREATE TABLE business_rules (
+    id         BIGSERIAL    PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    collection VARCHAR(255) NOT NULL,
+    run_when   VARCHAR(10)  NOT NULL CHECK (run_when IN ('before', 'after', 'async')),
+    on_insert  BOOLEAN      NOT NULL DEFAULT FALSE,
+    on_update  BOOLEAN      NOT NULL DEFAULT FALSE,
+    on_delete  BOOLEAN      NOT NULL DEFAULT FALSE,
+    condition  TEXT,
+    script     TEXT         NOT NULL,
+    order_no   INTEGER      NOT NULL DEFAULT 100,
+    active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_business_rules_collection ON business_rules (collection, active);
+
+-- Scripts the app ships with.
+INSERT INTO api_scripts (name, content) VALUES
+  ('greeter',
+   $js$
+// Sample script route handler. The route names this script and the function below.
+function greet(request, response) {
+  var who = request.pathParams.who;
+  response.setStatus(200);
+  response.setHeader('X-Handled-By', 'script route');
+  response.setBody({
+    message: 'Hello, ' + who + '!',
+    method: request.method,
+    path: request.path
+  });
+}
+$js$),
+  ('hello-script',
+   $js$function run(request, response) {
+  response.setBody({ message: "Hello World from a JavaScript job", method: request.method });
+}$js$),
+  ('modules-api',
+   $js$
 // Module manager API. Route: /api/modules/** (GET, POST, PUT, DELETE).
 // Reads and writes the js_modules table through TableRecord, so business rules apply.
 //   GET    /api/modules/list         all modules
@@ -200,13 +255,15 @@ function handle(request, response) {
     return fail(response, 500, 'Internal Server Error', 'Module request failed: ' + e.message);
   }
 }
-$script$)
-ON CONFLICT (name) DO NOTHING;
+$js$);
 
-DELETE FROM routes WHERE path IN ('/api/modules/**', '/api/render') AND type = 'processor';
 
-INSERT INTO routes
-    (path, methods, type, handler, handler_method, content_type, description, sort_order, is_default)
-SELECT '/api/modules/**', 'GET,POST,PUT,DELETE', 'script', 'modules-api', 'handle',
-       'application/json', 'Module management endpoints', 210, TRUE
-WHERE NOT EXISTS (SELECT 1 FROM routes WHERE path = '/api/modules/**');
+-- Rules the app ships with.
+--   Protect default routes     stops edits to the routes the app needs to run
+--   Reload scheduler settings  applies a scheduler.* setting change to the live scheduler
+INSERT INTO business_rules
+    (name, collection, run_when, on_insert, on_update, on_delete, condition, script, order_no) VALUES
+  ('Protect default routes', 'routes', 'before', TRUE, TRUE, TRUE, '(previous !== null && previous.getValue(''is_default'') == ''true'') || current.getValue(''is_default'') == ''true''',
+   $js$current.setAbortAction(true);$js$, 10),
+  ('Reload scheduler settings', 'app_properties', 'async', TRUE, TRUE, FALSE, 'String(current.getValue(''name'')).indexOf(''scheduler.'') === 0',
+   $js$if (typeof Scheduler !== 'undefined') { Scheduler.reload(); }$js$, 100);

@@ -11,7 +11,7 @@ A route that ships with code goes in a Flyway migration, as a default route.
 Give it a `sort_order` above any wildcard that would swallow it.
 
 ```sql
--- db/V9__add_user_profile_route.sql
+-- db/V6__add_user_profile_route.sql
 INSERT INTO routes
     (path, methods, type, handler, handler_method, path_params, content_type, description,
      sort_order, is_default)

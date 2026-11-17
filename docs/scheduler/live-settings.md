@@ -8,8 +8,8 @@ A business rule on `app_properties` watches every `scheduler.*` row. When one is
 inserted or updated, the rule calls `Scheduler.reload()`. The scheduler on that node
 reads its settings again and applies them.
 
-The rule is `Reload scheduler settings`, seeded by migration `V23`. Migration `V24` makes
-it an [async rule](../scripting/async-business-rules.md), so it runs on a scheduler
+The rule is `Reload scheduler settings`, seeded by `V4__scripting.sql`. It is
+an [async rule](../scripting/async-business-rules.md), so it runs on a scheduler
 worker and never inside the request that changed the setting. Its condition and script:
 
 ```javascript

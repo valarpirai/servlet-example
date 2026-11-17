@@ -88,7 +88,7 @@ db:
 ```
 
 Every other property lives in the `app_properties` table, seeded by
-`db/V2__seed_app_properties.sql`. Lookup order is LRU cache, then the table,
+`db/V1__app_properties.sql`. Lookup order is LRU cache, then the table,
 then YAML.
 
 On startup Flyway applies pending migrations and the app switches to DB-backed
