@@ -2,6 +2,8 @@ package com.example.processor;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.example.module.ModuleManager;
+import com.example.repository.ApiScriptRepository;
 import com.google.gson.JsonObject;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +18,7 @@ class ApiScriptProcessorTest {
   @BeforeEach
   void setUp() {
     db = new FakeScriptDb();
-    processor = new ApiScriptProcessor(db);
+    processor = new ApiScriptProcessor(new ApiScriptRepository(db), new ModuleManager(db));
   }
 
   private Map<String, Object> call(String endpoint, String method, JsonObject body) {

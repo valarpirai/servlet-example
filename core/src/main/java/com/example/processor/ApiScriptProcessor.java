@@ -1,15 +1,12 @@
 package com.example.processor;
 
-import com.example.config.Database;
-import com.example.config.DbPropertiesLoader;
 import com.example.module.ModuleManager;
-import com.example.record.TableRecord;
+import com.example.repository.ApiScriptRepository;
 import com.example.script.ScriptExecutor;
 import com.example.script.ScriptModuleLoader;
 import com.example.util.JsonConverter;
 import com.example.util.JsonUtil;
 import com.google.gson.JsonObject;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.mozilla.javascript.Context;
@@ -23,26 +20,26 @@ import org.mozilla.javascript.Scriptable;
 public class ApiScriptProcessor {
 
   private static final String DEFAULT_HANDLER = "httpHandler";
-  private static final String API_SCRIPTS = "api_scripts";
 
-  private final Database database;
+  private final ApiScriptRepository repository;
   private final ScriptExecutor scriptExecutor = new ScriptExecutor();
   private final ScriptModuleLoader moduleLoader;
 
   /** Creates a processor on the application database, looked up on first use. */
   public ApiScriptProcessor() {
-    this.database = null;
+    this.repository = new ApiScriptRepository(null);
     this.moduleLoader = new ScriptModuleLoader(ModuleManager.getInstance());
   }
 
   /**
-   * Creates a processor on a fixed database.
+   * Creates a processor on given script and module sources.
    *
-   * @param database database holding api_scripts and modules
+   * @param repository source of the api_scripts rows
+   * @param modules source of the js_modules rows
    */
-  public ApiScriptProcessor(Database database) {
-    this.database = database;
-    this.moduleLoader = new ScriptModuleLoader(new ModuleManager(database));
+  public ApiScriptProcessor(ApiScriptRepository repository, ModuleManager modules) {
+    this.repository = repository;
+    this.moduleLoader = new ScriptModuleLoader(modules);
   }
 
   /**
@@ -134,15 +131,7 @@ public class ApiScriptProcessor {
 
   /** Reads one endpoint script. Returns null when no row has that name. */
   private String loadEndpoint(String endpointName) throws Exception {
-    Database db = database != null ? database : DbPropertiesLoader.getDatabase();
-    if (db == null) {
-      throw new IOException("API scripts are stored in the database, which is not ready");
-    }
-    TableRecord script = new TableRecord(db, API_SCRIPTS);
-    script.addQuery("name", endpointName);
-    script.setLimit(1);
-    script.query();
-    return script.next() ? script.getValue("content") : null;
+    return repository.findContent(endpointName).orElse(null);
   }
 
   /** Execute the JavaScript handler with request/response objects. */

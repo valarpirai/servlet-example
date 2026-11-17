@@ -3,8 +3,10 @@ package com.example.handler;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.example.module.ModuleManager;
 import com.example.processor.ApiScriptProcessor;
 import com.example.processor.FakeScriptDb;
+import com.example.repository.ApiScriptRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
@@ -33,7 +35,8 @@ class ApiHandlerTest {
   void setUp() throws IOException {
     MockitoAnnotations.openMocks(this);
     db = new FakeScriptDb();
-    handler = new ApiHandler(new ApiScriptProcessor(db));
+    handler =
+        new ApiHandler(new ApiScriptProcessor(new ApiScriptRepository(db), new ModuleManager(db)));
     responseWriter = new StringWriter();
     when(response.getWriter()).thenReturn(new PrintWriter(responseWriter));
   }
