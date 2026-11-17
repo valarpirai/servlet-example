@@ -7,6 +7,8 @@ import com.example.util.CorrelationIdFilter;
 import com.example.util.JsonUtil;
 import com.example.util.RuntimeMetrics;
 import com.example.util.StructuredLogger;
+import com.example.view.HealthView;
+import com.example.view.MetricsView;
 import com.example.view.ResponseHelper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -228,14 +230,11 @@ public class RouterServlet extends HttpServlet {
       response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
     }
 
-    out.print(
-        String.format(
-            "{\"status\":\"%s\",\"timestamp\":%d,\"uptime\":\"%d ms\"}",
-            status, System.currentTimeMillis(), uptime));
+    out.print(HealthView.json(status, System.currentTimeMillis(), uptime));
   }
 
   /** Handle /metrics endpoint - called for builtin routes */
   private void handleMetrics(PrintWriter out) {
-    out.print(JsonUtil.toJson(Map.of("metrics", RuntimeMetrics.snapshot(requestCount.get()))));
+    out.print(MetricsView.json(RuntimeMetrics.snapshot(requestCount.get())));
   }
 }
