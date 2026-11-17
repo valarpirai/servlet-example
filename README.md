@@ -34,76 +34,47 @@ The app does not start without a database. See
 
 ```
 servlet-example/
-├── pom.xml                     (app: what it needs, no versions)
+├── pom.xml                     (lists the four modules, builds nothing)
+├── common/                     (exceptions, models, JsonUtil, JsonConverter)
+├── core/                       (database, properties, tables, scripting, logging)
+│   └── src/main/
+│       ├── java/com/example/
+│       │   ├── config/         (DbConfig, Database, DbPropertiesLoader)
+│       │   ├── repository/     (PropertyRepository)
+│       │   ├── record/         (TableRecord, business rules)
+│       │   ├── script/  module/  security/   (Rhino sandbox)
+│       │   ├── processor/      (ApiScriptProcessor)
+│       │   └── util/           (StructuredLogger, PropertiesUtil, LoggingConfig)
+│       └── resources/
+│           ├── application.yml
+│           ├── logback.xml
+│           └── db/             (Flyway migrations)
+├── scheduler/                  (scheduler/, job repositories)
+├── web/                        (HTTP layer, builds the executable JAR)
+│   └── src/main/
+│       ├── java/com/example/
+│       │   ├── Main.java
+│       │   ├── servlet/  route/  handler/  processor/
+│       │   ├── storage/  datasource/  extlib/  mongo/  tableapi/
+│       │   └── util/           (request and response helpers, metrics)
+│       └── resources/
+│           ├── META-INF/services/   (DataSourceStrategy registrations)
+│           ├── templates/
+│           └── static/
 ├── shared-build/               (all versions and build conventions)
 │   ├── pom.xml                 (compiler, plugin versions, conventions)
 │   └── catalog/
 │       ├── thirdparty/pom.xml  (third-party versions)
-│       └── internal/pom.xml    (internal/forked artifact versions)
+│       └── internal/pom.xml    (versions of our own modules)
 ├── data/                       (runtime state, gitignored)
 │   ├── attachments/            (chunked file storage, filesystem backend)
 │   ├── modules/                (user-created JavaScript modules)
 │   └── extlib/                 (JDBC driver jars, downloaded on demand)
-├── docs/                       (see docs/readme.md)
-│   ├── architecture/  routing/  storage/  scripting/
-│   ├── data-browser/  observability/  build/
-│   └── development/  troubleshooting/
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── com/
-│       │       └── example/
-│       │           ├── Main.java
-│       │           ├── servlet/        (RouterServlet entry point)
-│       │           ├── route/          (Declarative routing)
-│       │           │   ├── RouteRegistry.java
-│       │           │   └── RouteDispatcher.java
-│       │           ├── handler/        (Singleton handlers)
-│       │           │   ├── ApiHandler.java
-│       │           │   ├── AttachmentHandler.java
-│       │           │   ├── DataBrowserHandler.java
-│       │           │   └── MongoHandler.java
-│       │           ├── processor/      (Request processors)
-│       │           │   ├── IRequestProcessor.java
-│       │           │   ├── ScriptProcessor.java
-│       │           │   ├── ApiScriptProcessor.java
-│       │           │   └── FileUploadProcessor.java
-│       │           ├── storage/        (Chunked file storage)
-│       │           │   ├── AttachmentManager.java
-│       │           │   ├── LocalFileSystemStorage.java
-│       │           │   ├── DatabaseAttachmentStorage.java
-│       │           │   └── ChunkedOutputStream.java
-│       │           ├── config/         (DB config, jOOQ wrapper, Flyway, properties)
-│       │           │   ├── DbConfig.java
-│       │           │   ├── Database.java         (jOOQ query/transact wrapper)
-│       │           │   ├── DbPropertiesLoader.java
-│       │           │   └── PropertyRepository.java
-│       │           ├── datasource/     (Database browser connection strategies)
-│       │           ├── script/         (Rhino execution internals)
-│       │           ├── security/       (ClassShutter sandbox)
-│       │           ├── module/
-│       │           │   ├── ModuleManager.java
-│       │           │   └── ModuleDependencyResolver.java
-│       │           ├── extlib/         (Dynamic JDBC driver loading)
-│       │           ├── mongo/          (MongoDB via reflection)
-│       │           ├── model/          (Shared domain models)
-│       │           ├── exception/
-│       │           └── util/
-│       │               ├── JsonUtil.java
-│       │               ├── PropertiesUtil.java
-│       │               └── StructuredLogger.java
-│       └── resources/
-│           ├── application.yml
-│           ├── db/                     (Flyway migrations)
-│           │   ├── V1__create_app_properties.sql
-│           │   ├── V2__seed_app_properties.sql
-│           │   └── V3__create_attachments.sql
-│           ├── META-INF/services/      (DataSourceStrategy SPI registrations)
-│           └── static/
-│               ├── index.html
-│               ├── script-editor.html
-│               └── data-browser.html
+└── docs/                       (see docs/readme.md)
 ```
+
+Dependencies run one way: `common` ← `core` ← `scheduler` ← `web`.
+See [docs/architecture/modules.md](docs/architecture/modules.md).
 
 ## Configuration
 
@@ -141,7 +112,7 @@ Those are the only two mechanisms. Rules and reasons in
 ### Build the executable JAR
 
 ```bash
-mvn clean package
+mvn clean package    # all modules; the JAR lands in web/target/
 ```
 
 ### Run the application
@@ -151,10 +122,12 @@ mvn clean package
 java -jar web/target/servlet-example.jar
 ```
 
-**Development mode:**
+**Development mode (from the repo root):**
 ```bash
 mvn -PappRun
 ```
+
+Test one module: `mvn test -pl core -am`.
 
 Confirm it came up:
 ```bash
