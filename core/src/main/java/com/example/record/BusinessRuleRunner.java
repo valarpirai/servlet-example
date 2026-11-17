@@ -4,12 +4,10 @@ import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
 
 import com.example.config.Database;
-import com.example.module.ModuleManager;
-import com.example.script.ScriptExecutor;
-import com.example.script.ScriptModuleLoader;
 import com.example.util.PropertiesUtil;
 import java.io.IOException;
 import java.util.List;
+import java.util.ServiceLoader;
 import org.jooq.Field;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ScriptableObject;
@@ -44,7 +42,19 @@ class BusinessRuleRunner {
   private static final Field<String> SCRIPT = field("script", String.class);
 
   private final Database database;
-  private final ScriptExecutor executor = new ScriptExecutor();
+  private final RuleScriptEngine engine = engine();
+
+  private static volatile RuleScriptEngine sharedEngine;
+
+  private static RuleScriptEngine engine() {
+    if (sharedEngine == null) {
+      sharedEngine =
+          ServiceLoader.load(RuleScriptEngine.class)
+              .findFirst()
+              .orElseThrow(() -> new IllegalStateException("No rule script engine is registered"));
+    }
+    return sharedEngine;
+  }
 
   BusinessRuleRunner(Database database) {
     this.database = database;
@@ -181,8 +191,8 @@ class BusinessRuleRunner {
     if (condition == null || condition.isBlank()) {
       return true;
     }
-    ScriptExecutor.ScriptExecutionResult result =
-        executor.execute(
+    RuleScriptEngine.Outcome result =
+        engine.evaluate(
             "(" + condition + ") ? true : false",
             (scope, cx) -> bind(scope, cx, current, previous));
     if (!result.isSuccess()) {
@@ -221,12 +231,12 @@ class BusinessRuleRunner {
     boolean hasCondition = condition != null && !condition.isBlank();
     String source = hasCondition ? "if (" + condition + ") {\n" + script + "\n}" : script;
     try {
-      source = new ScriptModuleLoader(new ModuleManager(database)).prepareWithModules(source);
+      source = engine.prepareModules(source, database);
     } catch (IOException e) {
       throw new IllegalStateException("Business rule '" + name + "' failed: " + e.getMessage(), e);
     }
-    ScriptExecutor.ScriptExecutionResult result =
-        executor.execute(source, (scope, cx) -> bind(scope, cx, current, previous));
+    RuleScriptEngine.Outcome result =
+        engine.evaluate(source, (scope, cx) -> bind(scope, cx, current, previous));
     if (!result.isSuccess()) {
       throw new IllegalStateException(
           "Business rule '" + name + "' failed: " + result.getMessage(), result.getThrowable());
